@@ -136,7 +136,7 @@ LIBPATH		=
 # standard paths
 INCPATH		=
 # garbage files that should be deleted on a 'make clean' or 'make tidy'
-GARBAGE		=	obj/musashi/m68kmake obj/musashi/m68kmake.exe obj/musashi/m68kmake.o
+GARBAGE		=	obj/musashi/m68kmake obj/musashi/m68kmake.o
 
 # extra dependencies - files that we don't necessarily know how to build, but
 # that are required for building the application; e.g. object files or
