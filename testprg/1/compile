@@ -1,0 +1,10 @@
+#!/bin/sh
+ARCH=m68k-linux-gnu
+D=/usr/bin
+OPT=-m68000
+CC=$D/$ARCH-gcc
+
+$CC $OPT -c crt0.S || exit 1
+#$CC $OPT -c -v -Wl,--trace -O0 test.c || exit 1
+#$CC $OPT -c -v -Wl -O0 test.c -o test.o || exit 1
+$CC $OPT -c -v -save-temps -o test.o test.c

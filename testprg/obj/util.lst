@@ -1,0 +1,818 @@
+   1              		.file	"util.c"
+   2              		.text
+   3              	.Ltext0:
+   4              		.globl	kbhit
+   6              	kbhit:
+   7              	.LFB2:
+   8              		.file 1 "util.c"
+   1:util.c        **** /***************************************************************************
+   2:util.c        ****  *            util.c
+   3:util.c        ****  *
+   4:util.c        ****  *  Tue November 22 21:23:11 2011
+   5:util.c        ****  *  Copyright  2011  Unknown
+   6:util.c        ****  *  <user@host>
+   7:util.c        ****  ****************************************************************************/
+   8:util.c        **** /*
+   9:util.c        ****  * util.c
+  10:util.c        ****  *
+  11:util.c        ****  * Copyright (C) 2011 - Unknown
+  12:util.c        ****  *
+  13:util.c        ****  * This program is free software; you can redistribute it and/or modify
+  14:util.c        ****  * it under the terms of the GNU General Public License as published by
+  15:util.c        ****  * the Free Software Foundation; either version 2 of the License, or
+  16:util.c        ****  * (at your option) any later version.
+  17:util.c        ****  *
+  18:util.c        ****  * This program is distributed in the hope that it will be useful,
+  19:util.c        ****  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  20:util.c        ****  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  21:util.c        ****  * GNU General Public License for more details.
+  22:util.c        ****  *
+  23:util.c        ****  * You should have received a copy of the GNU General Public License
+  24:util.c        ****  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+  25:util.c        ****  */
+  26:util.c        **** 
+  27:util.c        **** 
+  28:util.c        **** #include <stdio.h>
+  29:util.c        **** #include <stdlib.h>
+  30:util.c        **** #ifndef eagle
+  31:util.c        **** #include <sys/time.h>
+  32:util.c        **** #include <sys/types.h>
+  33:util.c        **** #include <sys/stat.h>
+  34:util.c        **** #include <termios.h>
+  35:util.c        **** #include <unistd.h>
+  36:util.c        **** #endif
+  37:util.c        **** 
+  38:util.c        **** /*#include <stdlib.h>*/
+  39:util.c        **** #include <string.h>
+  40:util.c        **** #include <ctype.h>
+  41:util.c        **** #include "util.h"
+  42:util.c        **** 
+  43:util.c        **** #ifdef eagle
+  44:util.c        **** 
+  45:util.c        **** #define SCC_A_CMD  0x600004
+  46:util.c        **** #define SCC_A_DATA 0x600006
+  47:util.c        **** 
+  48:util.c        **** char getch(void)
+  49:util.c        **** {
+  50:util.c        ****   volatile char * cmd = (char *)SCC_A_CMD;
+  51:util.c        ****   volatile char * data = (char *)SCC_A_DATA;
+  52:util.c        **** 
+  53:util.c        ****   // wait for char available
+  54:util.c        ****   while (!(*cmd & 0x01)) {};
+  55:util.c        ****   return(*data);
+  56:util.c        **** }
+  57:util.c        **** 
+  58:util.c        **** 
+  59:util.c        **** 
+  60:util.c        **** int kbhit(void)
+  61:util.c        **** {
+  62:util.c        ****     volatile char * cmd = (char *)SCC_A_CMD;
+  63:util.c        ****     if (*cmd & 0x01) return 1;
+  64:util.c        ****     else return 0;
+  65:util.c        **** }
+  66:util.c        **** 
+  67:util.c        **** void kb_raw(void) {}
+  68:util.c        **** void kb_normal(void) {}
+  69:util.c        **** 
+  70:util.c        **** #else
+  71:util.c        **** 
+  72:util.c        **** 
+  73:util.c        **** int kbhit(void)
+  74:util.c        **** {
+   9              		.loc 1 74 0
+  10              		.cfi_startproc
+  11 0000 55       		pushq	%rbp
+  12              		.cfi_def_cfa_offset 16
+  13              		.cfi_offset 6, -16
+  14 0001 4889E5   		movq	%rsp, %rbp
+  15              		.cfi_def_cfa_register 6
+  16 0004 4881ECA0 		subq	$160, %rsp
+  16      000000
+  75:util.c        ****     struct timeval tv;
+  76:util.c        ****     fd_set fds;
+  77:util.c        ****     tv.tv_sec = 0;
+  17              		.loc 1 77 0
+  18 000b 48C745E0 		movq	$0, -32(%rbp)
+  18      00000000 
+  78:util.c        ****     tv.tv_usec = 0;
+  19              		.loc 1 78 0
+  20 0013 48C745E8 		movq	$0, -24(%rbp)
+  20      00000000 
+  21              	.LBB2:
+  79:util.c        ****     FD_ZERO(&fds);
+  22              		.loc 1 79 0
+  23 001b B8000000 		movl	$0, %eax
+  23      00
+  24 0020 B9100000 		movl	$16, %ecx
+  24      00
+  25 0025 488D9560 		leaq	-160(%rbp), %rdx
+  25      FFFFFF
+  26 002c 4889D7   		movq	%rdx, %rdi
+  27              	#APP
+  28              	# 79 "util.c" 1
+  80              	    FD_SET(STDIN_FILENO, &fds);
+  29              		cld; rep; stosq
+  30              	# 0 "" 2
+  31              	#NO_APP
+  32 0033 89F8     		movl	%edi, %eax
+  33 0035 89CA     		movl	%ecx, %edx
+  34 0037 8955FC   		movl	%edx, -4(%rbp)
+  35 003a 8945F8   		movl	%eax, -8(%rbp)
+  36              	.LBE2:
+  37              		.loc 1 80 0
+  38 003d 488B8560 		movq	-160(%rbp), %rax
+  38      FFFFFF
+  39 0044 4883C801 		orq	$1, %rax
+  40 0048 48898560 		movq	%rax, -160(%rbp)
+  40      FFFFFF
+  81:util.c        ****     select(STDIN_FILENO+1, &fds, NULL, NULL, &tv);
+  41              		.loc 1 81 0
+  42 004f 488D55E0 		leaq	-32(%rbp), %rdx
+  43 0053 488D8560 		leaq	-160(%rbp), %rax
+  43      FFFFFF
+  44 005a 4989D0   		movq	%rdx, %r8
+  45 005d B9000000 		movl	$0, %ecx
+  45      00
+  46 0062 BA000000 		movl	$0, %edx
+  46      00
+  47 0067 4889C6   		movq	%rax, %rsi
+  48 006a BF010000 		movl	$1, %edi
+  48      00
+  49 006f E8000000 		call	select
+  49      00
+  82:util.c        ****     return FD_ISSET(STDIN_FILENO, &fds);
+  50              		.loc 1 82 0
+  51 0074 488B8560 		movq	-160(%rbp), %rax
+  51      FFFFFF
+  52 007b 83E001   		andl	$1, %eax
+  53 007e 4885C0   		testq	%rax, %rax
+  54 0081 0F95C0   		setne	%al
+  55 0084 0FB6C0   		movzbl	%al, %eax
+  83:util.c        **** }
+  56              		.loc 1 83 0
+  57 0087 C9       		leave
+  58              		.cfi_def_cfa 7, 8
+  59 0088 C3       		ret
+  60              		.cfi_endproc
+  61              	.LFE2:
+  63              		.globl	kb_raw
+  65              	kb_raw:
+  66              	.LFB3:
+  84:util.c        **** 
+  85:util.c        **** void kb_raw(void)
+  86:util.c        **** {
+  67              		.loc 1 86 0
+  68              		.cfi_startproc
+  69 0089 55       		pushq	%rbp
+  70              		.cfi_def_cfa_offset 16
+  71              		.cfi_offset 6, -16
+  72 008a 4889E5   		movq	%rsp, %rbp
+  73              		.cfi_def_cfa_register 6
+  74 008d 4883EC40 		subq	$64, %rsp
+  87:util.c        ****     struct termios ttystate;
+  88:util.c        **** 
+  89:util.c        ****     tcgetattr(STDIN_FILENO, &ttystate);
+  75              		.loc 1 89 0
+  76 0091 488D45C0 		leaq	-64(%rbp), %rax
+  77 0095 4889C6   		movq	%rax, %rsi
+  78 0098 BF000000 		movl	$0, %edi
+  78      00
+  79 009d E8000000 		call	tcgetattr
+  79      00
+  90:util.c        **** 	ttystate.c_lflag &= ~ICANON;
+  80              		.loc 1 90 0
+  81 00a2 8B45CC   		movl	-52(%rbp), %eax
+  82 00a5 83E0FD   		andl	$-3, %eax
+  83 00a8 8945CC   		movl	%eax, -52(%rbp)
+  91:util.c        **** 	ttystate.c_lflag &= ~ECHO;
+  84              		.loc 1 91 0
+  85 00ab 8B45CC   		movl	-52(%rbp), %eax
+  86 00ae 83E0F7   		andl	$-9, %eax
+  87 00b1 8945CC   		movl	%eax, -52(%rbp)
+  92:util.c        **** 	ttystate.c_lflag &= ~ISIG;
+  88              		.loc 1 92 0
+  89 00b4 8B45CC   		movl	-52(%rbp), %eax
+  90 00b7 83E0FE   		andl	$-2, %eax
+  91 00ba 8945CC   		movl	%eax, -52(%rbp)
+  93:util.c        **** 	ttystate.c_cc[VMIN] = 1; /* minimum of number input read */
+  92              		.loc 1 93 0
+  93 00bd C645D701 		movb	$1, -41(%rbp)
+  94:util.c        ****     tcsetattr(STDIN_FILENO, TCSANOW, &ttystate);
+  94              		.loc 1 94 0
+  95 00c1 488D45C0 		leaq	-64(%rbp), %rax
+  96 00c5 4889C2   		movq	%rax, %rdx
+  97 00c8 BE000000 		movl	$0, %esi
+  97      00
+  98 00cd BF000000 		movl	$0, %edi
+  98      00
+  99 00d2 E8000000 		call	tcsetattr
+  99      00
+  95:util.c        **** }
+ 100              		.loc 1 95 0
+ 101 00d7 C9       		leave
+ 102              		.cfi_def_cfa 7, 8
+ 103 00d8 C3       		ret
+ 104              		.cfi_endproc
+ 105              	.LFE3:
+ 107              		.globl	kb_normal
+ 109              	kb_normal:
+ 110              	.LFB4:
+  96:util.c        **** 
+  97:util.c        **** 
+  98:util.c        **** void kb_normal(void)
+  99:util.c        **** {
+ 111              		.loc 1 99 0
+ 112              		.cfi_startproc
+ 113 00d9 55       		pushq	%rbp
+ 114              		.cfi_def_cfa_offset 16
+ 115              		.cfi_offset 6, -16
+ 116 00da 4889E5   		movq	%rsp, %rbp
+ 117              		.cfi_def_cfa_register 6
+ 118 00dd 4883EC40 		subq	$64, %rsp
+ 100:util.c        **** 	struct termios ttystate;
+ 101:util.c        **** 
+ 102:util.c        **** 	tcgetattr(STDIN_FILENO, &ttystate);
+ 119              		.loc 1 102 0
+ 120 00e1 488D45C0 		leaq	-64(%rbp), %rax
+ 121 00e5 4889C6   		movq	%rax, %rsi
+ 122 00e8 BF000000 		movl	$0, %edi
+ 122      00
+ 123 00ed E8000000 		call	tcgetattr
+ 123      00
+ 103:util.c        **** 	ttystate.c_lflag |= ICANON;
+ 124              		.loc 1 103 0
+ 125 00f2 8B45CC   		movl	-52(%rbp), %eax
+ 126 00f5 83C802   		orl	$2, %eax
+ 127 00f8 8945CC   		movl	%eax, -52(%rbp)
+ 104:util.c        **** 	ttystate.c_lflag |= ECHO;
+ 128              		.loc 1 104 0
+ 129 00fb 8B45CC   		movl	-52(%rbp), %eax
+ 130 00fe 83C808   		orl	$8, %eax
+ 131 0101 8945CC   		movl	%eax, -52(%rbp)
+ 105:util.c        **** 	ttystate.c_lflag |= ISIG;
+ 132              		.loc 1 105 0
+ 133 0104 8B45CC   		movl	-52(%rbp), %eax
+ 134 0107 83C801   		orl	$1, %eax
+ 135 010a 8945CC   		movl	%eax, -52(%rbp)
+ 106:util.c        **** 	tcsetattr(STDIN_FILENO, TCSANOW, &ttystate);
+ 136              		.loc 1 106 0
+ 137 010d 488D45C0 		leaq	-64(%rbp), %rax
+ 138 0111 4889C2   		movq	%rax, %rdx
+ 139 0114 BE000000 		movl	$0, %esi
+ 139      00
+ 140 0119 BF000000 		movl	$0, %edi
+ 140      00
+ 141 011e E8000000 		call	tcsetattr
+ 141      00
+ 107:util.c        **** }
+ 142              		.loc 1 107 0
+ 143 0123 C9       		leave
+ 144              		.cfi_def_cfa 7, 8
+ 145 0124 C3       		ret
+ 146              		.cfi_endproc
+ 147              	.LFE4:
+ 149              		.globl	getch
+ 151              	getch:
+ 152              	.LFB5:
+ 108:util.c        **** 
+ 109:util.c        **** 
+ 110:util.c        **** char getch(void)
+ 111:util.c        **** {
+ 153              		.loc 1 111 0
+ 154              		.cfi_startproc
+ 155 0125 55       		pushq	%rbp
+ 156              		.cfi_def_cfa_offset 16
+ 157              		.cfi_offset 6, -16
+ 158 0126 4889E5   		movq	%rsp, %rbp
+ 159              		.cfi_def_cfa_register 6
+ 160 0129 4883EC10 		subq	$16, %rsp
+ 112:util.c        **** 	kb_raw();
+ 161              		.loc 1 112 0
+ 162 012d E8000000 		call	kb_raw
+ 162      00
+ 113:util.c        **** 	char c = fgetc(stdin);
+ 163              		.loc 1 113 0
+ 164 0132 488B0500 		movq	stdin(%rip), %rax
+ 164      000000
+ 165 0139 4889C7   		movq	%rax, %rdi
+ 166 013c E8000000 		call	fgetc
+ 166      00
+ 167 0141 8845FF   		movb	%al, -1(%rbp)
+ 114:util.c        **** 	if (c == 0x0a) c = 0x0d;
+ 168              		.loc 1 114 0
+ 169 0144 807DFF0A 		cmpb	$10, -1(%rbp)
+ 170 0148 7504     		jne	.L6
+ 171              		.loc 1 114 0 is_stmt 0 discriminator 1
+ 172 014a C645FF0D 		movb	$13, -1(%rbp)
+ 173              	.L6:
+ 115:util.c        **** 	kb_normal();
+ 174              		.loc 1 115 0 is_stmt 1
+ 175 014e E8000000 		call	kb_normal
+ 175      00
+ 116:util.c        **** 	return c;
+ 176              		.loc 1 116 0
+ 177 0153 0FB645FF 		movzbl	-1(%rbp), %eax
+ 117:util.c        **** }
+ 178              		.loc 1 117 0
+ 179 0157 C9       		leave
+ 180              		.cfi_def_cfa 7, 8
+ 181 0158 C3       		ret
+ 182              		.cfi_endproc
+ 183              	.LFE5:
+ 185              		.section	.rodata
+ 186              	.LC0:
+ 187 0000 25632025 		.string	"%c %c"
+ 187      6300
+ 188              	.LC1:
+ 189 0006 0D00     		.string	"\r"
+ 190              		.text
+ 191              		.globl	inputString
+ 193              	inputString:
+ 194              	.LFB6:
+ 118:util.c        **** #endif
+ 119:util.c        **** 
+ 120:util.c        **** /* Input string from console, input terminated by
+ 121:util.c        ****  * any char in exitChars */
+ 122:util.c        **** char inputString (char * s, int maxLen, const char * exitChars)
+ 123:util.c        **** {
+ 195              		.loc 1 123 0
+ 196              		.cfi_startproc
+ 197 0159 55       		pushq	%rbp
+ 198              		.cfi_def_cfa_offset 16
+ 199              		.cfi_offset 6, -16
+ 200 015a 4889E5   		movq	%rsp, %rbp
+ 201              		.cfi_def_cfa_register 6
+ 202 015d 4883EC30 		subq	$48, %rsp
+ 203 0161 48897DE8 		movq	%rdi, -24(%rbp)
+ 204 0165 8975E4   		movl	%esi, -28(%rbp)
+ 205 0168 488955D8 		movq	%rdx, -40(%rbp)
+ 124:util.c        **** 	char c;
+ 125:util.c        **** 	int i;
+ 126:util.c        **** 	*s = 0;
+ 206              		.loc 1 126 0
+ 207 016c 488B45E8 		movq	-24(%rbp), %rax
+ 208 0170 C60000   		movb	$0, (%rax)
+ 209              	.L13:
+ 127:util.c        **** 	
+ 128:util.c        **** 	do {
+ 129:util.c        ****       c = getch();
+ 210              		.loc 1 129 0
+ 211 0173 E8000000 		call	getch
+ 211      00
+ 212 0178 8845FF   		movb	%al, -1(%rbp)
+ 130:util.c        **** 	  i = strlen(s);
+ 213              		.loc 1 130 0
+ 214 017b 488B45E8 		movq	-24(%rbp), %rax
+ 215 017f 4889C7   		movq	%rax, %rdi
+ 216 0182 E8000000 		call	strlen
+ 216      00
+ 217 0187 8945F8   		movl	%eax, -8(%rbp)
+ 131:util.c        **** 
+ 132:util.c        **** 	  if ((c == KEY_BS) || (c == KEY_DEL)) {
+ 218              		.loc 1 132 0
+ 219 018a 807DFF08 		cmpb	$8, -1(%rbp)
+ 220 018e 7406     		je	.L9
+ 221              		.loc 1 132 0 is_stmt 0 discriminator 1
+ 222 0190 807DFF7F 		cmpb	$127, -1(%rbp)
+ 223 0194 7537     		jne	.L10
+ 224              	.L9:
+ 133:util.c        **** 		  if (i > 0) { 
+ 225              		.loc 1 133 0 is_stmt 1
+ 226 0196 837DF800 		cmpl	$0, -8(%rbp)
+ 227 019a 7E2F     		jle	.L11
+ 134:util.c        **** 			  i--; printf("%c %c",8,8);
+ 228              		.loc 1 134 0
+ 229 019c 836DF801 		subl	$1, -8(%rbp)
+ 230 01a0 BA080000 		movl	$8, %edx
+ 230      00
+ 231 01a5 BE080000 		movl	$8, %esi
+ 231      00
+ 232 01aa BF000000 		movl	$.LC0, %edi
+ 232      00
+ 233 01af B8000000 		movl	$0, %eax
+ 233      00
+ 234 01b4 E8000000 		call	printf
+ 234      00
+ 135:util.c        **** 			  s[i]=0;
+ 235              		.loc 1 135 0
+ 236 01b9 8B45F8   		movl	-8(%rbp), %eax
+ 237 01bc 4863D0   		movslq	%eax, %rdx
+ 238 01bf 488B45E8 		movq	-24(%rbp), %rax
+ 239 01c3 4801D0   		addq	%rdx, %rax
+ 240 01c6 C60000   		movb	$0, (%rax)
+ 133:util.c        **** 		  if (i > 0) { 
+ 241              		.loc 1 133 0
+ 242 01c9 EB61     		jmp	.L12
+ 243              	.L11:
+ 244 01cb EB5F     		jmp	.L12
+ 245              	.L10:
+ 136:util.c        **** 		  }
+ 137:util.c        **** 	  } else
+ 138:util.c        **** 	  if (!(strchr(exitChars,c)) & (i < maxLen)) {
+ 246              		.loc 1 138 0
+ 247 01cd 0FBE55FF 		movsbl	-1(%rbp), %edx
+ 248 01d1 488B45D8 		movq	-40(%rbp), %rax
+ 249 01d5 89D6     		movl	%edx, %esi
+ 250 01d7 4889C7   		movq	%rax, %rdi
+ 251 01da E8000000 		call	strchr
+ 251      00
+ 252 01df 4885C0   		testq	%rax, %rax
+ 253 01e2 0F94C2   		sete	%dl
+ 254 01e5 8B45F8   		movl	-8(%rbp), %eax
+ 255 01e8 3B45E4   		cmpl	-28(%rbp), %eax
+ 256 01eb 0F9CC0   		setl	%al
+ 257 01ee 21D0     		andl	%edx, %eax
+ 258 01f0 84C0     		testb	%al, %al
+ 259 01f2 7438     		je	.L12
+ 139:util.c        **** 		  if (c >= ' ') {
+ 260              		.loc 1 139 0
+ 261 01f4 807DFF1F 		cmpb	$31, -1(%rbp)
+ 262 01f8 7E32     		jle	.L12
+ 140:util.c        **** 		      s[i] = c; s[++i] = 0;
+ 263              		.loc 1 140 0
+ 264 01fa 8B45F8   		movl	-8(%rbp), %eax
+ 265 01fd 4863D0   		movslq	%eax, %rdx
+ 266 0200 488B45E8 		movq	-24(%rbp), %rax
+ 267 0204 4801C2   		addq	%rax, %rdx
+ 268 0207 0FB645FF 		movzbl	-1(%rbp), %eax
+ 269 020b 8802     		movb	%al, (%rdx)
+ 270 020d 8345F801 		addl	$1, -8(%rbp)
+ 271 0211 8B45F8   		movl	-8(%rbp), %eax
+ 272 0214 4863D0   		movslq	%eax, %rdx
+ 273 0217 488B45E8 		movq	-24(%rbp), %rax
+ 274 021b 4801D0   		addq	%rdx, %rax
+ 275 021e C60000   		movb	$0, (%rax)
+ 141:util.c        **** 		      putchar(c);
+ 276              		.loc 1 141 0
+ 277 0221 0FBE45FF 		movsbl	-1(%rbp), %eax
+ 278 0225 89C7     		movl	%eax, %edi
+ 279 0227 E8000000 		call	putchar
+ 279      00
+ 280              	.L12:
+ 142:util.c        **** 		  }
+ 143:util.c        **** 	  }
+ 144:util.c        **** 	} while (!(strchr(exitChars,c)));
+ 281              		.loc 1 144 0
+ 282 022c 0FBE55FF 		movsbl	-1(%rbp), %edx
+ 283 0230 488B45D8 		movq	-40(%rbp), %rax
+ 284 0234 89D6     		movl	%edx, %esi
+ 285 0236 4889C7   		movq	%rax, %rdi
+ 286 0239 E8000000 		call	strchr
+ 286      00
+ 287 023e 4885C0   		testq	%rax, %rax
+ 288 0241 0F842CFF 		je	.L13
+ 288      FFFF
+ 145:util.c        **** 	switch (c) {
+ 289              		.loc 1 145 0
+ 290 0247 0FBE45FF 		movsbl	-1(%rbp), %eax
+ 291 024b 83F80D   		cmpl	$13, %eax
+ 292 024e 7411     		je	.L15
+ 293 0250 83F820   		cmpl	$32, %eax
+ 294 0253 7517     		jne	.L14
+ 146:util.c        **** 		case ' ': { putchar(' '); break; }
+ 295              		.loc 1 146 0
+ 296 0255 BF200000 		movl	$32, %edi
+ 296      00
+ 297 025a E8000000 		call	putchar
+ 297      00
+ 298 025f EB0B     		jmp	.L14
+ 299              	.L15:
+ 147:util.c        **** 		case 13 : { printf("\r\n"); break; }
+ 300              		.loc 1 147 0
+ 301 0261 BF000000 		movl	$.LC1, %edi
+ 301      00
+ 302 0266 E8000000 		call	puts
+ 302      00
+ 303 026b 90       		nop
+ 304              	.L14:
+ 148:util.c        **** 	}
+ 149:util.c        ****     return c;
+ 305              		.loc 1 149 0
+ 306 026c 0FB645FF 		movzbl	-1(%rbp), %eax
+ 150:util.c        **** }
+ 307              		.loc 1 150 0
+ 308 0270 C9       		leave
+ 309              		.cfi_def_cfa 7, 8
+ 310 0271 C3       		ret
+ 311              		.cfi_endproc
+ 312              	.LFE6:
+ 314              		.section	.rodata
+ 315              	.LC2:
+ 316 0008 0D0A00   		.string	"\r\n"
+ 317              		.text
+ 318              		.globl	readString
+ 320              	readString:
+ 321              	.LFB7:
+ 151:util.c        **** 
+ 152:util.c        **** #define MAXLEN 64
+ 153:util.c        **** char * readString (char * prompt) {
+ 322              		.loc 1 153 0
+ 323              		.cfi_startproc
+ 324 0272 55       		pushq	%rbp
+ 325              		.cfi_def_cfa_offset 16
+ 326              		.cfi_offset 6, -16
+ 327 0273 4889E5   		movq	%rsp, %rbp
+ 328              		.cfi_def_cfa_register 6
+ 329 0276 4883EC20 		subq	$32, %rsp
+ 330 027a 48897DE8 		movq	%rdi, -24(%rbp)
+ 154:util.c        **** 	char * s = malloc(MAXLEN+1);
+ 331              		.loc 1 154 0
+ 332 027e BF410000 		movl	$65, %edi
+ 332      00
+ 333 0283 E8000000 		call	malloc
+ 333      00
+ 334 0288 488945F8 		movq	%rax, -8(%rbp)
+ 155:util.c        **** 	if (s) {
+ 335              		.loc 1 155 0
+ 336 028c 48837DF8 		cmpq	$0, -8(%rbp)
+ 336      00
+ 337 0291 7427     		je	.L19
+ 156:util.c        **** 		printf(prompt);
+ 338              		.loc 1 156 0
+ 339 0293 488B45E8 		movq	-24(%rbp), %rax
+ 340 0297 4889C7   		movq	%rax, %rdi
+ 341 029a B8000000 		movl	$0, %eax
+ 341      00
+ 342 029f E8000000 		call	printf
+ 342      00
+ 157:util.c        **** 		inputString (s,MAXLEN,"\r\n");
+ 343              		.loc 1 157 0
+ 344 02a4 488B45F8 		movq	-8(%rbp), %rax
+ 345 02a8 BA000000 		movl	$.LC2, %edx
+ 345      00
+ 346 02ad BE400000 		movl	$64, %esi
+ 346      00
+ 347 02b2 4889C7   		movq	%rax, %rdi
+ 348 02b5 E8000000 		call	inputString
+ 348      00
+ 349              	.L19:
+ 158:util.c        **** 	}
+ 159:util.c        **** 	return s;
+ 350              		.loc 1 159 0
+ 351 02ba 488B45F8 		movq	-8(%rbp), %rax
+ 160:util.c        **** }
+ 352              		.loc 1 160 0
+ 353 02be C9       		leave
+ 354              		.cfi_def_cfa 7, 8
+ 355 02bf C3       		ret
+ 356              		.cfi_endproc
+ 357              	.LFE7:
+ 359              		.globl	xtoui
+ 361              	xtoui:
+ 362              	.LFB8:
+ 161:util.c        **** 
+ 162:util.c        **** /* returns 1 on succsess */
+ 163:util.c        **** int xtoui(const char* xs, unsigned int* result)
+ 164:util.c        **** {
+ 363              		.loc 1 164 0
+ 364              		.cfi_startproc
+ 365 02c0 55       		pushq	%rbp
+ 366              		.cfi_def_cfa_offset 16
+ 367              		.cfi_offset 6, -16
+ 368 02c1 4889E5   		movq	%rsp, %rbp
+ 369              		.cfi_def_cfa_register 6
+ 370 02c4 4883EC30 		subq	$48, %rsp
+ 371 02c8 48897DD8 		movq	%rdi, -40(%rbp)
+ 372 02cc 488975D0 		movq	%rsi, -48(%rbp)
+ 165:util.c        ****  size_t szlen = strlen(xs);
+ 373              		.loc 1 165 0
+ 374 02d0 488B45D8 		movq	-40(%rbp), %rax
+ 375 02d4 4889C7   		movq	%rax, %rdi
+ 376 02d7 E8000000 		call	strlen
+ 376      00
+ 377 02dc 488945E8 		movq	%rax, -24(%rbp)
+ 166:util.c        ****  int i, xv, fact;
+ 167:util.c        **** 
+ 168:util.c        ****  if (szlen > 0)
+ 378              		.loc 1 168 0
+ 379 02e0 48837DE8 		cmpq	$0, -24(%rbp)
+ 379      00
+ 380 02e5 0F840F01 		je	.L22
+ 380      0000
+ 169:util.c        ****  {
+ 170:util.c        ****   if (szlen>8) return 0; /* limut to 32 bit */
+ 381              		.loc 1 170 0
+ 382 02eb 48837DE8 		cmpq	$8, -24(%rbp)
+ 382      08
+ 383 02f0 760A     		jbe	.L23
+ 384              		.loc 1 170 0 is_stmt 0 discriminator 1
+ 385 02f2 B8000000 		movl	$0, %eax
+ 385      00
+ 386 02f7 E90A0100 		jmp	.L24
+ 386      00
+ 387              	.L23:
+ 171:util.c        **** 
+ 172:util.c        ****   *result = 0;
+ 388              		.loc 1 172 0 is_stmt 1
+ 389 02fc 488B45D0 		movq	-48(%rbp), %rax
+ 390 0300 C7000000 		movl	$0, (%rax)
+ 390      0000
+ 173:util.c        ****   fact = 1;
+ 391              		.loc 1 173 0
+ 392 0306 C745F401 		movl	$1, -12(%rbp)
+ 392      000000
+ 174:util.c        **** 
+ 175:util.c        ****   for(i=szlen-1; i>=0 ;i--)
+ 393              		.loc 1 175 0
+ 394 030d 488B45E8 		movq	-24(%rbp), %rax
+ 395 0311 83E801   		subl	$1, %eax
+ 396 0314 8945FC   		movl	%eax, -4(%rbp)
+ 397 0317 E9D20000 		jmp	.L25
+ 397      00
+ 398              	.L31:
+ 176:util.c        ****   {
+ 177:util.c        ****    if (isxdigit(*(xs+i)))
+ 399              		.loc 1 177 0
+ 400 031c E8000000 		call	__ctype_b_loc
+ 400      00
+ 401 0321 488B00   		movq	(%rax), %rax
+ 402 0324 8B55FC   		movl	-4(%rbp), %edx
+ 403 0327 4863CA   		movslq	%edx, %rcx
+ 404 032a 488B55D8 		movq	-40(%rbp), %rdx
+ 405 032e 4801CA   		addq	%rcx, %rdx
+ 406 0331 0FB612   		movzbl	(%rdx), %edx
+ 407 0334 480FBED2 		movsbq	%dl, %rdx
+ 408 0338 4801D2   		addq	%rdx, %rdx
+ 409 033b 4801D0   		addq	%rdx, %rax
+ 410 033e 0FB700   		movzwl	(%rax), %eax
+ 411 0341 0FB7C0   		movzwl	%ax, %eax
+ 412 0344 25001000 		andl	$4096, %eax
+ 412      00
+ 413 0349 85C0     		testl	%eax, %eax
+ 414 034b 0F849200 		je	.L26
+ 414      0000
+ 178:util.c        ****    {
+ 179:util.c        ****     if (*(xs+i)>='a') xv = ( *(xs+i) - 'a') + 10;
+ 415              		.loc 1 179 0
+ 416 0351 8B45FC   		movl	-4(%rbp), %eax
+ 417 0354 4863D0   		movslq	%eax, %rdx
+ 418 0357 488B45D8 		movq	-40(%rbp), %rax
+ 419 035b 4801D0   		addq	%rdx, %rax
+ 420 035e 0FB600   		movzbl	(%rax), %eax
+ 421 0361 3C60     		cmpb	$96, %al
+ 422 0363 7E1B     		jle	.L27
+ 423              		.loc 1 179 0 is_stmt 0 discriminator 1
+ 424 0365 8B45FC   		movl	-4(%rbp), %eax
+ 425 0368 4863D0   		movslq	%eax, %rdx
+ 426 036b 488B45D8 		movq	-40(%rbp), %rax
+ 427 036f 4801D0   		addq	%rdx, %rax
+ 428 0372 0FB600   		movzbl	(%rax), %eax
+ 429 0375 0FBEC0   		movsbl	%al, %eax
+ 430 0378 83E857   		subl	$87, %eax
+ 431 037b 8945F8   		movl	%eax, -8(%rbp)
+ 432 037e EB48     		jmp	.L28
+ 433              	.L27:
+ 180:util.c        ****     else if ( *(xs+i) >= 'A') xv = (*(xs+i) - 'A') + 10;
+ 434              		.loc 1 180 0 is_stmt 1
+ 435 0380 8B45FC   		movl	-4(%rbp), %eax
+ 436 0383 4863D0   		movslq	%eax, %rdx
+ 437 0386 488B45D8 		movq	-40(%rbp), %rax
+ 438 038a 4801D0   		addq	%rdx, %rax
+ 439 038d 0FB600   		movzbl	(%rax), %eax
+ 440 0390 3C40     		cmpb	$64, %al
+ 441 0392 7E1B     		jle	.L29
+ 442              		.loc 1 180 0 is_stmt 0 discriminator 1
+ 443 0394 8B45FC   		movl	-4(%rbp), %eax
+ 444 0397 4863D0   		movslq	%eax, %rdx
+ 445 039a 488B45D8 		movq	-40(%rbp), %rax
+ 446 039e 4801D0   		addq	%rdx, %rax
+ 447 03a1 0FB600   		movzbl	(%rax), %eax
+ 448 03a4 0FBEC0   		movsbl	%al, %eax
+ 449 03a7 83E837   		subl	$55, %eax
+ 450 03aa 8945F8   		movl	%eax, -8(%rbp)
+ 451 03ad EB19     		jmp	.L28
+ 452              	.L29:
+ 181:util.c        ****     else xv = *(xs+i) - '0';
+ 453              		.loc 1 181 0 is_stmt 1
+ 454 03af 8B45FC   		movl	-4(%rbp), %eax
+ 455 03b2 4863D0   		movslq	%eax, %rdx
+ 456 03b5 488B45D8 		movq	-40(%rbp), %rax
+ 457 03b9 4801D0   		addq	%rdx, %rax
+ 458 03bc 0FB600   		movzbl	(%rax), %eax
+ 459 03bf 0FBEC0   		movsbl	%al, %eax
+ 460 03c2 83E830   		subl	$48, %eax
+ 461 03c5 8945F8   		movl	%eax, -8(%rbp)
+ 462              	.L28:
+ 182:util.c        ****     *result += (xv * fact);
+ 463              		.loc 1 182 0
+ 464 03c8 488B45D0 		movq	-48(%rbp), %rax
+ 465 03cc 8B10     		movl	(%rax), %edx
+ 466 03ce 8B45F8   		movl	-8(%rbp), %eax
+ 467 03d1 0FAF45F4 		imull	-12(%rbp), %eax
+ 468 03d5 01C2     		addl	%eax, %edx
+ 469 03d7 488B45D0 		movq	-48(%rbp), %rax
+ 470 03db 8910     		movl	%edx, (%rax)
+ 183:util.c        ****     fact *= 16;
+ 471              		.loc 1 183 0
+ 472 03dd C165F404 		sall	$4, -12(%rbp)
+ 473 03e1 EB07     		jmp	.L33
+ 474              	.L26:
+ 184:util.c        ****    } else return 0;
+ 475              		.loc 1 184 0
+ 476 03e3 B8000000 		movl	$0, %eax
+ 476      00
+ 477 03e8 EB1C     		jmp	.L24
+ 478              	.L33:
+ 175:util.c        ****   {
+ 479              		.loc 1 175 0 discriminator 2
+ 480 03ea 836DFC01 		subl	$1, -4(%rbp)
+ 481              	.L25:
+ 175:util.c        ****   {
+ 482              		.loc 1 175 0 is_stmt 0 discriminator 1
+ 483 03ee 837DFC00 		cmpl	$0, -4(%rbp)
+ 484 03f2 0F8924FF 		jns	.L31
+ 484      FFFF
+ 485 03f8 EB07     		jmp	.L34
+ 486              	.L22:
+ 185:util.c        ****   }
+ 186:util.c        ****  } else return 0;
+ 487              		.loc 1 186 0 is_stmt 1
+ 488 03fa B8000000 		movl	$0, %eax
+ 488      00
+ 489 03ff EB05     		jmp	.L24
+ 490              	.L34:
+ 187:util.c        ****  return 1;
+ 491              		.loc 1 187 0
+ 492 0401 B8010000 		movl	$1, %eax
+ 492      00
+ 493              	.L24:
+ 188:util.c        **** }
+ 494              		.loc 1 188 0
+ 495 0406 C9       		leave
+ 496              		.cfi_def_cfa 7, 8
+ 497 0407 C3       		ret
+ 498              		.cfi_endproc
+ 499              	.LFE8:
+ 501              		.globl	hexNibble
+ 503              	hexNibble:
+ 504              	.LFB9:
+ 189:util.c        **** 
+ 190:util.c        **** 
+ 191:util.c        **** /* returns hex digit for lower 4 bits */
+ 192:util.c        **** char hexNibble (unsigned int i)
+ 193:util.c        **** {
+ 505              		.loc 1 193 0
+ 506              		.cfi_startproc
+ 507 0408 55       		pushq	%rbp
+ 508              		.cfi_def_cfa_offset 16
+ 509              		.cfi_offset 6, -16
+ 510 0409 4889E5   		movq	%rsp, %rbp
+ 511              		.cfi_def_cfa_register 6
+ 512 040c 897DEC   		movl	%edi, -20(%rbp)
+ 194:util.c        **** 	char digits[16] = "0123456789abcdef";
+ 513              		.loc 1 194 0
+ 514 040f 48B83031 		movabsq	$3978425819141910832, %rax
+ 514      32333435 
+ 514      3637
+ 515 0419 488945F0 		movq	%rax, -16(%rbp)
+ 516 041d 48B83839 		movabsq	$7378413942531504440, %rax
+ 516      61626364 
+ 516      6566
+ 517 0427 488945F8 		movq	%rax, -8(%rbp)
+ 195:util.c        **** 	return digits[i & 0x0f];
+ 518              		.loc 1 195 0
+ 519 042b 8B45EC   		movl	-20(%rbp), %eax
+ 520 042e 83E00F   		andl	$15, %eax
+ 521 0431 89C0     		movl	%eax, %eax
+ 522 0433 0FB64405 		movzbl	-16(%rbp,%rax), %eax
+ 522      F0
+ 196:util.c        **** }
+ 523              		.loc 1 196 0
+ 524 0438 5D       		popq	%rbp
+ 525              		.cfi_def_cfa 7, 8
+ 526 0439 C3       		ret
+ 527              		.cfi_endproc
+ 528              	.LFE9:
+ 530              	.Letext0:
+ 531              		.file 2 "/usr/lib/gcc/x86_64-redhat-linux/4.9.2/include/stddef.h"
+ 532              		.file 3 "/usr/include/bits/types.h"
+ 533              		.file 4 "/usr/include/libio.h"
+ 534              		.file 5 "/usr/include/bits/time.h"
+ 535              		.file 6 "/usr/include/sys/select.h"
+ 536              		.file 7 "/usr/include/bits/termios.h"
+ 537              		.file 8 "/usr/include/ctype.h"
+ 538              		.file 9 "/usr/include/stdio.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 util.c
+     /tmp/ccqcIrdh.s:6      .text:0000000000000000 kbhit
+     /tmp/ccqcIrdh.s:65     .text:0000000000000089 kb_raw
+     /tmp/ccqcIrdh.s:109    .text:00000000000000d9 kb_normal
+     /tmp/ccqcIrdh.s:151    .text:0000000000000125 getch
+     /tmp/ccqcIrdh.s:193    .text:0000000000000159 inputString
+     /tmp/ccqcIrdh.s:320    .text:0000000000000272 readString
+     /tmp/ccqcIrdh.s:361    .text:00000000000002c0 xtoui
+     /tmp/ccqcIrdh.s:503    .text:0000000000000408 hexNibble
+
+UNDEFINED SYMBOLS
+select
+tcgetattr
+tcsetattr
+stdin
+fgetc
+strlen
+printf
+strchr
+putchar
+puts
+malloc
+__ctype_b_loc

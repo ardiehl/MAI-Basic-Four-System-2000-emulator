@@ -1,0 +1,662 @@
+   1               	#NO_APP
+   2               		.file	"eagle-sys.c"
+   3               		.text
+   4               	.Ltext0:
+   5               		.cfi_sections	.debug_frame
+   6               		.align	2
+   7               		.globl	writechar
+   9               	writechar:
+  10               	.LFB0:
+  11               		.file 1 "eagle-sys.c"
+   1:eagle-sys.c   **** /* dummy syscalls for MAI2000 w/o operating system */
+   2:eagle-sys.c   **** 
+   3:eagle-sys.c   **** #include <sys/types.h>
+   4:eagle-sys.c   **** #include <sys/stat.h>
+   5:eagle-sys.c   **** #include <sys/times.h>
+   6:eagle-sys.c   **** #include <errno.h>
+   7:eagle-sys.c   **** #include <errno.h>
+   8:eagle-sys.c   **** 
+   9:eagle-sys.c   **** //#include "sys/systraps.h"
+  10:eagle-sys.c   **** 
+  11:eagle-sys.c   **** 
+  12:eagle-sys.c   **** /*
+  13:eagle-sys.c   ****  only works when console is connected to scc port 0
+  14:eagle-sys.c   **** */
+  15:eagle-sys.c   **** 
+  16:eagle-sys.c   **** #define sccdata 0x600006
+  17:eagle-sys.c   **** #define scccmd 0x600004
+  18:eagle-sys.c   **** 
+  19:eagle-sys.c   **** void writechar(int c) {
+  12               		.loc 1 19 0
+  13               		.cfi_startproc
+  14 0000 4E56 FFF8 		link.w %fp,#-8
+  15               		.cfi_offset 14, -8
+  16               		.cfi_def_cfa 14, 8
+  20:eagle-sys.c   ****   char * data = (char *)sccdata;
+  17               		.loc 1 20 0
+  18 0004 2D7C 0060 		move.l #6291462,-4(%fp)
+  18      0006 FFFC 
+  21:eagle-sys.c   ****   volatile char * cmd = (char *)scccmd;
+  19               		.loc 1 21 0
+  20 000c 2D7C 0060 		move.l #6291460,-8(%fp)
+  20      0004 FFF8 
+  22:eagle-sys.c   ****   // wait for buffer empty
+  23:eagle-sys.c   ****   while (!(*cmd & 0x04)) {};
+  21               		.loc 1 23 0
+  22 0014 4E71      		nop
+  23               	.L2:
+  24               		.loc 1 23 0 is_stmt 0 discriminator 1
+  25 0016 206E FFF8 		move.l -8(%fp),%a0
+  26 001a 1010      		move.b (%a0),%d0
+  27 001c 4880      		ext.w %d0
+  28 001e 48C0      		ext.l %d0
+  29 0020 7204      		moveq #4,%d1
+  30 0022 C081      		and.l %d1,%d0
+  31 0024 4A80      		tst.l %d0
+  32 0026 67EE      		jeq .L2
+  24:eagle-sys.c   ****   *data = (char) c;
+  33               		.loc 1 24 0 is_stmt 1
+  34 0028 202E 0008 		move.l 8(%fp),%d0
+  35 002c 206E FFFC 		move.l -4(%fp),%a0
+  36 0030 1080      		move.b %d0,(%a0)
+  25:eagle-sys.c   ****   return;
+  37               		.loc 1 25 0
+  38 0032 4E71      		nop
+  26:eagle-sys.c   **** }
+  39               		.loc 1 26 0
+  40 0034 4E5E      		unlk %fp
+  41 0036 4E75      		rts
+  42               		.cfi_endproc
+  43               	.LFE0:
+  45               		.align	2
+  46               		.globl	readchar
+  48               	readchar:
+  49               	.LFB1:
+  27:eagle-sys.c   **** 
+  28:eagle-sys.c   **** #define SCC_A_CMD       0x600004
+  29:eagle-sys.c   **** #define SCC_A_DATA      0x600006
+  30:eagle-sys.c   **** 
+  31:eagle-sys.c   **** 
+  32:eagle-sys.c   **** char readchar(void) {
+  50               		.loc 1 32 0
+  51               		.cfi_startproc
+  52 0038 4E56 FFF8 		link.w %fp,#-8
+  53               		.cfi_offset 14, -8
+  54               		.cfi_def_cfa 14, 8
+  33:eagle-sys.c   ****   volatile char * cmd = (char *)SCC_A_CMD;
+  55               		.loc 1 33 0
+  56 003c 2D7C 0060 		move.l #6291460,-4(%fp)
+  56      0004 FFFC 
+  34:eagle-sys.c   ****   volatile char * data = (char *)SCC_A_DATA;
+  57               		.loc 1 34 0
+  58 0044 2D7C 0060 		move.l #6291462,-8(%fp)
+  58      0006 FFF8 
+  35:eagle-sys.c   **** 
+  36:eagle-sys.c   ****   // wait for char available
+  37:eagle-sys.c   ****   while (!(*cmd & 0x01)) {};
+  59               		.loc 1 37 0
+  60 004c 4E71      		nop
+  61               	.L5:
+  62               		.loc 1 37 0 is_stmt 0 discriminator 1
+  63 004e 206E FFFC 		move.l -4(%fp),%a0
+  64 0052 1010      		move.b (%a0),%d0
+  65 0054 4880      		ext.w %d0
+  66 0056 48C0      		ext.l %d0
+  67 0058 7201      		moveq #1,%d1
+  68 005a C081      		and.l %d1,%d0
+  69 005c 4A80      		tst.l %d0
+  70 005e 67EE      		jeq .L5
+  38:eagle-sys.c   ****   return(*data);
+  71               		.loc 1 38 0 is_stmt 1
+  72 0060 206E FFF8 		move.l -8(%fp),%a0
+  73 0064 1010      		move.b (%a0),%d0
+  39:eagle-sys.c   **** }
+  74               		.loc 1 39 0
+  75 0066 4E5E      		unlk %fp
+  76 0068 4E75      		rts
+  77               		.cfi_endproc
+  78               	.LFE1:
+  80               		.align	2
+  81               		.globl	read
+  83               	read:
+  84               	.LFB2:
+  40:eagle-sys.c   **** 
+  41:eagle-sys.c   **** /* AD: we only support console
+  42:eagle-sys.c   ****  * so return every char we have */
+  43:eagle-sys.c   **** int read(int file, char *ptr, int len) {
+  85               		.loc 1 43 0
+  86               		.cfi_startproc
+  87 006a 4E56 0000 		link.w %fp,#0
+  88               		.cfi_offset 14, -8
+  89               		.cfi_def_cfa 14, 8
+  90 006e 2F02      		move.l %d2,-(%sp)
+  91               		.cfi_offset 2, -12
+  44:eagle-sys.c   ****   *ptr++ = readchar();
+  92               		.loc 1 44 0
+  93 0070 242E 000C 		move.l 12(%fp),%d2
+  94 0074 2002      		move.l %d2,%d0
+  95 0076 5280      		addq.l #1,%d0
+  96 0078 2D40 000C 		move.l %d0,12(%fp)
+  97 007c 4EBA FFBA 		jsr readchar
+  98 0080 2042      		move.l %d2,%a0
+  99 0082 1080      		move.b %d0,(%a0)
+  45:eagle-sys.c   ****   return(1);
+ 100               		.loc 1 45 0
+ 101 0084 7001      		moveq #1,%d0
+  46:eagle-sys.c   **** /*  
+  47:eagle-sys.c   ****   int todo;
+  48:eagle-sys.c   ****   printf("read,len=%d\n",len);
+  49:eagle-sys.c   ****   for (todo = len; todo; --todo) {
+  50:eagle-sys.c   ****     *ptr++ = readchar();
+  51:eagle-sys.c   ****   }
+  52:eagle-sys.c   ****   return(len); */
+  53:eagle-sys.c   **** }
+ 102               		.loc 1 53 0
+ 103 0086 242E FFFC 		move.l -4(%fp),%d2
+ 104 008a 4E5E      		unlk %fp
+ 105 008c 4E75      		rts
+ 106               		.cfi_endproc
+ 107               	.LFE2:
+ 109               		.align	2
+ 110               		.globl	lseek
+ 112               	lseek:
+ 113               	.LFB3:
+  54:eagle-sys.c   **** 
+  55:eagle-sys.c   **** int lseek(int file, int ptr, int dir) {
+ 114               		.loc 1 55 0
+ 115               		.cfi_startproc
+ 116 008e 4E56 0000 		link.w %fp,#0
+ 117               		.cfi_offset 14, -8
+ 118               		.cfi_def_cfa 14, 8
+  56:eagle-sys.c   ****   return 0;
+ 119               		.loc 1 56 0
+ 120 0092 7000      		moveq #0,%d0
+  57:eagle-sys.c   **** }
+ 121               		.loc 1 57 0
+ 122 0094 4E5E      		unlk %fp
+ 123 0096 4E75      		rts
+ 124               		.cfi_endproc
+ 125               	.LFE3:
+ 127               		.align	2
+ 128               		.globl	write
+ 130               	write:
+ 131               	.LFB4:
+  58:eagle-sys.c   **** 
+  59:eagle-sys.c   **** int write(int file, char *ptr, int len) {
+ 132               		.loc 1 59 0
+ 133               		.cfi_startproc
+ 134 0098 4E56 FFFC 		link.w %fp,#-4
+ 135               		.cfi_offset 14, -8
+ 136               		.cfi_def_cfa 14, 8
+  60:eagle-sys.c   ****   int todo;
+  61:eagle-sys.c   **** 
+  62:eagle-sys.c   ****   for (todo = len; todo; --todo) {
+ 137               		.loc 1 62 0
+ 138 009c 2D6E 0010 		move.l 16(%fp),-4(%fp)
+ 138      FFFC 
+ 139 00a2 6020      		jra .L12
+ 140               	.L13:
+  63:eagle-sys.c   ****     writechar(*ptr++);
+ 141               		.loc 1 63 0 discriminator 3
+ 142 00a4 202E 000C 		move.l 12(%fp),%d0
+ 143 00a8 2200      		move.l %d0,%d1
+ 144 00aa 5281      		addq.l #1,%d1
+ 145 00ac 2D41 000C 		move.l %d1,12(%fp)
+ 146 00b0 2040      		move.l %d0,%a0
+ 147 00b2 1010      		move.b (%a0),%d0
+ 148 00b4 4880      		ext.w %d0
+ 149 00b6 3040      		move.w %d0,%a0
+ 150 00b8 2F08      		move.l %a0,-(%sp)
+ 151 00ba 4EBA FF44 		jsr writechar
+ 152 00be 588F      		addq.l #4,%sp
+  62:eagle-sys.c   ****     writechar(*ptr++);
+ 153               		.loc 1 62 0 discriminator 3
+ 154 00c0 53AE FFFC 		subq.l #1,-4(%fp)
+ 155               	.L12:
+  62:eagle-sys.c   ****     writechar(*ptr++);
+ 156               		.loc 1 62 0 is_stmt 0 discriminator 1
+ 157 00c4 4AAE FFFC 		tst.l -4(%fp)
+ 158 00c8 66DA      		jne .L13
+  64:eagle-sys.c   ****   }
+  65:eagle-sys.c   ****   return(len);
+ 159               		.loc 1 65 0 is_stmt 1
+ 160 00ca 202E 0010 		move.l 16(%fp),%d0
+  66:eagle-sys.c   **** }
+ 161               		.loc 1 66 0
+ 162 00ce 4E5E      		unlk %fp
+ 163 00d0 4E75      		rts
+ 164               		.cfi_endproc
+ 165               	.LFE4:
+ 167               		.align	2
+ 168               		.globl	close
+ 170               	close:
+ 171               	.LFB5:
+  67:eagle-sys.c   **** 
+  68:eagle-sys.c   **** int close(int file) {
+ 172               		.loc 1 68 0
+ 173               		.cfi_startproc
+ 174 00d2 4E56 0000 		link.w %fp,#0
+ 175               		.cfi_offset 14, -8
+ 176               		.cfi_def_cfa 14, 8
+  69:eagle-sys.c   ****   return(-1);
+ 177               		.loc 1 69 0
+ 178 00d6 70FF      		moveq #-1,%d0
+  70:eagle-sys.c   **** }
+ 179               		.loc 1 70 0
+ 180 00d8 4E5E      		unlk %fp
+ 181 00da 4E75      		rts
+ 182               		.cfi_endproc
+ 183               	.LFE5:
+ 185               		.align	2
+ 186               		.globl	sbrk
+ 188               	sbrk:
+ 189               	.LFB6:
+  71:eagle-sys.c   **** 
+  72:eagle-sys.c   **** 
+  73:eagle-sys.c   **** // AD:
+  74:eagle-sys.c   **** 
+  75:eagle-sys.c   **** 
+  76:eagle-sys.c   **** caddr_t sbrk(int incr) {
+ 190               		.loc 1 76 0
+ 191               		.cfi_startproc
+ 192 00dc 4E56 FFFC 		link.w %fp,#-4
+ 193               		.cfi_offset 14, -8
+ 194               		.cfi_def_cfa 14, 8
+  77:eagle-sys.c   ****   register char *stack_ptr asm ("%sp");
+  78:eagle-sys.c   ****   extern char _end;  /* Defined by the linker */
+  79:eagle-sys.c   ****   static char *heap_end;
+  80:eagle-sys.c   ****   char *prev_heap_end;
+  81:eagle-sys.c   **** 
+  82:eagle-sys.c   ****   if (heap_end == 0)
+ 195               		.loc 1 82 0
+ 196 00e0 2039 0000 		move.l heap_end.1861,%d0
+ 196      0000 
+ 197 00e6 4A80      		tst.l %d0
+ 198 00e8 660A      		jne .L18
+  83:eagle-sys.c   ****   {
+  84:eagle-sys.c   ****     heap_end = &_end;
+ 199               		.loc 1 84 0
+ 200 00ea 23FC 0000 		move.l #_end,heap_end.1861
+ 200      0000 0000 
+ 200      0000 
+ 201               	.L18:
+  85:eagle-sys.c   ****   }
+  86:eagle-sys.c   ****   prev_heap_end = heap_end;
+ 202               		.loc 1 86 0
+ 203 00f4 2D79 0000 		move.l heap_end.1861,-4(%fp)
+ 203      0000 FFFC 
+  87:eagle-sys.c   ****   if (heap_end + incr + 512 > stack_ptr)  // AD: add some spare here
+ 204               		.loc 1 87 0
+ 205 00fc 2039 0000 		move.l heap_end.1861,%d0
+ 205      0000 
+ 206 0102 222E 0008 		move.l 8(%fp),%d1
+ 207 0106 0681 0000 		add.l #512,%d1
+ 207      0200 
+ 208 010c D280      		add.l %d0,%d1
+ 209 010e 200F      		move.l %sp,%d0
+ 210 0110 B081      		cmp.l %d1,%d0
+ 211 0112 6410      		jcc .L19
+  88:eagle-sys.c   ****     {
+  89:eagle-sys.c   **** 	  errno = ENOMEM;
+ 212               		.loc 1 89 0
+ 213 0114 4EB9 0000 		jsr __errno
+ 213      0000 
+ 214 011a 2040      		move.l %d0,%a0
+ 215 011c 700C      		moveq #12,%d0
+ 216 011e 2080      		move.l %d0,(%a0)
+  90:eagle-sys.c   **** 	  return (void *) -1;
+ 217               		.loc 1 90 0
+ 218 0120 70FF      		moveq #-1,%d0
+ 219 0122 6016      		jra .L20
+ 220               	.L19:
+  91:eagle-sys.c   ****       //write (1, "Heap and stack collision\n", 25);
+  92:eagle-sys.c   ****       //while(1);
+  93:eagle-sys.c   ****     }
+  94:eagle-sys.c   ****   heap_end += incr;
+ 221               		.loc 1 94 0
+ 222 0124 2239 0000 		move.l heap_end.1861,%d1
+ 222      0000 
+ 223 012a 202E 0008 		move.l 8(%fp),%d0
+ 224 012e D081      		add.l %d1,%d0
+ 225 0130 23C0 0000 		move.l %d0,heap_end.1861
+ 225      0000 
+  95:eagle-sys.c   ****   return((caddr_t) prev_heap_end);
+ 226               		.loc 1 95 0
+ 227 0136 202E FFFC 		move.l -4(%fp),%d0
+ 228               	.L20:
+  96:eagle-sys.c   **** }
+ 229               		.loc 1 96 0
+ 230 013a 4E5E      		unlk %fp
+ 231 013c 4E75      		rts
+ 232               		.cfi_endproc
+ 233               	.LFE6:
+ 235               		.align	2
+ 236               		.globl	isatty
+ 238               	isatty:
+ 239               	.LFB7:
+  97:eagle-sys.c   **** 
+  98:eagle-sys.c   **** int isatty(int file) {
+ 240               		.loc 1 98 0
+ 241               		.cfi_startproc
+ 242 013e 4E56 0000 		link.w %fp,#0
+ 243               		.cfi_offset 14, -8
+ 244               		.cfi_def_cfa 14, 8
+  99:eagle-sys.c   ****   return(1);
+ 245               		.loc 1 99 0
+ 246 0142 7001      		moveq #1,%d0
+ 100:eagle-sys.c   **** }
+ 247               		.loc 1 100 0
+ 248 0144 4E5E      		unlk %fp
+ 249 0146 4E75      		rts
+ 250               		.cfi_endproc
+ 251               	.LFE7:
+ 253               		.align	2
+ 254               		.globl	fstat
+ 256               	fstat:
+ 257               	.LFB8:
+ 101:eagle-sys.c   **** 
+ 102:eagle-sys.c   **** int fstat(int file, struct stat *st) {
+ 258               		.loc 1 102 0
+ 259               		.cfi_startproc
+ 260 0148 4E56 0000 		link.w %fp,#0
+ 261               		.cfi_offset 14, -8
+ 262               		.cfi_def_cfa 14, 8
+ 103:eagle-sys.c   ****   st->st_mode = S_IFCHR;
+ 263               		.loc 1 103 0
+ 264 014c 206E 000C 		move.l 12(%fp),%a0
+ 265 0150 217C 0000 		move.l #8192,4(%a0)
+ 265      2000 0004 
+ 104:eagle-sys.c   ****   return(0);
+ 266               		.loc 1 104 0
+ 267 0158 7000      		moveq #0,%d0
+ 105:eagle-sys.c   **** }
+ 268               		.loc 1 105 0
+ 269 015a 4E5E      		unlk %fp
+ 270 015c 4E75      		rts
+ 271               		.cfi_endproc
+ 272               	.LFE8:
+ 274               		.align	2
+ 275               		.globl	open
+ 277               	open:
+ 278               	.LFB9:
+ 106:eagle-sys.c   **** 
+ 107:eagle-sys.c   **** /*
+ 108:eagle-sys.c   **** int stat(char *filename, struct stat *st) {
+ 109:eagle-sys.c   ****   st->st_mode = S_IFCHR;
+ 110:eagle-sys.c   ****   return(0);
+ 111:eagle-sys.c   **** }*/
+ 112:eagle-sys.c   **** 
+ 113:eagle-sys.c   **** int open(const char *path, int flags) {
+ 279               		.loc 1 113 0
+ 280               		.cfi_startproc
+ 281 015e 4E56 0000 		link.w %fp,#0
+ 282               		.cfi_offset 14, -8
+ 283               		.cfi_def_cfa 14, 8
+ 114:eagle-sys.c   ****   return(0);
+ 284               		.loc 1 114 0
+ 285 0162 7000      		moveq #0,%d0
+ 115:eagle-sys.c   **** }
+ 286               		.loc 1 115 0
+ 287 0164 4E5E      		unlk %fp
+ 288 0166 4E75      		rts
+ 289               		.cfi_endproc
+ 290               	.LFE9:
+ 292               		.align	2
+ 293               		.globl	_exit
+ 295               	_exit:
+ 296               	.LFB10:
+ 116:eagle-sys.c   **** 
+ 117:eagle-sys.c   **** 
+ 118:eagle-sys.c   **** void _exit (int code) {
+ 297               		.loc 1 118 0
+ 298               		.cfi_startproc
+ 299 0168 4E56 0000 		link.w %fp,#0
+ 300               		.cfi_offset 14, -8
+ 301               		.cfi_def_cfa 14, 8
+ 119:eagle-sys.c   ****   asm ("trap #0x0f");  // drop to the internal debugger
+ 302               		.loc 1 119 0
+ 303               	#APP
+ 304 016c 4E4F      	| 119 "eagle-sys.c" 1
+ 305               		trap #0x0f
+ 120:eagle-sys.c   ****   while (1);
+ 306               	| 0 "" 2
+ 307 016e 60FE      	#NO_APP
+ 308               	.L28:
+ 309               		.loc 1 120 0 discriminator 1
+ 310               		jra .L28
+ 311               		.cfi_endproc
+ 312               	.LFE10:
+ 314               		.align	2
+ 315               		.globl	execve
+ 121:eagle-sys.c   **** }
+ 122:eagle-sys.c   **** 
+ 123:eagle-sys.c   **** 
+ 124:eagle-sys.c   **** int execve(char *name, char **argv, char **env) {
+ 317               	execve:
+ 318 0170 4E56 0000 	.LFB11:
+ 319               		.loc 1 124 0
+ 320               		.cfi_startproc
+ 125:eagle-sys.c   ****   errno = ENOMEM;
+ 321               		link.w %fp,#0
+ 322 0174 4EB9 0000 		.cfi_offset 14, -8
+ 322      0000 
+ 323 017a 2040      		.cfi_def_cfa 14, 8
+ 324 017c 700C      		.loc 1 125 0
+ 325 017e 2080      		jsr __errno
+ 126:eagle-sys.c   ****   return(-1);
+ 326               		move.l %d0,%a0
+ 327 0180 70FF      		moveq #12,%d0
+ 127:eagle-sys.c   **** }
+ 328               		move.l %d0,(%a0)
+ 329 0182 4E5E      		.loc 1 126 0
+ 330 0184 4E75      		moveq #-1,%d0
+ 331               		.loc 1 127 0
+ 332               		unlk %fp
+ 333               		rts
+ 334               		.cfi_endproc
+ 335               	.LFE11:
+ 337               		.align	2
+ 338               		.globl	fork
+ 128:eagle-sys.c   **** 
+ 129:eagle-sys.c   **** int fork() {
+ 340               	fork:
+ 341 0186 4E56 0000 	.LFB12:
+ 342               		.loc 1 129 0
+ 343               		.cfi_startproc
+ 130:eagle-sys.c   ****   errno = EAGAIN;
+ 344               		link.w %fp,#0
+ 345 018a 4EB9 0000 		.cfi_offset 14, -8
+ 345      0000 
+ 346 0190 2040      		.cfi_def_cfa 14, 8
+ 347 0192 700B      		.loc 1 130 0
+ 348 0194 2080      		jsr __errno
+ 131:eagle-sys.c   ****   return(-1);
+ 349               		move.l %d0,%a0
+ 350 0196 70FF      		moveq #11,%d0
+ 132:eagle-sys.c   **** }
+ 351               		move.l %d0,(%a0)
+ 352 0198 4E5E      		.loc 1 131 0
+ 353 019a 4E75      		moveq #-1,%d0
+ 354               		.loc 1 132 0
+ 355               		unlk %fp
+ 356               		rts
+ 357               		.cfi_endproc
+ 358               	.LFE12:
+ 360               		.align	2
+ 361               		.globl	getpid
+ 133:eagle-sys.c   **** 
+ 134:eagle-sys.c   **** int getpid() {
+ 363               	getpid:
+ 364 019c 4E56 0000 	.LFB13:
+ 365               		.loc 1 134 0
+ 366               		.cfi_startproc
+ 135:eagle-sys.c   ****   return(1);
+ 367               		link.w %fp,#0
+ 368 01a0 7001      		.cfi_offset 14, -8
+ 136:eagle-sys.c   **** }
+ 369               		.cfi_def_cfa 14, 8
+ 370 01a2 4E5E      		.loc 1 135 0
+ 371 01a4 4E75      		moveq #1,%d0
+ 372               		.loc 1 136 0
+ 373               		unlk %fp
+ 374               		rts
+ 375               		.cfi_endproc
+ 376               	.LFE13:
+ 378               		.align	2
+ 379               		.globl	kill
+ 137:eagle-sys.c   **** 
+ 138:eagle-sys.c   **** int kill(int pid, int sig) {
+ 381               	kill:
+ 382 01a6 4E56 0000 	.LFB14:
+ 383               		.loc 1 138 0
+ 384               		.cfi_startproc
+ 139:eagle-sys.c   ****   errno = EINVAL;
+ 385               		link.w %fp,#0
+ 386 01aa 4EB9 0000 		.cfi_offset 14, -8
+ 386      0000 
+ 387 01b0 2040      		.cfi_def_cfa 14, 8
+ 388 01b2 7016      		.loc 1 139 0
+ 389 01b4 2080      		jsr __errno
+ 140:eagle-sys.c   ****   return(-1);
+ 390               		move.l %d0,%a0
+ 391 01b6 70FF      		moveq #22,%d0
+ 141:eagle-sys.c   **** }
+ 392               		move.l %d0,(%a0)
+ 393 01b8 4E5E      		.loc 1 140 0
+ 394 01ba 4E75      		moveq #-1,%d0
+ 395               		.loc 1 141 0
+ 396               		unlk %fp
+ 397               		rts
+ 398               		.cfi_endproc
+ 399               	.LFE14:
+ 401               		.align	2
+ 402               		.globl	link
+ 142:eagle-sys.c   **** 
+ 143:eagle-sys.c   **** int link(char *old, char *new) {
+ 404               	link:
+ 405 01bc 4E56 0000 	.LFB15:
+ 406               		.loc 1 143 0
+ 407               		.cfi_startproc
+ 144:eagle-sys.c   ****   errno = EMLINK;
+ 408               		link.w %fp,#0
+ 409 01c0 4EB9 0000 		.cfi_offset 14, -8
+ 409      0000 
+ 410 01c6 2040      		.cfi_def_cfa 14, 8
+ 411 01c8 701F      		.loc 1 144 0
+ 412 01ca 2080      		jsr __errno
+ 145:eagle-sys.c   ****   return(-1);
+ 413               		move.l %d0,%a0
+ 414 01cc 70FF      		moveq #31,%d0
+ 146:eagle-sys.c   **** }
+ 415               		move.l %d0,(%a0)
+ 416 01ce 4E5E      		.loc 1 145 0
+ 417 01d0 4E75      		moveq #-1,%d0
+ 418               		.loc 1 146 0
+ 419               		unlk %fp
+ 420               		rts
+ 421               		.cfi_endproc
+ 422               	.LFE15:
+ 424               		.align	2
+ 425               		.globl	times
+ 147:eagle-sys.c   **** 
+ 148:eagle-sys.c   **** clock_t times(struct tms *buf) {
+ 427               	times:
+ 428 01d2 4E56 0000 	.LFB16:
+ 429               		.loc 1 148 0
+ 430               		.cfi_startproc
+ 149:eagle-sys.c   ****   return(-1);
+ 431               		link.w %fp,#0
+ 432 01d6 70FF      		.cfi_offset 14, -8
+ 150:eagle-sys.c   **** }
+ 433               		.cfi_def_cfa 14, 8
+ 434 01d8 4E5E      		.loc 1 149 0
+ 435 01da 4E75      		moveq #-1,%d0
+ 436               		.loc 1 150 0
+ 437               		unlk %fp
+ 438               		rts
+ 439               		.cfi_endproc
+ 440               	.LFE16:
+ 442               		.align	2
+ 443               		.globl	unlink
+ 151:eagle-sys.c   **** 
+ 152:eagle-sys.c   **** int unlink(char *name) {
+ 445               	unlink:
+ 446 01dc 4E56 0000 	.LFB17:
+ 447               		.loc 1 152 0
+ 448               		.cfi_startproc
+ 153:eagle-sys.c   ****   errno = ENOENT;
+ 449               		link.w %fp,#0
+ 450 01e0 4EB9 0000 		.cfi_offset 14, -8
+ 450      0000 
+ 451 01e6 2040      		.cfi_def_cfa 14, 8
+ 452 01e8 7002      		.loc 1 153 0
+ 453 01ea 2080      		jsr __errno
+ 154:eagle-sys.c   ****   return(-1);
+ 454               		move.l %d0,%a0
+ 455 01ec 70FF      		moveq #2,%d0
+ 155:eagle-sys.c   **** }
+ 456               		move.l %d0,(%a0)
+ 457 01ee 4E5E      		.loc 1 154 0
+ 458 01f0 4E75      		moveq #-1,%d0
+ 459               		.loc 1 155 0
+ 460               		unlk %fp
+ 461               		rts
+ 462               		.cfi_endproc
+ 463               	.LFE17:
+ 465               		.align	2
+ 466               		.globl	wait
+ 156:eagle-sys.c   **** 
+ 157:eagle-sys.c   **** int wait(int *status) {
+ 468               	wait:
+ 469 01f2 4E56 0000 	.LFB18:
+ 470               		.loc 1 157 0
+ 471               		.cfi_startproc
+ 158:eagle-sys.c   ****   errno = ECHILD;
+ 472               		link.w %fp,#0
+ 473 01f6 4EB9 0000 		.cfi_offset 14, -8
+ 473      0000 
+ 474 01fc 2040      		.cfi_def_cfa 14, 8
+ 475 01fe 700A      		.loc 1 158 0
+ 476 0200 2080      		jsr __errno
+ 159:eagle-sys.c   ****   return(-1);
+ 477               		move.l %d0,%a0
+ 478 0202 70FF      		moveq #10,%d0
+ 160:eagle-sys.c   **** }
+ 479               		move.l %d0,(%a0)
+ 480 0204 4E5E      		.loc 1 159 0
+ 481 0206 4E75      		moveq #-1,%d0
+ 482               		.loc 1 160 0
+ 483               		unlk %fp
+ 484               		rts
+ 485               		.cfi_endproc
+ 486               	.LFE18:
+ 488               		.local	heap_end.1861
+ 489               		.comm	heap_end.1861,4,2
+ 490               	.Letext0:
+ 491               		.file 2 "/home/ad/gcc68k/m68k-elf/include/sys/_types.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 eagle-sys.c
+     /tmp/ccTyHr5D.s:9      .text:0000000000000000 writechar
+     /tmp/ccTyHr5D.s:48     .text:0000000000000038 readchar
+     /tmp/ccTyHr5D.s:83     .text:000000000000006a read
+     /tmp/ccTyHr5D.s:112    .text:000000000000008e lseek
+     /tmp/ccTyHr5D.s:130    .text:0000000000000098 write
+     /tmp/ccTyHr5D.s:170    .text:00000000000000d2 close
+     /tmp/ccTyHr5D.s:188    .text:00000000000000dc sbrk
+     /tmp/ccTyHr5D.s:486    .bss:0000000000000000 heap_end.1861
+     /tmp/ccTyHr5D.s:238    .text:000000000000013e isatty
+     /tmp/ccTyHr5D.s:256    .text:0000000000000148 fstat
+     /tmp/ccTyHr5D.s:277    .text:000000000000015e open
+     /tmp/ccTyHr5D.s:295    .text:0000000000000168 _exit
+     /tmp/ccTyHr5D.s:314    .text:0000000000000170 execve
+     /tmp/ccTyHr5D.s:337    .text:0000000000000186 fork
+     /tmp/ccTyHr5D.s:360    .text:000000000000019c getpid
+     /tmp/ccTyHr5D.s:378    .text:00000000000001a6 kill
+     /tmp/ccTyHr5D.s:401    .text:00000000000001bc link
+     /tmp/ccTyHr5D.s:424    .text:00000000000001d2 times
+     /tmp/ccTyHr5D.s:442    .text:00000000000001dc unlink
+     /tmp/ccTyHr5D.s:465    .text:00000000000001f2 wait
+
+UNDEFINED SYMBOLS
+_end
+__errno

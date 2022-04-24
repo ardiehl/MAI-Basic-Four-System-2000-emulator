@@ -1,0 +1,117 @@
+00001000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.9.0
+Created On: 12/8/2011 10:32:30 AM
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Program    : eagletest
+00000000                             3  * Written by : Armin Diehl
+00000000                             4  * Date       :
+00000000                             5  * Description: Test for the mai2000 emulator
+00000000                             6  *-----------------------------------------------------------
+00001000                             7          ORG     $1000
+00001000                             8  
+00001000                             9  * todo
+00001000                            10  * install handler for buserr
+00001000                            11  * access invalid memory (write)
+00001000                            12  * dump stack in bus handler
+00001000                            13  * halt
+00001000                            14  
+00001000                            15  START:                          * first instruction of program
+00001000  41F9 000010BE             16          lea     MsgStart,a0
+00001006  6100 0036                 17          bsr     StrOut
+0000100A  103C 00F1                 18          move.b  #$f1,d0
+0000100E  6100 0052                 19          bsr     HexOutB
+00001012  6100 0036                 20          bsr     crlf
+00001016  303C ABCD                 21          move.w  #$abcd,d0
+0000101A  6100 0050                 22          bsr     HexOutW
+0000101E  6100 002A                 23          bsr     crlf
+00001022  203C 12345678             24          move.l  #$12345678,d0
+00001028  6100 004C                 25          bsr     HexOutL
+0000102C  6100 001C                 26          bsr     crlf
+00001030  103C 0009                 27          MOVE.B  #9,D0
+00001034  4E4F                      28          TRAP    #15             * halt simulator
+00001036                            29  
+00001036                            30  CharOut:
+00001036  103C 0006                 31          move.b  #6,d0           * char out from d1
+0000103A  4E4F                      32          trap    #15             * for simulator
+0000103C  4E75                      33          rts
+0000103E                            34  
+0000103E  1218                      35  StrOut: move.b  (a0)+,d1                *a0: string
+00001040  6700 0006                 36          beq     StrOutEnd
+00001044  61F0                      37          bsr     CharOut
+00001046  60F6                      38          bra     StrOut
+00001048  4E75                      39  StrOutEnd:      rts
+0000104A                            40  
+0000104A  123C 000D                 41  crlf:   move.b  #13,d1
+0000104E  61E6                      42          bsr     CharOut
+00001050  123C 000A                 43          move.b  #10,d1
+00001054  61E0                      44          bsr     CharOut
+00001056  4E75                      45          rts
+00001058                            46  
+00001058= 0000                      47  temp1:  dc.w    $0000
+0000105A= 0000                      48  temp2:  dc.w    $0000
+0000105C= 0000                      49  temp3:  dc.w    $0000
+0000105E= 0000                      50  temp4:  dc.w    $0000
+00001060= 0000                      51  temp5:  dc.w    $0000
+00001062                            52  
+00001062                            53  *Generalized routine to write
+00001062                            54  *a word, byte or long word (in d0).
+00001062                            55  *
+00001062                            56  HexOutB:
+00001062  31FC 0001 1058            57          move.w  #$1,temp1               *t1 is the number of bytes
+00001068  6000 0012                 58          bra     HexOut
+0000106C                            59  HexOutW:
+0000106C  31FC 0003 1058            60          move.w  #$3,temp1
+00001072  6000 0008                 61          bra     HexOut
+00001076                            62  HexOutL:
+00001076  31FC 0007 1058            63          move.w  #$7,temp1
+0000107C  48E7 6082                 64  HexOut: movem.l d1-d2/a0/a6,-(a7)       *save registers d1,d2,a0,a6
+00001080  3438 1058                 65          move.w  temp1,d2                *set count
+00001084  11FC 0000 1061            66          move.b  #$00,temp5+1            *set a null at end
+0000108A  4DF8 1061                 67          lea     temp5+1,a6              *use temps as a stack
+0000108E  1200                      68  alp:    move.b  d0,d1                   *make each hex digit a
+00001090  C23C 000F                 69          and.b   #$0f,d1                 *writable ascii byte
+00001094  B23C 000A                 70          cmp.b   #$0a,d1                 *check for abcdef
+00001098  6D00 000E                 71          blt     or3
+0000109C  823C 0040                 72          or.b    #$40,d1
+000010A0  0401 0009                 73          sub.b   #$09,d1
+000010A4  6000 0006                 74          bra     m1
+000010A8  823C 0030                 75  or3:    or.b    #$30,d1                 *set high-order bits
+000010AC  1D01                      76  m1:     move.b  d1,-(a6)                *put on stack
+000010AE  E888                      77          lsr.l   #$4,d0                  *get next hex digit
+000010B0  51CA FFDC                 78          dbf     d2,alp
+000010B4  304E                      79          movea.w a6,a0                   *write the stack with StrOut
+000010B6  6186                      80          bsr     StrOut
+000010B8  4CDF 4106                 81          movem.l (a7)+,a6/a0/d2/d1       *restore registers d1,d2,a0,a6
+000010BC  4E75                      82          rts
+000010BE                            83  
+000010BE                            84  MsgStart:
+000010BE= 54 65 73 74 20 66 ...     85          dc.b    'Test for MAI2000',13,10,0
+000010D1                            86  
+000010D1                            87          END START
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+ALP                 108E
+CHAROUT             1036
+CRLF                104A
+HEXOUT              107C
+HEXOUTB             1062
+HEXOUTL             1076
+HEXOUTW             106C
+M1                  10AC
+MSGSTART            10BE
+OR3                 10A8
+START               1000
+STROUT              103E
+STROUTEND           1048
+TEMP1               1058
+TEMP2               105A
+TEMP3               105C
+TEMP4               105E
+TEMP5               1060

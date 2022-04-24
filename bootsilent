@@ -1,0 +1,3 @@
+#!/bin/sh
+reset
+./eagleemu "msg all -" "bus -" "mbreak -" "$1" "$2" g

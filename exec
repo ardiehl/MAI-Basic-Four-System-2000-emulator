@@ -1,0 +1,4 @@
+#!/bin/sh
+reset
+#./eagleemu "msg all -" "bus -" "dup -" "msg cs +" "br 0 40175e" "br 1 401706" g exec "msg all +" "msg scc -" "dup +" "msg sit -" "msg fd -" "br 2 1df4e" g
+./eagleemu "msg all -" "bus -" "dup -" "msg cs +" "br 0 40175e" "br 1 401706" g exec "msg all +" "msg scc -" "dup +" "msg sit -" "msg fd -" "br 0 1dfd0" g

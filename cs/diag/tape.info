@@ -1,0 +1,56 @@
+diag01    header
+diag02    loader
+
+Diags for MAI 2000 (68010)
+diag03      exec 11:49:02  10/31/89 D4.7   
+diag04       cmb 14:42:34  06/11/85Unknown
+diag05      disk 11:59:02  03/22/88 C3.1   
+diag06    diskfs 17:20:15  04/06/88 C3.1   
+diag07     dutil 10:05:33  03/24/88 C3.1   
+diag08      fdfs 17:42:21  07/06/87 B7.1   
+diag09    floppy 16:54:40  07/14/86 B8.1   
+diag10      fway 11:25:53  06/13/88 B12    
+diag11      fwfs 17:07:44  03/31/88 C4     
+diag12     iotst 18:07:51  08/23/85Unknown
+diag13       lan 18:03:30  03/31/88 C2     
+diag14     lanfs 17:09:56  03/31/88 C4     
+diag15       mcs 18:01:23  03/31/88 C2     
+diag16     mcsfs 11:30:26  06/13/88 B2     
+diag17    memory 16:51:53  08/06/85Unknown
+diag18       mmu 09:51:51  04/01/87 B4.1   
+diag19       mts 15:59:54  10/27/89 C1     
+diag20     mtsfs 17:50:45  10/31/89 B1     
+diag21     nvram 11:05:11  06/10/86Unknown
+diag22       pit 16:46:00  09/18/87 C0.2   
+diag23     ports 15:10:09  06/02/87 C1.5   
+diag24       scc 17:10:53  05/18/87 B6.2   
+diag25       sit 16:13:38  10/31/89 D5.6   
+
+Diags for MAI 2500/3000/4000 (68020)
+diag26      exec 12:43:07  11/01/89 D4.7   
+diag27       cmb 16:29:19  07/12/88 A5     
+diag28     cache 17:09:14  10/30/89 A1.7   
+diag29      disk 11:59:02  03/22/88 C3.1   
+diag30    diskfs 17:20:15  04/06/88 C3.1   
+diag31       dsc 18:10:48  10/31/89 A2.1   
+diag32     dscfs 10:16:20  04/25/89 A1.4   
+diag33     dutil 10:05:33  03/24/88 C3.1   
+diag34      eiab 15:26:27  10/22/87 A1.1   
+diag35      eway 16:12:50  09/23/87 A5.9   
+diag36      ewfs 09:50:59  06/21/88 B3     
+diag37      favi 16:14:37  04/12/89 A1.5   
+diag38      fway 11:25:53  06/13/88 B12    
+diag39      fwfs 17:07:44  03/31/88 C4     
+diag40       lan 18:03:30  03/31/88 C2     
+diag41     lanfs 17:09:56  03/31/88 C4     
+diag42       mcs 18:01:23  03/31/88 C2     
+diag43     mcsfs 11:30:26  06/13/88 B2     
+diag44    memory 16:38:28  09/09/87 A2.0   
+diag45       mmu 16:10:46  04/14/87 A9     
+diag46       mts 15:59:54  10/27/89 C1     
+diag47     mtsfs 17:50:45  10/31/89 B1     
+diag48       pit 15:39:15  09/18/87 C0.2   
+diag49     ports 15:33:30  06/02/87 C1.5   
+diag50       rtc 14:29:54  10/20/86 A0.4   
+diag51       scc 17:10:53  05/18/87 B6.2   
+diag52       sit 16:44:33  10/31/89 D5.6   

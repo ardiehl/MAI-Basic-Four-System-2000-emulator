@@ -1,0 +1,30 @@
+#!/bin/sh
+ARCH=m68k-elf
+D=~/gcc68k/bin
+
+CC=$D/$ARCH-gcc
+OBJCOPY=$D/$ARCH-objcopy
+AS=$D/$ARCH-as
+PREFIX=~/gcc68k/m68k-elf
+#LIB=$PREFIX/lib
+INC=$PREFIX/include
+#OPT="-m68000 -march=68000 -mcpu=68000 -L $LIB -I $INC"
+OPT="-m68000 -march=68000 -mcpu=68000"
+# -I $INC"
+
+#echo "$CC $OPT -c crt0.c"
+#$CC $OPT -c eagle-crt0.S || exit 1
+$CC $OPT -S -c eagle-sys.c || exit 1
+#$CC $OPT -c crt0.c || exit 1
+#$CC $OPT -c -v -Wl,--trace -O0 test.c || exit 1
+#$CC $OPT -c -v -Wl -O0 test.c -o test.o || exit 1
+#$CC $OPT -c -v -save-temps -o test.o test.c
+$CC $OPT -c -save-temps -o test.o test.c || exit 1
+#$CC $OPT -nostartfiles -nodefaultlibs -o test.m68k crt0.o eagle-sys.o test.o -lc
+
+$CC $OPT -Xlinker -t -Xlinker -Map=output.map -nostartfiles -T eagle.ld -o test.srec eagle-sys.o test.o || exit 1
+#$OBJCOPY -O srec --image-base 0 test.m68k test2.srec
+cp -f test.srec ~/prj/68000-emus/eagleemu
+cat output.map | grep main
+echo "Ok, done"
+

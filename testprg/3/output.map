@@ -1,0 +1,692 @@
+Archive member included to satisfy reference by file (symbol)
+
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-atexit.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/crt0.o (atexit)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-errno.o)
+                              eagle-sys.o (__errno)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-exit.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/crt0.o (exit)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-impure.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-exit.o) (_global_impure_ptr)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-puts.o)
+                              test.o (puts)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-strlen.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-puts.o) (strlen)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wbuf.o)
+                              test.o (__swbuf_r)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wsetup.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wbuf.o) (__swsetup_r)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-__atexit.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-atexit.o) (__register_exitproc)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-__call_atexit.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-exit.o) (__call_exitprocs)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fflush.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wbuf.o) (_fflush_r)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-findfp.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wbuf.o) (__sinit)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-freer.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wsetup.o) (_free_r)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fvwrite.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-puts.o) (__sfvwrite_r)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fwalk.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-findfp.o) (_fwalk)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-makebuf.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wsetup.o) (__smakebuf_r)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-mallocr.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-findfp.o) (_malloc_r)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memchr.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fvwrite.o) (memchr)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memcpy.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fvwrite.o) (memcpy)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memmove.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fvwrite.o) (memmove)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memset.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-findfp.o) (memset)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-mlock.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-freer.o) (__malloc_lock)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reallocr.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fvwrite.o) (_realloc_r)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-sbrkr.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-freer.o) (_sbrk_r)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-stdio.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-findfp.o) (__sread)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-writer.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-stdio.o) (_write_r)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-closer.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-stdio.o) (_close_r)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fclose.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-findfp.o) (fclose)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fstatr.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-makebuf.o) (_fstat_r)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-isattyr.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-makebuf.o) (_isatty_r)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-lseekr.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-stdio.o) (_lseek_r)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-readr.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-stdio.o) (_read_r)
+/home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reent.o)
+                              /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-sbrkr.o) (errno)
+
+Allocating common symbols
+Common symbol       size              file
+
+errno               0x4               /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reent.o)
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+ram              0x0000000000010000 0x00000000000b0000 xrw
+*default*        0x0000000000000000 0xffffffffffffffff
+
+Linker script and memory map
+
+LOAD /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/crt0.o
+LOAD eagle-sys.o
+LOAD test.o
+LOAD /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/m68000/libgcc.a
+LOAD /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a
+LOAD /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/m68000/libgcc.a
+START GROUP
+LOAD /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a
+END GROUP
+                0x0000000000000000                __DYNAMIC = 0x0
+                0x00000000000bfff8                PROVIDE (__stack, 0xbfff8)
+                0x0000000000000000                PROVIDE (hardware_init_hook, 0x0)
+                0x0000000000000000                PROVIDE (_hardware_init_hook, 0x0)
+                0x0000000000000000                PROVIDE (software_init_hook, 0x0)
+                0x0000000000000000                PROVIDE (_software_init_hook, 0x0)
+
+.text           0x0000000000010000     0x317c
+ CREATE_OBJECT_SYMBOLS
+ *(.text .text.*)
+ .text          0x0000000000010000       0x88 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/crt0.o
+                0x0000000000010000                _start
+                0x0000000000010000                start
+ .text          0x0000000000010088      0x1f4 eagle-sys.o
+                0x0000000000010088                writechar
+                0x00000000000100d0                read
+                0x0000000000010100                lseek
+                0x000000000001010a                write
+                0x0000000000010140                close
+                0x000000000001014a                sbrk
+                0x00000000000101ae                isatty
+                0x00000000000101b8                fstat
+                0x00000000000101d0                open
+                0x00000000000101da                _exit
+                0x00000000000101e4                execve
+                0x00000000000101fa                fork
+                0x0000000000010210                getpid
+                0x000000000001021a                kill
+                0x0000000000010230                link
+                0x0000000000010246                times
+                0x0000000000010250                unlink
+                0x0000000000010266                wait
+ .text          0x000000000001027c      0x468 test.o
+                0x000000000001027c                __reboot
+                0x0000000000010284                main
+ .text          0x00000000000106e4       0x18 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-atexit.o)
+                0x00000000000106e4                atexit
+ .text          0x00000000000106fc        0xe /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-errno.o)
+                0x00000000000106fc                __errno
+ *fill*         0x000000000001070a        0x2 
+ .text          0x000000000001070c       0x34 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-exit.o)
+                0x000000000001070c                exit
+ .text          0x0000000000010740        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-impure.o)
+ .text          0x0000000000010740       0xa0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-puts.o)
+                0x0000000000010740                _puts_r
+                0x00000000000107ca                puts
+ .text          0x00000000000107e0       0x1a /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-strlen.o)
+                0x00000000000107e0                strlen
+ *fill*         0x00000000000107fa        0x2 
+ .text          0x00000000000107fc      0x146 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wbuf.o)
+                0x00000000000107fc                __swbuf_r
+                0x0000000000010928                __swbuf
+ *fill*         0x0000000000010942        0x2 
+ .text          0x0000000000010944      0x14e /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wsetup.o)
+                0x0000000000010944                __swsetup_r
+ *fill*         0x0000000000010a92        0x2 
+ .text          0x0000000000010a94       0xe4 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-__atexit.o)
+                0x0000000000010a94                __register_exitproc
+ .text          0x0000000000010b78      0x11a /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-__call_atexit.o)
+                0x0000000000010b78                __call_exitprocs
+ *fill*         0x0000000000010c92        0x2 
+ .text          0x0000000000010c94      0x238 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fflush.o)
+                0x0000000000010c94                __sflush_r
+                0x0000000000010e44                _fflush_r
+                0x0000000000010e9a                fflush
+ .text          0x0000000000010ecc      0x2c0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-findfp.o)
+                0x0000000000010ee0                _cleanup_r
+                0x0000000000010f6a                __sfmoreglue
+                0x0000000000010fc6                _cleanup
+                0x0000000000010fda                __sinit
+                0x0000000000011054                __sfp
+                0x0000000000011138                __sfp_lock_acquire
+                0x0000000000011140                __sfp_lock_release
+                0x0000000000011148                __sinit_lock_acquire
+                0x0000000000011150                __sinit_lock_release
+                0x0000000000011158                __fp_lock_all
+                0x0000000000011172                __fp_unlock_all
+ .text          0x000000000001118c      0x3ea /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-freer.o)
+                0x000000000001118c                _malloc_trim_r
+                0x0000000000011278                _free_r
+ *fill*         0x0000000000011576        0x2 
+ .text          0x0000000000011578      0x3de /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fvwrite.o)
+                0x0000000000011578                __sfvwrite_r
+ *fill*         0x0000000000011956        0x2 
+ .text          0x0000000000011958       0xd0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fwalk.o)
+                0x0000000000011958                _fwalk
+                0x00000000000119be                _fwalk_reent
+ .text          0x0000000000011a28      0x132 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-makebuf.o)
+                0x0000000000011a28                __smakebuf_r
+ *fill*         0x0000000000011b5a        0x2 
+ .text          0x0000000000011b5c      0x780 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-mallocr.o)
+                0x0000000000011b5c                _malloc_r
+ .text          0x00000000000122dc       0xde /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memchr.o)
+                0x00000000000122dc                memchr
+ *fill*         0x00000000000123ba        0x2 
+ .text          0x00000000000123bc       0x6e /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memcpy.o)
+                0x00000000000123bc                memcpy
+ *fill*         0x000000000001242a        0x2 
+ .text          0x000000000001242c       0xf8 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memmove.o)
+                0x000000000001242c                memmove
+ .text          0x0000000000012524       0x72 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memset.o)
+                0x0000000000012524                memset
+ *fill*         0x0000000000012596        0x2 
+ .text          0x0000000000012598       0x10 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-mlock.o)
+                0x0000000000012598                __malloc_lock
+                0x00000000000125a0                __malloc_unlock
+ .text          0x00000000000125a8      0x638 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reallocr.o)
+                0x00000000000125a8                _realloc_r
+ .text          0x0000000000012be0       0x32 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-sbrkr.o)
+                0x0000000000012be0                _sbrk_r
+ *fill*         0x0000000000012c12        0x2 
+ .text          0x0000000000012c14      0x144 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-stdio.o)
+                0x0000000000012c14                __sread
+                0x0000000000012c58                __seofread
+                0x0000000000012c62                __swrite
+                0x0000000000012cf4                __sseek
+                0x0000000000012d40                __sclose
+ .text          0x0000000000012d58       0x3c /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-writer.o)
+                0x0000000000012d58                _write_r
+ .text          0x0000000000012d94       0x32 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-closer.o)
+                0x0000000000012d94                _close_r
+ *fill*         0x0000000000012dc6        0x2 
+ .text          0x0000000000012dc8       0xfa /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fclose.o)
+                0x0000000000012dc8                _fclose_r
+                0x0000000000012eac                fclose
+ *fill*         0x0000000000012ec2        0x2 
+ .text          0x0000000000012ec4       0x36 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fstatr.o)
+                0x0000000000012ec4                _fstat_r
+ *fill*         0x0000000000012efa        0x2 
+ .text          0x0000000000012efc       0x32 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-isattyr.o)
+                0x0000000000012efc                _isatty_r
+ *fill*         0x0000000000012f2e        0x2 
+ .text          0x0000000000012f30       0x3c /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-lseekr.o)
+                0x0000000000012f30                _lseek_r
+ .text          0x0000000000012f6c       0x3c /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-readr.o)
+                0x0000000000012f6c                _read_r
+ .text          0x0000000000012fa8      0x192 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reent.o)
+                0x0000000000012fa8                cleanup_glue
+                0x0000000000012fde                _reclaim_reent
+                0x00000000000130c0                _wrapup_reent
+                0x000000000001313c                . = ALIGN (0x4)
+ *fill*         0x000000000001313a        0x2 
+ *crtbegin.o(.ctors)
+ *(EXCLUDE_FILE(*crtend.o) .ctors)
+ *(SORT(.ctors.*))
+ *(.ctors)
+ *crtbegin.o(.dtors)
+ *(EXCLUDE_FILE(*crtend.o) .dtors)
+ *(SORT(.dtors.*))
+ *(.dtors)
+ *(.rodata .rodata.*)
+ .rodata        0x000000000001313c       0x1a eagle-sys.o
+ .rodata        0x0000000000013156        0xc test.o
+ .rodata        0x0000000000013162        0x4 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-impure.o)
+                0x0000000000013162                _global_impure_ptr
+ .rodata.str1.1
+                0x0000000000013166        0x2 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-impure.o)
+ .rodata.str1.1
+                0x0000000000013168        0x2 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-puts.o)
+                0x000000000001316c                . = ALIGN (0x4)
+ *fill*         0x000000000001316a        0x2 
+ *(.gcc_except_table)
+                0x000000000001316c                . = ALIGN (0x4)
+ *(.eh_frame)
+                0x000000000001316c                . = ALIGN (0x4)
+                0x000000000001316c                __INIT_SECTION__ = .
+                0x000000000001316c        0x4 LONG 0x4e560000
+ *(.init)
+                0x0000000000013170        0x2 SHORT 0x4e5e
+                0x0000000000013172        0x2 SHORT 0x4e75
+                0x0000000000013174                . = ALIGN (0x4)
+                0x0000000000013174                __FINI_SECTION__ = .
+                0x0000000000013174        0x4 LONG 0x4e560000
+ *(.fini)
+                0x0000000000013178        0x2 SHORT 0x4e5e
+                0x000000000001317a        0x2 SHORT 0x4e75
+                0x000000000001317c                _etext = .
+ *(.lit)
+
+.data           0x000000000001317c      0x83c
+ *(.got.plt)
+ *(.got)
+ *(.shdata)
+ *(.data .data.*)
+ .data          0x000000000001317c        0x4 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/crt0.o
+ .data          0x0000000000013180        0x0 eagle-sys.o
+ .data          0x0000000000013180        0x0 test.o
+ .data          0x0000000000013180        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-atexit.o)
+ .data          0x0000000000013180        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-errno.o)
+ .data          0x0000000000013180        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-exit.o)
+ .data          0x0000000000013180      0x426 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-impure.o)
+                0x0000000000013180                _impure_ptr
+ *fill*         0x00000000000135a6        0x2 
+ .data          0x00000000000135a8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-puts.o)
+ .data          0x00000000000135a8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-strlen.o)
+ .data          0x00000000000135a8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wbuf.o)
+ .data          0x00000000000135a8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wsetup.o)
+ .data          0x00000000000135a8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-__atexit.o)
+ .data          0x00000000000135a8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-__call_atexit.o)
+ .data          0x00000000000135a8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fflush.o)
+ .data          0x00000000000135a8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-findfp.o)
+ .data          0x00000000000135a8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-freer.o)
+ .data          0x00000000000135a8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fvwrite.o)
+ .data          0x00000000000135a8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fwalk.o)
+ .data          0x00000000000135a8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-makebuf.o)
+ .data          0x00000000000135a8      0x410 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-mallocr.o)
+                0x00000000000135a8                __malloc_sbrk_base
+                0x00000000000135ac                __malloc_trim_threshold
+                0x00000000000135b0                __malloc_av_
+ .data          0x00000000000139b8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memchr.o)
+ .data          0x00000000000139b8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memcpy.o)
+ .data          0x00000000000139b8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memmove.o)
+ .data          0x00000000000139b8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memset.o)
+ .data          0x00000000000139b8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-mlock.o)
+ .data          0x00000000000139b8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reallocr.o)
+ .data          0x00000000000139b8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-sbrkr.o)
+ .data          0x00000000000139b8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-stdio.o)
+ .data          0x00000000000139b8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-writer.o)
+ .data          0x00000000000139b8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-closer.o)
+ .data          0x00000000000139b8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fclose.o)
+ .data          0x00000000000139b8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fstatr.o)
+ .data          0x00000000000139b8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-isattyr.o)
+ .data          0x00000000000139b8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-lseekr.o)
+ .data          0x00000000000139b8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-readr.o)
+ .data          0x00000000000139b8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reent.o)
+                0x00000000000139b8                _edata = .
+
+.bss            0x00000000000139b8       0x3c
+                0x00000000000139b8                . = ALIGN (0x4)
+                0x00000000000139b8                __bss_start = .
+ *(.shbss)
+ *(.bss .bss.*)
+ .bss           0x00000000000139b8        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/crt0.o
+ .bss           0x00000000000139b8        0x4 eagle-sys.o
+ .bss           0x00000000000139bc        0x0 test.o
+ .bss           0x00000000000139bc        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-atexit.o)
+ .bss           0x00000000000139bc        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-errno.o)
+ .bss           0x00000000000139bc        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-exit.o)
+ .bss           0x00000000000139bc        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-impure.o)
+ .bss           0x00000000000139bc        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-puts.o)
+ .bss           0x00000000000139bc        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-strlen.o)
+ .bss           0x00000000000139bc        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wbuf.o)
+ .bss           0x00000000000139bc        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wsetup.o)
+ .bss           0x00000000000139bc        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-__atexit.o)
+ .bss           0x00000000000139bc        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-__call_atexit.o)
+ .bss           0x00000000000139bc        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fflush.o)
+ .bss           0x00000000000139bc        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-findfp.o)
+ .bss           0x00000000000139bc        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-freer.o)
+ .bss           0x00000000000139bc        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fvwrite.o)
+ .bss           0x00000000000139bc        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fwalk.o)
+ .bss           0x00000000000139bc        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-makebuf.o)
+ .bss           0x00000000000139bc       0x34 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-mallocr.o)
+                0x00000000000139bc                __malloc_current_mallinfo
+                0x00000000000139e4                __malloc_max_total_mem
+                0x00000000000139e8                __malloc_max_sbrked_mem
+                0x00000000000139ec                __malloc_top_pad
+ .bss           0x00000000000139f0        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memchr.o)
+ .bss           0x00000000000139f0        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memcpy.o)
+ .bss           0x00000000000139f0        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memmove.o)
+ .bss           0x00000000000139f0        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memset.o)
+ .bss           0x00000000000139f0        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-mlock.o)
+ .bss           0x00000000000139f0        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reallocr.o)
+ .bss           0x00000000000139f0        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-sbrkr.o)
+ .bss           0x00000000000139f0        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-stdio.o)
+ .bss           0x00000000000139f0        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-writer.o)
+ .bss           0x00000000000139f0        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-closer.o)
+ .bss           0x00000000000139f0        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fclose.o)
+ .bss           0x00000000000139f0        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fstatr.o)
+ .bss           0x00000000000139f0        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-isattyr.o)
+ .bss           0x00000000000139f0        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-lseekr.o)
+ .bss           0x00000000000139f0        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-readr.o)
+ .bss           0x00000000000139f0        0x0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reent.o)
+ *(COMMON)
+ COMMON         0x00000000000139f0        0x4 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reent.o)
+                0x00000000000139f0                errno
+                0x00000000000139f8                _end = ALIGN (0x8)
+                0x00000000000139f8                __end = _end
+
+.stab
+ *(.stab)
+
+.stabstr
+ *(.stabstr)
+OUTPUT(test.srec srec)
+
+.debug_line     0x0000000000000000     0x2f70
+ .debug_line    0x0000000000000000       0x7a /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/crt0.o
+ .debug_line    0x000000000000007a       0xad /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-atexit.o)
+ .debug_line    0x0000000000000127       0xfd /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-errno.o)
+ .debug_line    0x0000000000000224      0x14f /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-exit.o)
+ .debug_line    0x0000000000000373       0xe3 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-impure.o)
+ .debug_line    0x0000000000000456      0x161 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-puts.o)
+ .debug_line    0x00000000000005b7       0xe8 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-strlen.o)
+ .debug_line    0x000000000000069f      0x1ac /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wbuf.o)
+ .debug_line    0x000000000000084b      0x1b2 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wsetup.o)
+ .debug_line    0x00000000000009fd      0x129 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-__atexit.o)
+ .debug_line    0x0000000000000b26      0x159 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-__call_atexit.o)
+ .debug_line    0x0000000000000c7f      0x203 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fflush.o)
+ .debug_line    0x0000000000000e82      0x1e4 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-findfp.o)
+ .debug_line    0x0000000000001066      0x1e6 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-freer.o)
+ .debug_line    0x000000000000124c      0x272 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fvwrite.o)
+ .debug_line    0x00000000000014be      0x159 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fwalk.o)
+ .debug_line    0x0000000000001617      0x1ad /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-makebuf.o)
+ .debug_line    0x00000000000017c4      0x2e4 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-mallocr.o)
+ .debug_line    0x0000000000001aa8      0x124 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memchr.o)
+ .debug_line    0x0000000000001bcc       0x86 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memcpy.o)
+ .debug_line    0x0000000000001c52      0x175 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memmove.o)
+ .debug_line    0x0000000000001dc7       0x8a /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memset.o)
+ .debug_line    0x0000000000001e51       0xf5 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-mlock.o)
+ .debug_line    0x0000000000001f46      0x29d /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reallocr.o)
+ .debug_line    0x00000000000021e3      0x148 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-sbrkr.o)
+ .debug_line    0x000000000000232b      0x16c /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-stdio.o)
+ .debug_line    0x0000000000002497      0x149 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-writer.o)
+ .debug_line    0x00000000000025e0      0x149 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-closer.o)
+ .debug_line    0x0000000000002729      0x195 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fclose.o)
+ .debug_line    0x00000000000028be      0x152 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fstatr.o)
+ .debug_line    0x0000000000002a10      0x14a /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-isattyr.o)
+ .debug_line    0x0000000000002b5a      0x154 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-lseekr.o)
+ .debug_line    0x0000000000002cae      0x148 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-readr.o)
+ .debug_line    0x0000000000002df6      0x17a /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reent.o)
+
+.debug_info     0x0000000000000000    0x1294c
+ .debug_info    0x0000000000000000       0x90 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/crt0.o
+ .debug_info    0x0000000000000090       0xfb /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-atexit.o)
+ .debug_info    0x000000000000018b      0x969 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-errno.o)
+ .debug_info    0x0000000000000af4      0x9b2 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-exit.o)
+ .debug_info    0x00000000000014a6      0x96f /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-impure.o)
+ .debug_info    0x0000000000001e15      0xae8 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-puts.o)
+ .debug_info    0x00000000000028fd       0xd4 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-strlen.o)
+ .debug_info    0x00000000000029d1      0xa5f /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wbuf.o)
+ .debug_info    0x0000000000003430      0x9f1 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wsetup.o)
+ .debug_info    0x0000000000003e21      0x9f4 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-__atexit.o)
+ .debug_info    0x0000000000004815      0xa0a /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-__call_atexit.o)
+ .debug_info    0x000000000000521f      0xb21 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fflush.o)
+ .debug_info    0x0000000000005d40      0xd1e /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-findfp.o)
+ .debug_info    0x0000000000006a5e      0xcc5 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-freer.o)
+ .debug_info    0x0000000000007723      0xbea /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fvwrite.o)
+ .debug_info    0x000000000000830d      0xa61 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fwalk.o)
+ .debug_info    0x0000000000008d6e      0xbc2 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-makebuf.o)
+ .debug_info    0x0000000000009930      0xdcd /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-mallocr.o)
+ .debug_info    0x000000000000a6fd      0x12e /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memchr.o)
+ .debug_info    0x000000000000a82b       0xae /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memcpy.o)
+ .debug_info    0x000000000000a8d9      0x136 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memmove.o)
+ .debug_info    0x000000000000aa0f       0xae /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memset.o)
+ .debug_info    0x000000000000aabd      0x997 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-mlock.o)
+ .debug_info    0x000000000000b454      0xd51 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reallocr.o)
+ .debug_info    0x000000000000c1a5      0x9d0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-sbrkr.o)
+ .debug_info    0x000000000000cb75      0xc53 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-stdio.o)
+ .debug_info    0x000000000000d7c8      0x9ef /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-writer.o)
+ .debug_info    0x000000000000e1b7      0x9ac /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-closer.o)
+ .debug_info    0x000000000000eb63      0xa71 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fclose.o)
+ .debug_info    0x000000000000f5d4      0xb49 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fstatr.o)
+ .debug_info    0x000000000001011d      0x9ac /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-isattyr.o)
+ .debug_info    0x0000000000010ac9      0x9dd /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-lseekr.o)
+ .debug_info    0x00000000000114a6      0x9e8 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-readr.o)
+ .debug_info    0x0000000000011e8e      0xabe /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reent.o)
+
+.debug_abbrev   0x0000000000000000     0x3618
+ .debug_abbrev  0x0000000000000000       0x14 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/crt0.o
+ .debug_abbrev  0x0000000000000014       0xa9 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-atexit.o)
+ .debug_abbrev  0x00000000000000bd      0x171 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-errno.o)
+ .debug_abbrev  0x000000000000022e      0x1af /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-exit.o)
+ .debug_abbrev  0x00000000000003dd      0x162 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-impure.o)
+ .debug_abbrev  0x000000000000053f      0x1f0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-puts.o)
+ .debug_abbrev  0x000000000000072f       0x7f /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-strlen.o)
+ .debug_abbrev  0x00000000000007ae      0x202 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wbuf.o)
+ .debug_abbrev  0x00000000000009b0      0x1b1 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wsetup.o)
+ .debug_abbrev  0x0000000000000b61      0x1df /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-__atexit.o)
+ .debug_abbrev  0x0000000000000d40      0x1cd /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-__call_atexit.o)
+ .debug_abbrev  0x0000000000000f0d      0x24d /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fflush.o)
+ .debug_abbrev  0x000000000000115a      0x2f7 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-findfp.o)
+ .debug_abbrev  0x0000000000001451      0x255 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-freer.o)
+ .debug_abbrev  0x00000000000016a6      0x1f0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fvwrite.o)
+ .debug_abbrev  0x0000000000001896      0x18f /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fwalk.o)
+ .debug_abbrev  0x0000000000001a25      0x1cf /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-makebuf.o)
+ .debug_abbrev  0x0000000000001bf4      0x262 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-mallocr.o)
+ .debug_abbrev  0x0000000000001e56       0xba /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memchr.o)
+ .debug_abbrev  0x0000000000001f10       0x14 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memcpy.o)
+ .debug_abbrev  0x0000000000001f24       0xab /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memmove.o)
+ .debug_abbrev  0x0000000000001fcf       0x14 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memset.o)
+ .debug_abbrev  0x0000000000001fe3      0x17c /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-mlock.o)
+ .debug_abbrev  0x000000000000215f      0x235 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reallocr.o)
+ .debug_abbrev  0x0000000000002394      0x1d3 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-sbrkr.o)
+ .debug_abbrev  0x0000000000002567      0x21b /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-stdio.o)
+ .debug_abbrev  0x0000000000002782      0x1b4 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-writer.o)
+ .debug_abbrev  0x0000000000002936      0x1af /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-closer.o)
+ .debug_abbrev  0x0000000000002ae5      0x211 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fclose.o)
+ .debug_abbrev  0x0000000000002cf6      0x1be /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fstatr.o)
+ .debug_abbrev  0x0000000000002eb4      0x1af /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-isattyr.o)
+ .debug_abbrev  0x0000000000003063      0x1be /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-lseekr.o)
+ .debug_abbrev  0x0000000000003221      0x1af /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-readr.o)
+ .debug_abbrev  0x00000000000033d0      0x248 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reent.o)
+
+.debug_aranges  0x0000000000000000      0x438
+ .debug_aranges
+                0x0000000000000000       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/crt0.o
+ .debug_aranges
+                0x0000000000000020       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-atexit.o)
+ .debug_aranges
+                0x0000000000000040       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-errno.o)
+ .debug_aranges
+                0x0000000000000060       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-exit.o)
+ .debug_aranges
+                0x0000000000000080       0x18 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-impure.o)
+ .debug_aranges
+                0x0000000000000098       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-puts.o)
+ .debug_aranges
+                0x00000000000000b8       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-strlen.o)
+ .debug_aranges
+                0x00000000000000d8       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wbuf.o)
+ .debug_aranges
+                0x00000000000000f8       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wsetup.o)
+ .debug_aranges
+                0x0000000000000118       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-__atexit.o)
+ .debug_aranges
+                0x0000000000000138       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-__call_atexit.o)
+ .debug_aranges
+                0x0000000000000158       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fflush.o)
+ .debug_aranges
+                0x0000000000000178       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-findfp.o)
+ .debug_aranges
+                0x0000000000000198       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-freer.o)
+ .debug_aranges
+                0x00000000000001b8       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fvwrite.o)
+ .debug_aranges
+                0x00000000000001d8       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fwalk.o)
+ .debug_aranges
+                0x00000000000001f8       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-makebuf.o)
+ .debug_aranges
+                0x0000000000000218       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-mallocr.o)
+ .debug_aranges
+                0x0000000000000238       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memchr.o)
+ .debug_aranges
+                0x0000000000000258       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memcpy.o)
+ .debug_aranges
+                0x0000000000000278       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memmove.o)
+ .debug_aranges
+                0x0000000000000298       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memset.o)
+ .debug_aranges
+                0x00000000000002b8       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-mlock.o)
+ .debug_aranges
+                0x00000000000002d8       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reallocr.o)
+ .debug_aranges
+                0x00000000000002f8       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-sbrkr.o)
+ .debug_aranges
+                0x0000000000000318       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-stdio.o)
+ .debug_aranges
+                0x0000000000000338       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-writer.o)
+ .debug_aranges
+                0x0000000000000358       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-closer.o)
+ .debug_aranges
+                0x0000000000000378       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fclose.o)
+ .debug_aranges
+                0x0000000000000398       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fstatr.o)
+ .debug_aranges
+                0x00000000000003b8       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-isattyr.o)
+ .debug_aranges
+                0x00000000000003d8       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-lseekr.o)
+ .debug_aranges
+                0x00000000000003f8       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-readr.o)
+ .debug_aranges
+                0x0000000000000418       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reent.o)
+
+.comment        0x0000000000000000      0x252
+ .comment       0x0000000000000000       0x12 eagle-sys.o
+ .comment       0x0000000000000012       0x12 test.o
+ .comment       0x0000000000000024       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-atexit.o)
+ .comment       0x0000000000000036       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-errno.o)
+ .comment       0x0000000000000048       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-exit.o)
+ .comment       0x000000000000005a       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-impure.o)
+ .comment       0x000000000000006c       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-puts.o)
+ .comment       0x000000000000007e       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-strlen.o)
+ .comment       0x0000000000000090       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wbuf.o)
+ .comment       0x00000000000000a2       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wsetup.o)
+ .comment       0x00000000000000b4       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-__atexit.o)
+ .comment       0x00000000000000c6       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-__call_atexit.o)
+ .comment       0x00000000000000d8       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fflush.o)
+ .comment       0x00000000000000ea       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-findfp.o)
+ .comment       0x00000000000000fc       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-freer.o)
+ .comment       0x000000000000010e       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fvwrite.o)
+ .comment       0x0000000000000120       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fwalk.o)
+ .comment       0x0000000000000132       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-makebuf.o)
+ .comment       0x0000000000000144       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-mallocr.o)
+ .comment       0x0000000000000156       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memchr.o)
+ .comment       0x0000000000000168       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memmove.o)
+ .comment       0x000000000000017a       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-mlock.o)
+ .comment       0x000000000000018c       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reallocr.o)
+ .comment       0x000000000000019e       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-sbrkr.o)
+ .comment       0x00000000000001b0       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-stdio.o)
+ .comment       0x00000000000001c2       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-writer.o)
+ .comment       0x00000000000001d4       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-closer.o)
+ .comment       0x00000000000001e6       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fclose.o)
+ .comment       0x00000000000001f8       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fstatr.o)
+ .comment       0x000000000000020a       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-isattyr.o)
+ .comment       0x000000000000021c       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-lseekr.o)
+ .comment       0x000000000000022e       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-readr.o)
+ .comment       0x0000000000000240       0x12 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reent.o)
+
+.debug_loc      0x0000000000000000     0x3eaa
+ .debug_loc     0x0000000000000000       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-atexit.o)
+ .debug_loc     0x0000000000000020       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-errno.o)
+ .debug_loc     0x0000000000000040       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-exit.o)
+ .debug_loc     0x0000000000000060       0x94 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-puts.o)
+ .debug_loc     0x00000000000000f4       0x53 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-strlen.o)
+ .debug_loc     0x0000000000000147       0xcb /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wbuf.o)
+ .debug_loc     0x0000000000000212       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wsetup.o)
+ .debug_loc     0x0000000000000232       0x6d /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-__atexit.o)
+ .debug_loc     0x000000000000029f      0x1e3 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-__call_atexit.o)
+ .debug_loc     0x0000000000000482      0x1a9 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fflush.o)
+ .debug_loc     0x000000000000062b      0x2b4 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-findfp.o)
+ .debug_loc     0x00000000000008df      0x5d6 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-freer.o)
+ .debug_loc     0x0000000000000eb5      0x38d /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fvwrite.o)
+ .debug_loc     0x0000000000001242      0x138 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fwalk.o)
+ .debug_loc     0x000000000000137a       0xce /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-makebuf.o)
+ .debug_loc     0x0000000000001448      0xbe8 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-mallocr.o)
+ .debug_loc     0x0000000000002030      0x1e5 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memchr.o)
+ .debug_loc     0x0000000000002215      0x21a /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memmove.o)
+ .debug_loc     0x000000000000242f       0x40 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-mlock.o)
+ .debug_loc     0x000000000000246f     0x1624 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reallocr.o)
+ .debug_loc     0x0000000000003a93       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-sbrkr.o)
+ .debug_loc     0x0000000000003ab3      0x142 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-stdio.o)
+ .debug_loc     0x0000000000003bf5       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-writer.o)
+ .debug_loc     0x0000000000003c15       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-closer.o)
+ .debug_loc     0x0000000000003c35       0x74 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fclose.o)
+ .debug_loc     0x0000000000003ca9       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fstatr.o)
+ .debug_loc     0x0000000000003cc9       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-isattyr.o)
+ .debug_loc     0x0000000000003ce9       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-lseekr.o)
+ .debug_loc     0x0000000000003d09       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-readr.o)
+ .debug_loc     0x0000000000003d29      0x181 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reent.o)
+
+.debug_str      0x0000000000000000     0x942d
+ .debug_str     0x0000000000000000      0x162 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-atexit.o)
+ .debug_str     0x0000000000000162      0x4de /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-errno.o)
+ .debug_str     0x0000000000000640      0x4ff /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-exit.o)
+ .debug_str     0x0000000000000b3f      0x4f6 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-impure.o)
+ .debug_str     0x0000000000001035      0x545 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-puts.o)
+ .debug_str     0x000000000000157a      0x134 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-strlen.o)
+ .debug_str     0x00000000000016ae      0x50a /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wbuf.o)
+ .debug_str     0x0000000000001bb8      0x505 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wsetup.o)
+ .debug_str     0x00000000000020bd      0x53e /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-__atexit.o)
+ .debug_str     0x00000000000025fb      0x510 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-__call_atexit.o)
+ .debug_str     0x0000000000002b0b      0x540 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fflush.o)
+ .debug_str     0x000000000000304b      0x5ef /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-findfp.o)
+ .debug_str     0x000000000000363a      0x63d /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-freer.o)
+ .debug_str     0x0000000000003c77      0x580 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fvwrite.o)
+ .debug_str     0x00000000000041f7      0x4fb /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fwalk.o)
+ .debug_str     0x00000000000046f2      0x5f8 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-makebuf.o)
+ .debug_str     0x0000000000004cea      0x6f3 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-mallocr.o)
+ .debug_str     0x00000000000053dd      0x13f /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memchr.o)
+ .debug_str     0x000000000000551c      0x158 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memmove.o)
+ .debug_str     0x0000000000005674      0x4ff /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-mlock.o)
+ .debug_str     0x0000000000005b73      0x5d7 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reallocr.o)
+ .debug_str     0x000000000000614a      0x4ec /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-sbrkr.o)
+ .debug_str     0x0000000000006636      0x549 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-stdio.o)
+ .debug_str     0x0000000000006b7f      0x4f0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-writer.o)
+ .debug_str     0x000000000000706f      0x4e0 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-closer.o)
+ .debug_str     0x000000000000754f      0x532 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fclose.o)
+ .debug_str     0x0000000000007a81      0x5cc /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fstatr.o)
+ .debug_str     0x000000000000804d      0x4e3 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-isattyr.o)
+ .debug_str     0x0000000000008530      0x4ed /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-lseekr.o)
+ .debug_str     0x0000000000008a1d      0x4ed /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-readr.o)
+ .debug_str     0x0000000000008f0a      0x523 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reent.o)
+
+.debug_frame    0x0000000000000000      0x8ac
+ .debug_frame   0x0000000000000000       0x2c /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-atexit.o)
+ .debug_frame   0x000000000000002c       0x2c /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-errno.o)
+ .debug_frame   0x0000000000000058       0x30 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-exit.o)
+ .debug_frame   0x0000000000000088       0x48 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-puts.o)
+ .debug_frame   0x00000000000000d0       0x2c /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-strlen.o)
+ .debug_frame   0x00000000000000fc       0x4c /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wbuf.o)
+ .debug_frame   0x0000000000000148       0x30 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-wsetup.o)
+ .debug_frame   0x0000000000000178       0x30 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-__atexit.o)
+ .debug_frame   0x00000000000001a8       0x40 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-__call_atexit.o)
+ .debug_frame   0x00000000000001e8       0x68 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fflush.o)
+ .debug_frame   0x0000000000000250      0x17c /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-findfp.o)
+ .debug_frame   0x00000000000003cc       0x54 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-freer.o)
+ .debug_frame   0x0000000000000420       0x40 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fvwrite.o)
+ .debug_frame   0x0000000000000460       0x5c /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fwalk.o)
+ .debug_frame   0x00000000000004bc       0x34 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-makebuf.o)
+ .debug_frame   0x00000000000004f0       0x40 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-mallocr.o)
+ .debug_frame   0x0000000000000530       0x34 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memchr.o)
+ .debug_frame   0x0000000000000564       0x38 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-memmove.o)
+ .debug_frame   0x000000000000059c       0x44 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-mlock.o)
+ .debug_frame   0x00000000000005e0       0x40 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reallocr.o)
+ .debug_frame   0x0000000000000620       0x2c /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-sbrkr.o)
+ .debug_frame   0x000000000000064c       0x9c /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-stdio.o)
+ .debug_frame   0x00000000000006e8       0x2c /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-writer.o)
+ .debug_frame   0x0000000000000714       0x2c /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-closer.o)
+ .debug_frame   0x0000000000000740       0x4c /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fclose.o)
+ .debug_frame   0x000000000000078c       0x2c /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fstatr.o)
+ .debug_frame   0x00000000000007b8       0x2c /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-isattyr.o)
+ .debug_frame   0x00000000000007e4       0x2c /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-lseekr.o)
+ .debug_frame   0x0000000000000810       0x2c /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-readr.o)
+ .debug_frame   0x000000000000083c       0x70 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reent.o)
+
+.debug_ranges   0x0000000000000000      0x230
+ .debug_ranges  0x0000000000000000       0x28 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-__call_atexit.o)
+ .debug_ranges  0x0000000000000028       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fflush.o)
+ .debug_ranges  0x0000000000000048       0x20 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-fvwrite.o)
+ .debug_ranges  0x0000000000000068       0x70 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-mallocr.o)
+ .debug_ranges  0x00000000000000d8      0x158 /home/ad/gcc68k/lib/gcc/m68k-elf/4.7.3/../../../../m68k-elf/lib/m68000/libc.a(lib_a-reallocr.o)

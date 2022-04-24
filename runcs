@@ -1,0 +1,4 @@
+#!/bin/sh
+reset
+# break after first tape boot command
+./eagleemu "msg all -" "bus -" "dup -" "msg cs +" "br 0 401706" "br 1 1000" g

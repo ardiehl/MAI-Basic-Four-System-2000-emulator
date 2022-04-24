@@ -1,0 +1,160 @@
+;-----------------------------------------------------------
+; Program    : eagletest
+; Written by : Armin Diehl
+; Date       :
+; Description: Test for the mai2000 emulator
+;-----------------------------------------------------------
+	ORG	$1000
+sccdata		equ	$600006
+scccmd		equ	$600004
+buserrvec	equ	8
+
+; install handler for buserr
+; fill stack with ff
+; access invalid memory (read)
+; dump stack in bus handler
+; halt
+
+START:				
+	move.l	#$3000,sp	; stack in unused area
+	lea	MsgStart,a0
+	bsr	StrOut
+	
+	move.l	#buserrvec,a0	; address of bus error vector in a0
+	lea	buserr,a1	; address of error routine
+	move.l	a1,(a0)+	; save bus error vecor address
+	lea	addrerr,a1	
+	move.l	a1,(a0)+	; save address error vector
+	
+	move.l	#$3000,a0
+	move.l	#$ffffffff,d0
+	move.b	#$ff,d1
+sinit:	move.l	d0,(a0)		; init stack to ff
+	sub.l	#4,a0
+	subq.b	#1,d1
+	bne.s	sinit
+	; access unknown mem area
+	move.l	#$CD0000,a0	; wd1, not present
+;	move.b	d0,(a0)		; bus write error
+	move.b	(a0),d0		; bus read error
+	
+	lea	noErr,a0
+	bsr	StrOut
+xstop:
+	bra.s	xstop		; halt system
+;	MOVE.B	#9,D0
+;	TRAP	#15		; halt simulator
+
+buserr:	lea	MsgBusErr,a0
+	bsr	StrOut
+	bra	showStack
+	
+addrerr:
+	lea	MsgAddrErr,a0
+	bsr	StrOut
+	
+showStack:
+	lea	MsgSP,a0
+	bsr	StrOut
+	move.l	sp,d0
+	bsr	HexOutL
+	bsr	crlf
+	move.b	#30,d2		; show 30 words
+showStackLoop:
+	move.l	a7,d0
+	bsr	HexOutL
+	move.b	#':',d1
+	bsr	CharOut
+	movem.w (a7)+,d0	; pop from stack
+	bsr	HexOutW		; and show hex
+	move.b	#' ',d1
+	bsr	CharOut		; and one space
+	subq.b	#1,d2
+	bne.s	showStackLoop
+	bsr	crlf
+	bra	xstop
+
+
+hexTest:
+	move.b	#$f1,d0
+	bsr	HexOutB
+	bsr	crlf
+	move.w	#$abcd,d0
+	bsr	HexOutW
+	bsr	crlf
+	move.l	#$12345678,d0
+	bsr	HexOutL
+	bsr	crlf
+	rts
+	
+CharOut:
+;	move.b	#6,d0		; char out from d1
+;	trap	#15		; for simulator
+;	rts
+
+	move.b	scccmd,d7	; scc status register, bit 2=1=tx buffer emoty
+	and.b	#$04,d7
+	beq	CharOut		; wait for scc tx empty
+	move.b	d1,sccdata
+	rts
+
+StrOut:	move.b	(a0)+,d1		;a0: string
+	beq	StrOutEnd
+	bsr	CharOut
+	bra	StrOut
+StrOutEnd:	rts
+
+crlf:	move.b	#13,d1
+	bsr	CharOut
+	move.b	#10,d1
+	bsr	CharOut
+	rts
+
+temp1:	dc.w	$0000
+temp2:	dc.w	$0000
+temp3:	dc.w	$0000
+temp4:	dc.w	$0000
+temp5:	dc.w	$0000
+
+;Generalized routine to write
+;a word, byte or long word (in d0).
+;
+HexOutB:
+	move.w  #$1,temp1		;t1 is the number of bytes
+	bra     HexOut
+HexOutW:
+	move.w  #$3,temp1
+	bra     HexOut
+HexOutL:
+	move.w  #$7,temp1
+HexOut:	movem.l d1-d2/a0/a6,-(a7)	;save registers d1,d2,a0,a6
+	move.w  temp1,d2		;set count
+	move.b  #$00,temp5+1		;set a null at end
+	lea     temp5+1,a6		;use temps as a stack
+alp:	move.b  d0,d1			;make each hex digit a
+	and.b   #$0f,d1			;writable ascii byte
+	cmp.b   #$0a,d1			;check for abcdef
+	blt     or3
+	or.b    #$40,d1
+	sub.b   #$09,d1
+	bra     m1
+or3:	or.b    #$30,d1			;set high-order bits
+m1:	move.b  d1,-(a6)		;put on stack
+	lsr.l   #$4,d0			;get next hex digit
+	dbf     d2,alp
+	movea.w a6,a0			;write the stack with StrOut
+	bsr     StrOut
+	movem.l (a7)+,a6/a0/d2/d1	;restore registers d1,d2,a0,a6
+	rts
+
+MsgStart:
+	dc.b	"Bus-error test for MAI2000",13,10,0
+MsgBusErr:
+	dc.b	"Bus-Error(read)",13,10,0
+MsgAddrErr:
+	dc.b	"Address-Error",13,10,0
+MsgSP:	dc.b	"SP: ",0
+noErr:	dc.b	"no access error!",13,10,0
+
+	END START
+

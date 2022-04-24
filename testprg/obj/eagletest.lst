@@ -1,0 +1,1757 @@
+   1              		.file	"eagletest.c"
+   2              		.text
+   3              	.Ltext0:
+   4              		.comm	numArgs,4,4
+   5              		.comm	args,160,64
+   6              		.section	.rodata
+   7              	.LC0:
+   8 0000 0A696E76 		.string	"\ninvalid arguments"
+   8      616C6964 
+   8      20617267 
+   8      756D656E 
+   8      747300
+   9              		.text
+  10              		.globl	invalidArgs
+  12              	invalidArgs:
+  13              	.LFB2:
+  14              		.file 1 "eagletest.c"
+   1:eagletest.c   **** #include <stdio.h>
+   2:eagletest.c   **** #include <stdlib.h>
+   3:eagletest.c   **** #include <string.h>
+   4:eagletest.c   **** #include "util.h"
+   5:eagletest.c   **** #include "eagletest.h"
+   6:eagletest.c   **** 
+   7:eagletest.c   **** //void __reboot () {
+   8:eagletest.c   ****   // here we need to boot
+   9:eagletest.c   **** //}
+  10:eagletest.c   **** 
+  11:eagletest.c   **** 
+  12:eagletest.c   **** int numArgs;
+  13:eagletest.c   **** 
+  14:eagletest.c   **** struct args_t args [MAXNUMARGS];
+  15:eagletest.c   **** 
+  16:eagletest.c   **** 
+  17:eagletest.c   **** void invalidArgs(void) {
+  15              		.loc 1 17 0
+  16              		.cfi_startproc
+  17 0000 55       		pushq	%rbp
+  18              		.cfi_def_cfa_offset 16
+  19              		.cfi_offset 6, -16
+  20 0001 4889E5   		movq	%rsp, %rbp
+  21              		.cfi_def_cfa_register 6
+  18:eagletest.c   **** 	printf("\ninvalid arguments\n");
+  22              		.loc 1 18 0
+  23 0004 BF000000 		movl	$.LC0, %edi
+  23      00
+  24 0009 E8000000 		call	puts
+  24      00
+  19:eagletest.c   **** }
+  25              		.loc 1 19 0
+  26 000e 5D       		popq	%rbp
+  27              		.cfi_def_cfa 7, 8
+  28 000f C3       		ret
+  29              		.cfi_endproc
+  30              	.LFE2:
+  32              		.section	.rodata
+  33              	.LC1:
+  34 0013 636D645F 		.string	"cmd_dummy %d args\n"
+  34      64756D6D 
+  34      79202564 
+  34      20617267 
+  34      730A00
+  35              		.text
+  36              		.globl	cmd_dummy
+  38              	cmd_dummy:
+  39              	.LFB3:
+  20:eagletest.c   **** 
+  21:eagletest.c   **** 
+  22:eagletest.c   **** 
+  23:eagletest.c   **** void cmd_dummy (int numArgs, struct args_t *args) {
+  40              		.loc 1 23 0
+  41              		.cfi_startproc
+  42 0010 55       		pushq	%rbp
+  43              		.cfi_def_cfa_offset 16
+  44              		.cfi_offset 6, -16
+  45 0011 4889E5   		movq	%rsp, %rbp
+  46              		.cfi_def_cfa_register 6
+  47 0014 4883EC10 		subq	$16, %rsp
+  48 0018 897DFC   		movl	%edi, -4(%rbp)
+  49 001b 488975F0 		movq	%rsi, -16(%rbp)
+  24:eagletest.c   **** 	printf("cmd_dummy %d args\n",numArgs);
+  50              		.loc 1 24 0
+  51 001f 8B45FC   		movl	-4(%rbp), %eax
+  52 0022 89C6     		movl	%eax, %esi
+  53 0024 BF000000 		movl	$.LC1, %edi
+  53      00
+  54 0029 B8000000 		movl	$0, %eax
+  54      00
+  55 002e E8000000 		call	printf
+  55      00
+  25:eagletest.c   **** }
+  56              		.loc 1 25 0
+  57 0033 C9       		leave
+  58              		.cfi_def_cfa 7, 8
+  59 0034 C3       		ret
+  60              		.cfi_endproc
+  61              	.LFE3:
+  63              		.globl	cmds
+  64              		.section	.rodata
+  65              	.LC2:
+  66 0026 64756D6D 		.string	"dummy command"
+  66      7920636F 
+  66      6D6D616E 
+  66      6400
+  67              	.LC3:
+  68 0034 73686F77 		.string	"show this help"
+  68      20746869 
+  68      73206865 
+  68      6C7000
+  69 0043 00000000 		.align 8
+  69      00
+  70              	.LC4:
+  71 0048 7465726D 		.string	"terminate to internal debugger"
+  71      696E6174 
+  71      6520746F 
+  71      20696E74 
+  71      65726E61 
+  72              	.LC5:
+  73 0067 00       		.string	""
+  74              		.data
+  75              		.align 64
+  78              	cmds:
+  79 0000 64756D6D 		.string	"dummy"
+  79      7900
+  80 0006 00000000 		.zero	5
+  80      00
+  81 000b 00000000 		.zero	5
+  81      00
+  82 0010 00000000 		.quad	cmd_dummy
+  82      00000000 
+  83 0018 00000000 		.long	0
+  84 001c 01000000 		.long	1
+  85 0020 00000000 		.long	0
+  86 0024 00000000 		.zero	4
+  87 0028 00000000 		.quad	.LC2
+  87      00000000 
+  88 0030 3F00     		.string	"?"
+  89 0032 00000000 		.zero	9
+  89      00000000 
+  89      00
+  90 003b 00000000 		.zero	5
+  90      00
+  91 0040 00000000 		.quad	cmd_help
+  91      00000000 
+  92 0048 00000000 		.long	0
+  93 004c 00000000 		.long	0
+  94 0050 00000000 		.long	0
+  95 0054 00000000 		.zero	4
+  96 0058 00000000 		.quad	.LC3
+  96      00000000 
+  97 0060 68656C70 		.string	"help"
+  97      00
+  98 0065 00000000 		.zero	6
+  98      0000
+  99 006b 00000000 		.zero	5
+  99      00
+ 100 0070 00000000 		.quad	cmd_help
+ 100      00000000 
+ 101 0078 00000000 		.long	0
+ 102 007c 00000000 		.long	0
+ 103 0080 00000000 		.long	0
+ 104 0084 00000000 		.zero	4
+ 105 0088 00000000 		.quad	.LC3
+ 105      00000000 
+ 106 0090 71756974 		.string	"quit"
+ 106      00
+ 107 0095 00000000 		.zero	6
+ 107      0000
+ 108 009b 00000000 		.zero	5
+ 108      00
+ 109 00a0 00000000 		.quad	0
+ 109      00000000 
+ 110 00a8 00000000 		.long	0
+ 111 00ac 00000000 		.long	0
+ 112 00b0 00000000 		.long	0
+ 113 00b4 00000000 		.zero	4
+ 114 00b8 00000000 		.quad	.LC4
+ 114      00000000 
+ 115 00c0 00       		.string	""
+ 116 00c1 00000000 		.zero	10
+ 116      00000000 
+ 116      0000
+ 117 00cb 00000000 		.zero	5
+ 117      00
+ 118 00d0 00000000 		.quad	0
+ 118      00000000 
+ 119 00d8 00000000 		.long	0
+ 120 00dc 00000000 		.long	0
+ 121 00e0 00000000 		.long	0
+ 122 00e4 00000000 		.zero	4
+ 123 00e8 00000000 		.quad	.LC5
+ 123      00000000 
+ 124              		.section	.rodata
+ 125              	.LC6:
+ 126 0068 0A202573 		.string	"\n %s\n %s\n"
+ 126      0A202573 
+ 126      0A00
+ 127              	.LC7:
+ 128 0072 20252D31 		.string	" %-10s %s\n"
+ 128      30732025 
+ 128      730A00
+ 129              		.text
+ 130              		.globl	showHelp
+ 132              	showHelp:
+ 133              	.LFB4:
+  26:eagletest.c   **** 
+  27:eagletest.c   **** 
+  28:eagletest.c   **** void cmd_help (int numArgs, struct args_t *args);
+  29:eagletest.c   **** 
+  30:eagletest.c   **** struct cmds_t cmds[] =
+  31:eagletest.c   **** {
+  32:eagletest.c   ****     { "dummy", cmd_dummy    , 0,1,0,"dummy command"},
+  33:eagletest.c   ****     { "?",     cmd_help     , 0,0,0,"show this help"},
+  34:eagletest.c   **** 	{ "help",  cmd_help     , 0,0,0,"show this help"},
+  35:eagletest.c   **** 	{ "quit", NULL          , 0,0,0,"terminate to internal debugger"},
+  36:eagletest.c   ****     { "",  NULL, 0,0,0,""}
+  37:eagletest.c   **** };
+  38:eagletest.c   **** 
+  39:eagletest.c   **** 
+  40:eagletest.c   **** 
+  41:eagletest.c   **** void showHelp (char * caption, struct cmds_t * cmds, int extended) {
+ 134              		.loc 1 41 0
+ 135              		.cfi_startproc
+ 136 0035 55       		pushq	%rbp
+ 137              		.cfi_def_cfa_offset 16
+ 138              		.cfi_offset 6, -16
+ 139 0036 4889E5   		movq	%rsp, %rbp
+ 140              		.cfi_def_cfa_register 6
+ 141 0039 53       		pushq	%rbx
+ 142 003a 4881EC38 		subq	$312, %rsp
+ 142      010000
+ 143              		.cfi_offset 3, -24
+ 144 0041 4889BDD8 		movq	%rdi, -296(%rbp)
+ 144      FEFFFF
+ 145 0048 4889B5D0 		movq	%rsi, -304(%rbp)
+ 145      FEFFFF
+ 146 004f 8995CCFE 		movl	%edx, -308(%rbp)
+ 146      FFFF
+  42:eagletest.c   **** 	char st[255];
+  43:eagletest.c   **** 	int i;
+  44:eagletest.c   **** 
+  45:eagletest.c   **** 	if (caption) {
+ 147              		.loc 1 45 0
+ 148 0055 4883BDD8 		cmpq	$0, -296(%rbp)
+ 148      FEFFFF00 
+ 149 005d 0F848200 		je	.L4
+ 149      0000
+  46:eagletest.c   **** 		st[0]=0;
+ 150              		.loc 1 46 0
+ 151 0063 C685E0FE 		movb	$0, -288(%rbp)
+ 151      FFFF00
+  47:eagletest.c   **** 		for (i=0;i<strlen(caption);i++) strcat(st,"=");
+ 152              		.loc 1 47 0
+ 153 006a C745EC00 		movl	$0, -20(%rbp)
+ 153      000000
+ 154 0071 EB38     		jmp	.L5
+ 155              	.L6:
+ 156              		.loc 1 47 0 is_stmt 0 discriminator 3
+ 157 0073 488D85E0 		leaq	-288(%rbp), %rax
+ 157      FEFFFF
+ 158 007a 48C7C1FF 		movq	$-1, %rcx
+ 158      FFFFFF
+ 159 0081 4889C2   		movq	%rax, %rdx
+ 160 0084 B8000000 		movl	$0, %eax
+ 160      00
+ 161 0089 4889D7   		movq	%rdx, %rdi
+ 162 008c F2AE     		repnz scasb
+ 163 008e 4889C8   		movq	%rcx, %rax
+ 164 0091 48F7D0   		notq	%rax
+ 165 0094 488D50FF 		leaq	-1(%rax), %rdx
+ 166 0098 488D85E0 		leaq	-288(%rbp), %rax
+ 166      FEFFFF
+ 167 009f 4801D0   		addq	%rdx, %rax
+ 168 00a2 66C7003D 		movw	$61, (%rax)
+ 168      00
+ 169 00a7 8345EC01 		addl	$1, -20(%rbp)
+ 170              	.L5:
+ 171              		.loc 1 47 0 discriminator 1
+ 172 00ab 8B45EC   		movl	-20(%rbp), %eax
+ 173 00ae 4863D8   		movslq	%eax, %rbx
+ 174 00b1 488B85D8 		movq	-296(%rbp), %rax
+ 174      FEFFFF
+ 175 00b8 4889C7   		movq	%rax, %rdi
+ 176 00bb E8000000 		call	strlen
+ 176      00
+ 177 00c0 4839C3   		cmpq	%rax, %rbx
+ 178 00c3 72AE     		jb	.L6
+  48:eagletest.c   **** 		printf("\n %s\n %s\n",caption,st);
+ 179              		.loc 1 48 0 is_stmt 1
+ 180 00c5 488D95E0 		leaq	-288(%rbp), %rdx
+ 180      FEFFFF
+ 181 00cc 488B85D8 		movq	-296(%rbp), %rax
+ 181      FEFFFF
+ 182 00d3 4889C6   		movq	%rax, %rsi
+ 183 00d6 BF000000 		movl	$.LC6, %edi
+ 183      00
+ 184 00db B8000000 		movl	$0, %eax
+ 184      00
+ 185 00e0 E8000000 		call	printf
+ 185      00
+ 186              	.L4:
+  49:eagletest.c   **** 	}
+  50:eagletest.c   **** 	i=0;
+ 187              		.loc 1 50 0
+ 188 00e5 C745EC00 		movl	$0, -20(%rbp)
+ 188      000000
+  51:eagletest.c   **** 	while (cmds[i].name[0] != 0) {
+ 189              		.loc 1 51 0
+ 190 00ec EB5D     		jmp	.L7
+ 191              	.L8:
+  52:eagletest.c   **** 	    printf(" %-10s %s\n",cmds[i].name,cmds[i].usage);
+ 192              		.loc 1 52 0
+ 193 00ee 8B45EC   		movl	-20(%rbp), %eax
+ 194 00f1 4863D0   		movslq	%eax, %rdx
+ 195 00f4 4889D0   		movq	%rdx, %rax
+ 196 00f7 4801C0   		addq	%rax, %rax
+ 197 00fa 4801D0   		addq	%rdx, %rax
+ 198 00fd 48C1E004 		salq	$4, %rax
+ 199 0101 4889C2   		movq	%rax, %rdx
+ 200 0104 488B85D0 		movq	-304(%rbp), %rax
+ 200      FEFFFF
+ 201 010b 4801D0   		addq	%rdx, %rax
+ 202 010e 488B4828 		movq	40(%rax), %rcx
+ 203 0112 8B45EC   		movl	-20(%rbp), %eax
+ 204 0115 4863D0   		movslq	%eax, %rdx
+ 205 0118 4889D0   		movq	%rdx, %rax
+ 206 011b 4801C0   		addq	%rax, %rax
+ 207 011e 4801D0   		addq	%rdx, %rax
+ 208 0121 48C1E004 		salq	$4, %rax
+ 209 0125 4889C2   		movq	%rax, %rdx
+ 210 0128 488B85D0 		movq	-304(%rbp), %rax
+ 210      FEFFFF
+ 211 012f 4801D0   		addq	%rdx, %rax
+ 212 0132 4889CA   		movq	%rcx, %rdx
+ 213 0135 4889C6   		movq	%rax, %rsi
+ 214 0138 BF000000 		movl	$.LC7, %edi
+ 214      00
+ 215 013d B8000000 		movl	$0, %eax
+ 215      00
+ 216 0142 E8000000 		call	printf
+ 216      00
+  53:eagletest.c   **** 		i++;
+ 217              		.loc 1 53 0
+ 218 0147 8345EC01 		addl	$1, -20(%rbp)
+ 219              	.L7:
+  51:eagletest.c   **** 	while (cmds[i].name[0] != 0) {
+ 220              		.loc 1 51 0
+ 221 014b 8B45EC   		movl	-20(%rbp), %eax
+ 222 014e 4863D0   		movslq	%eax, %rdx
+ 223 0151 4889D0   		movq	%rdx, %rax
+ 224 0154 4801C0   		addq	%rax, %rax
+ 225 0157 4801D0   		addq	%rdx, %rax
+ 226 015a 48C1E004 		salq	$4, %rax
+ 227 015e 4889C2   		movq	%rax, %rdx
+ 228 0161 488B85D0 		movq	-304(%rbp), %rax
+ 228      FEFFFF
+ 229 0168 4801D0   		addq	%rdx, %rax
+ 230 016b 0FB600   		movzbl	(%rax), %eax
+ 231 016e 84C0     		testb	%al, %al
+ 232 0170 0F8578FF 		jne	.L8
+ 232      FFFF
+  54:eagletest.c   ****     }
+  55:eagletest.c   **** 	if (extended) {
+  56:eagletest.c   **** 	}
+  57:eagletest.c   **** }
+ 233              		.loc 1 57 0
+ 234 0176 4881C438 		addq	$312, %rsp
+ 234      010000
+ 235 017d 5B       		popq	%rbx
+ 236 017e 5D       		popq	%rbp
+ 237              		.cfi_def_cfa 7, 8
+ 238 017f C3       		ret
+ 239              		.cfi_endproc
+ 240              	.LFE4:
+ 242              		.section	.rodata
+ 243              	.LC8:
+ 244 007d 48656C70 		.string	"Help for eagle tests"
+ 244      20666F72 
+ 244      20656167 
+ 244      6C652074 
+ 244      65737473 
+ 245              		.text
+ 246              		.globl	cmd_help
+ 248              	cmd_help:
+ 249              	.LFB5:
+  58:eagletest.c   **** 
+  59:eagletest.c   **** void cmd_help (int numArgs, struct args_t *args) {
+ 250              		.loc 1 59 0
+ 251              		.cfi_startproc
+ 252 0180 55       		pushq	%rbp
+ 253              		.cfi_def_cfa_offset 16
+ 254              		.cfi_offset 6, -16
+ 255 0181 4889E5   		movq	%rsp, %rbp
+ 256              		.cfi_def_cfa_register 6
+ 257 0184 4883EC10 		subq	$16, %rsp
+ 258 0188 897DFC   		movl	%edi, -4(%rbp)
+ 259 018b 488975F0 		movq	%rsi, -16(%rbp)
+  60:eagletest.c   **** 
+  61:eagletest.c   **** 	showHelp("Help for eagle tests",cmds,1);
+ 260              		.loc 1 61 0
+ 261 018f BA010000 		movl	$1, %edx
+ 261      00
+ 262 0194 BE000000 		movl	$cmds, %esi
+ 262      00
+ 263 0199 BF000000 		movl	$.LC8, %edi
+ 263      00
+ 264 019e E8000000 		call	showHelp
+ 264      00
+  62:eagletest.c   **** }
+ 265              		.loc 1 62 0
+ 266 01a3 C9       		leave
+ 267              		.cfi_def_cfa 7, 8
+ 268 01a4 C3       		ret
+ 269              		.cfi_endproc
+ 270              	.LFE5:
+ 272              		.globl	strToULong
+ 274              	strToULong:
+ 275              	.LFB6:
+  63:eagletest.c   **** 
+  64:eagletest.c   **** 
+  65:eagletest.c   **** /* ========================================================================
+  66:eagletest.c   ****  * Convert input string to number
+  67:eagletest.c   ****  * returns 1 if value found
+  68:eagletest.c   ****  * pure hex
+  69:eagletest.c   ****  * #xx decumal number
+  70:eagletest.c   ****  * ======================================================================== */
+  71:eagletest.c   **** 
+  72:eagletest.c   **** unsigned int strToULong(char * txt, unsigned int * value) {
+ 276              		.loc 1 72 0
+ 277              		.cfi_startproc
+ 278 01a5 55       		pushq	%rbp
+ 279              		.cfi_def_cfa_offset 16
+ 280              		.cfi_offset 6, -16
+ 281 01a6 4889E5   		movq	%rsp, %rbp
+ 282              		.cfi_def_cfa_register 6
+ 283 01a9 4881EC10 		subq	$272, %rsp
+ 283      010000
+ 284 01b0 4889BDF8 		movq	%rdi, -264(%rbp)
+ 284      FEFFFF
+ 285 01b7 4889B5F0 		movq	%rsi, -272(%rbp)
+ 285      FEFFFF
+  73:eagletest.c   **** 	char buf[255];
+  74:eagletest.c   **** 
+  75:eagletest.c   **** 	if (xtoui(txt,value)) return 1;  /* pure hex value */
+ 286              		.loc 1 75 0
+ 287 01be 488B95F0 		movq	-272(%rbp), %rdx
+ 287      FEFFFF
+ 288 01c5 488B85F8 		movq	-264(%rbp), %rax
+ 288      FEFFFF
+ 289 01cc 4889D6   		movq	%rdx, %rsi
+ 290 01cf 4889C7   		movq	%rax, %rdi
+ 291 01d2 E8000000 		call	xtoui
+ 291      00
+ 292 01d7 85C0     		testl	%eax, %eax
+ 293 01d9 7407     		je	.L11
+ 294              		.loc 1 75 0 is_stmt 0 discriminator 1
+ 295 01db B8010000 		movl	$1, %eax
+ 295      00
+ 296 01e0 EB58     		jmp	.L14
+ 297              	.L11:
+  76:eagletest.c   **** 	strcpy(buf,txt);
+ 298              		.loc 1 76 0 is_stmt 1
+ 299 01e2 488B95F8 		movq	-264(%rbp), %rdx
+ 299      FEFFFF
+ 300 01e9 488D8500 		leaq	-256(%rbp), %rax
+ 300      FFFFFF
+ 301 01f0 4889D6   		movq	%rdx, %rsi
+ 302 01f3 4889C7   		movq	%rax, %rdi
+ 303 01f6 E8000000 		call	strcpy
+ 303      00
+  77:eagletest.c   **** 	if (buf[0]=='#') {  /* decimal value */	
+ 304              		.loc 1 77 0
+ 305 01fb 0FB68500 		movzbl	-256(%rbp), %eax
+ 305      FFFFFF
+ 306 0202 3C23     		cmpb	$35, %al
+ 307 0204 752F     		jne	.L13
+  78:eagletest.c   ****       *value = strtol(&buf[1],NULL,10);
+ 308              		.loc 1 78 0
+ 309 0206 488D8500 		leaq	-256(%rbp), %rax
+ 309      FFFFFF
+ 310 020d 4883C001 		addq	$1, %rax
+ 311 0211 BA0A0000 		movl	$10, %edx
+ 311      00
+ 312 0216 BE000000 		movl	$0, %esi
+ 312      00
+ 313 021b 4889C7   		movq	%rax, %rdi
+ 314 021e E8000000 		call	strtol
+ 314      00
+ 315 0223 89C2     		movl	%eax, %edx
+ 316 0225 488B85F0 		movq	-272(%rbp), %rax
+ 316      FEFFFF
+ 317 022c 8910     		movl	%edx, (%rax)
+  79:eagletest.c   **** 	  return 1;
+ 318              		.loc 1 79 0
+ 319 022e B8010000 		movl	$1, %eax
+ 319      00
+ 320 0233 EB05     		jmp	.L14
+ 321              	.L13:
+  80:eagletest.c   **** 	}
+  81:eagletest.c   ****   return 0;
+ 322              		.loc 1 81 0
+ 323 0235 B8000000 		movl	$0, %eax
+ 323      00
+ 324              	.L14:
+  82:eagletest.c   **** }
+ 325              		.loc 1 82 0 discriminator 1
+ 326 023a C9       		leave
+ 327              		.cfi_def_cfa 7, 8
+ 328 023b C3       		ret
+ 329              		.cfi_endproc
+ 330              	.LFE6:
+ 332              		.section	.rodata
+ 333              	.LC9:
+ 334 0092 616D6269 		.string	"ambiguous command"
+ 334      67756F75 
+ 334      7320636F 
+ 334      6D6D616E 
+ 334      6400
+ 335              	.LC10:
+ 336 00a4 25732072 		.string	"%s requires %sone arg\n"
+ 336      65717569 
+ 336      72657320 
+ 336      25736F6E 
+ 336      65206172 
+ 337              	.LC11:
+ 338 00bb 25732072 		.string	"%s requires %s%d args\n"
+ 338      65717569 
+ 338      72657320 
+ 338      25732564 
+ 338      20617267 
+ 339 00d2 00000000 		.align 8
+ 339      0000
+ 340              	.LC12:
+ 341 00d8 25732072 		.string	"%s requires all args to be values\n"
+ 341      65717569 
+ 341      72657320 
+ 341      616C6C20 
+ 341      61726773 
+ 342              	.LC13:
+ 343 00fb 77686174 		.string	"what?"
+ 343      3F00
+ 344              		.text
+ 345              		.globl	findAndExecCommand
+ 347              	findAndExecCommand:
+ 348              	.LFB7:
+  83:eagletest.c   **** 
+  84:eagletest.c   **** int findAndExecCommand (	char * cmd, 
+  85:eagletest.c   ****                  			struct cmds_t *cmds, int numArgs, 
+  86:eagletest.c   ****                  			struct args_t *args) {
+ 349              		.loc 1 86 0
+ 350              		.cfi_startproc
+ 351 023c 55       		pushq	%rbp
+ 352              		.cfi_def_cfa_offset 16
+ 353              		.cfi_offset 6, -16
+ 354 023d 4889E5   		movq	%rsp, %rbp
+ 355              		.cfi_def_cfa_register 6
+ 356 0240 53       		pushq	%rbx
+ 357 0241 4883EC58 		subq	$88, %rsp
+ 358              		.cfi_offset 3, -24
+ 359 0245 48897DB8 		movq	%rdi, -72(%rbp)
+ 360 0249 488975B0 		movq	%rsi, -80(%rbp)
+ 361 024d 8955AC   		movl	%edx, -84(%rbp)
+ 362 0250 48894DA0 		movq	%rcx, -96(%rbp)
+  87:eagletest.c   **** 	int i;
+  88:eagletest.c   **** 	int cmdNumPartMatch = -1; 
+ 363              		.loc 1 88 0
+ 364 0254 C745E8FF 		movl	$-1, -24(%rbp)
+ 364      FFFFFF
+  89:eagletest.c   **** 	int cmdPartMatchCount = 0;
+ 365              		.loc 1 89 0
+ 366 025b C745E400 		movl	$0, -28(%rbp)
+ 366      000000
+  90:eagletest.c   **** 	int cmdNum = -1;
+ 367              		.loc 1 90 0
+ 368 0262 C745E0FF 		movl	$-1, -32(%rbp)
+ 368      FFFFFF
+  91:eagletest.c   **** 	int allArgsAreHex = 1;
+ 369              		.loc 1 91 0
+ 370 0269 C745DC01 		movl	$1, -36(%rbp)
+ 370      000000
+  92:eagletest.c   **** 	char atleast[12];
+  93:eagletest.c   **** 	int j;
+  94:eagletest.c   **** 	int res = 0;
+ 371              		.loc 1 94 0
+ 372 0270 C745D800 		movl	$0, -40(%rbp)
+ 372      000000
+  95:eagletest.c   **** 					
+  96:eagletest.c   **** 
+  97:eagletest.c   **** 	for (i=0;i<numArgs;i++) {
+ 373              		.loc 1 97 0
+ 374 0277 C745EC00 		movl	$0, -20(%rbp)
+ 374      000000
+ 375 027e EB30     		jmp	.L16
+ 376              	.L18:
+  98:eagletest.c   **** 		if (!(args[i].isValue)) allArgsAreHex = 0; 
+ 377              		.loc 1 98 0
+ 378 0280 8B45EC   		movl	-20(%rbp), %eax
+ 379 0283 4863D0   		movslq	%eax, %rdx
+ 380 0286 4889D0   		movq	%rdx, %rax
+ 381 0289 48C1E002 		salq	$2, %rax
+ 382 028d 4801D0   		addq	%rdx, %rax
+ 383 0290 48C1E003 		salq	$3, %rax
+ 384 0294 4889C2   		movq	%rax, %rdx
+ 385 0297 488B45A0 		movq	-96(%rbp), %rax
+ 386 029b 4801D0   		addq	%rdx, %rax
+ 387 029e 8B4020   		movl	32(%rax), %eax
+ 388 02a1 85C0     		testl	%eax, %eax
+ 389 02a3 7507     		jne	.L17
+ 390              		.loc 1 98 0 is_stmt 0 discriminator 1
+ 391 02a5 C745DC00 		movl	$0, -36(%rbp)
+ 391      000000
+ 392              	.L17:
+  97:eagletest.c   **** 		if (!(args[i].isValue)) allArgsAreHex = 0; 
+ 393              		.loc 1 97 0 is_stmt 1 discriminator 2
+ 394 02ac 8345EC01 		addl	$1, -20(%rbp)
+ 395              	.L16:
+  97:eagletest.c   **** 		if (!(args[i].isValue)) allArgsAreHex = 0; 
+ 396              		.loc 1 97 0 is_stmt 0 discriminator 1
+ 397 02b0 8B45EC   		movl	-20(%rbp), %eax
+ 398 02b3 3B45AC   		cmpl	-84(%rbp), %eax
+ 399 02b6 7CC8     		jl	.L18
+  99:eagletest.c   **** 	}
+ 100:eagletest.c   **** 	i = 0;			 
+ 400              		.loc 1 100 0 is_stmt 1
+ 401 02b8 C745EC00 		movl	$0, -20(%rbp)
+ 401      000000
+ 101:eagletest.c   **** 	/* search command */
+ 102:eagletest.c   **** 	while ((cmdPartMatchCount < 2) && (cmdNum == -1) & (cmds[i].name[0] != 0)) {
+ 402              		.loc 1 102 0
+ 403 02bf E9C40000 		jmp	.L19
+ 403      00
+ 404              	.L23:
+ 103:eagletest.c   **** 	    if (strcmp(cmd,cmds[i].name) == 0) {
+ 405              		.loc 1 103 0
+ 406 02c4 8B45EC   		movl	-20(%rbp), %eax
+ 407 02c7 4863D0   		movslq	%eax, %rdx
+ 408 02ca 4889D0   		movq	%rdx, %rax
+ 409 02cd 4801C0   		addq	%rax, %rax
+ 410 02d0 4801D0   		addq	%rdx, %rax
+ 411 02d3 48C1E004 		salq	$4, %rax
+ 412 02d7 4889C2   		movq	%rax, %rdx
+ 413 02da 488B45B0 		movq	-80(%rbp), %rax
+ 414 02de 4801D0   		addq	%rdx, %rax
+ 415 02e1 4889C2   		movq	%rax, %rdx
+ 416 02e4 488B45B8 		movq	-72(%rbp), %rax
+ 417 02e8 4889D6   		movq	%rdx, %rsi
+ 418 02eb 4889C7   		movq	%rax, %rdi
+ 419 02ee E8000000 		call	strcmp
+ 419      00
+ 420 02f3 85C0     		testl	%eax, %eax
+ 421 02f5 750B     		jne	.L20
+ 104:eagletest.c   **** 			cmdNum = i;
+ 422              		.loc 1 104 0
+ 423 02f7 8B45EC   		movl	-20(%rbp), %eax
+ 424 02fa 8945E0   		movl	%eax, -32(%rbp)
+ 425 02fd E9820000 		jmp	.L21
+ 425      00
+ 426              	.L20:
+ 105:eagletest.c   **** 		} else
+ 106:eagletest.c   **** 		if ((j = strlen(cmd)) < strlen(cmds[i].name)) {
+ 427              		.loc 1 106 0
+ 428 0302 488B45B8 		movq	-72(%rbp), %rax
+ 429 0306 4889C7   		movq	%rax, %rdi
+ 430 0309 E8000000 		call	strlen
+ 430      00
+ 431 030e 8945D4   		movl	%eax, -44(%rbp)
+ 432 0311 8B45D4   		movl	-44(%rbp), %eax
+ 433 0314 4863D8   		movslq	%eax, %rbx
+ 434 0317 8B45EC   		movl	-20(%rbp), %eax
+ 435 031a 4863D0   		movslq	%eax, %rdx
+ 436 031d 4889D0   		movq	%rdx, %rax
+ 437 0320 4801C0   		addq	%rax, %rax
+ 438 0323 4801D0   		addq	%rdx, %rax
+ 439 0326 48C1E004 		salq	$4, %rax
+ 440 032a 4889C2   		movq	%rax, %rdx
+ 441 032d 488B45B0 		movq	-80(%rbp), %rax
+ 442 0331 4801D0   		addq	%rdx, %rax
+ 443 0334 4889C7   		movq	%rax, %rdi
+ 444 0337 E8000000 		call	strlen
+ 444      00
+ 445 033c 4839C3   		cmpq	%rax, %rbx
+ 446 033f 7343     		jnb	.L21
+ 107:eagletest.c   **** 			if (strncmp(cmd,cmds[i].name,j) == 0) {
+ 447              		.loc 1 107 0
+ 448 0341 8B45D4   		movl	-44(%rbp), %eax
+ 449 0344 4863C8   		movslq	%eax, %rcx
+ 450 0347 8B45EC   		movl	-20(%rbp), %eax
+ 451 034a 4863D0   		movslq	%eax, %rdx
+ 452 034d 4889D0   		movq	%rdx, %rax
+ 453 0350 4801C0   		addq	%rax, %rax
+ 454 0353 4801D0   		addq	%rdx, %rax
+ 455 0356 48C1E004 		salq	$4, %rax
+ 456 035a 4889C2   		movq	%rax, %rdx
+ 457 035d 488B45B0 		movq	-80(%rbp), %rax
+ 458 0361 4801D0   		addq	%rdx, %rax
+ 459 0364 4889C6   		movq	%rax, %rsi
+ 460 0367 488B45B8 		movq	-72(%rbp), %rax
+ 461 036b 4889CA   		movq	%rcx, %rdx
+ 462 036e 4889C7   		movq	%rax, %rdi
+ 463 0371 E8000000 		call	strncmp
+ 463      00
+ 464 0376 85C0     		testl	%eax, %eax
+ 465 0378 750A     		jne	.L21
+ 108:eagletest.c   **** 				cmdPartMatchCount++;
+ 466              		.loc 1 108 0
+ 467 037a 8345E401 		addl	$1, -28(%rbp)
+ 109:eagletest.c   **** 				cmdNumPartMatch = i;
+ 468              		.loc 1 109 0
+ 469 037e 8B45EC   		movl	-20(%rbp), %eax
+ 470 0381 8945E8   		movl	%eax, -24(%rbp)
+ 471              	.L21:
+ 110:eagletest.c   **** 			}
+ 111:eagletest.c   **** 		}
+ 112:eagletest.c   **** 		i++;
+ 472              		.loc 1 112 0
+ 473 0384 8345EC01 		addl	$1, -20(%rbp)
+ 474              	.L19:
+ 102:eagletest.c   **** 	    if (strcmp(cmd,cmds[i].name) == 0) {
+ 475              		.loc 1 102 0
+ 476 0388 837DE401 		cmpl	$1, -28(%rbp)
+ 477 038c 7F36     		jg	.L22
+ 102:eagletest.c   **** 	    if (strcmp(cmd,cmds[i].name) == 0) {
+ 478              		.loc 1 102 0 is_stmt 0 discriminator 1
+ 479 038e 837DE0FF 		cmpl	$-1, -32(%rbp)
+ 480 0392 0F94C1   		sete	%cl
+ 481 0395 8B45EC   		movl	-20(%rbp), %eax
+ 482 0398 4863D0   		movslq	%eax, %rdx
+ 483 039b 4889D0   		movq	%rdx, %rax
+ 484 039e 4801C0   		addq	%rax, %rax
+ 485 03a1 4801D0   		addq	%rdx, %rax
+ 486 03a4 48C1E004 		salq	$4, %rax
+ 487 03a8 4889C2   		movq	%rax, %rdx
+ 488 03ab 488B45B0 		movq	-80(%rbp), %rax
+ 489 03af 4801D0   		addq	%rdx, %rax
+ 490 03b2 0FB600   		movzbl	(%rax), %eax
+ 491 03b5 84C0     		testb	%al, %al
+ 492 03b7 0F95C0   		setne	%al
+ 493 03ba 21C8     		andl	%ecx, %eax
+ 494 03bc 84C0     		testb	%al, %al
+ 495 03be 0F8500FF 		jne	.L23
+ 495      FFFF
+ 496              	.L22:
+ 113:eagletest.c   **** 	}
+ 114:eagletest.c   **** 
+ 115:eagletest.c   **** 	if ((cmdNum == -1) && (cmdPartMatchCount > 1)) {
+ 497              		.loc 1 115 0 is_stmt 1
+ 498 03c4 837DE0FF 		cmpl	$-1, -32(%rbp)
+ 499 03c8 7515     		jne	.L24
+ 500              		.loc 1 115 0 is_stmt 0 discriminator 1
+ 501 03ca 837DE401 		cmpl	$1, -28(%rbp)
+ 502 03ce 7E0F     		jle	.L24
+ 116:eagletest.c   **** 		printf("ambiguous command\n");
+ 503              		.loc 1 116 0 is_stmt 1
+ 504 03d0 BF000000 		movl	$.LC9, %edi
+ 504      00
+ 505 03d5 E8000000 		call	puts
+ 505      00
+ 506 03da E92E0200 		jmp	.L25
+ 506      00
+ 507              	.L24:
+ 117:eagletest.c   **** 	} else if (cmdNum != 0xffff) {
+ 508              		.loc 1 117 0
+ 509 03df 817DE0FF 		cmpl	$65535, -32(%rbp)
+ 509      FF0000
+ 510 03e6 0F842102 		je	.L25
+ 510      0000
+ 118:eagletest.c   **** 		if (cmdNum == -1) cmdNum = cmdNumPartMatch;
+ 511              		.loc 1 118 0
+ 512 03ec 837DE0FF 		cmpl	$-1, -32(%rbp)
+ 513 03f0 7506     		jne	.L26
+ 514              		.loc 1 118 0 is_stmt 0 discriminator 1
+ 515 03f2 8B45E8   		movl	-24(%rbp), %eax
+ 516 03f5 8945E0   		movl	%eax, -32(%rbp)
+ 517              	.L26:
+ 119:eagletest.c   **** 		if (cmdNum >= 0) {
+ 518              		.loc 1 119 0 is_stmt 1
+ 519 03f8 837DE000 		cmpl	$0, -32(%rbp)
+ 520 03fc 0F880102 		js	.L27
+ 520      0000
+ 120:eagletest.c   **** 			if (cmds[cmdNum].minNumArgs < cmds[cmdNum].maxNumArgs)
+ 521              		.loc 1 120 0
+ 522 0402 8B45E0   		movl	-32(%rbp), %eax
+ 523 0405 4863D0   		movslq	%eax, %rdx
+ 524 0408 4889D0   		movq	%rdx, %rax
+ 525 040b 4801C0   		addq	%rax, %rax
+ 526 040e 4801D0   		addq	%rdx, %rax
+ 527 0411 48C1E004 		salq	$4, %rax
+ 528 0415 4889C2   		movq	%rax, %rdx
+ 529 0418 488B45B0 		movq	-80(%rbp), %rax
+ 530 041c 4801D0   		addq	%rdx, %rax
+ 531 041f 8B4818   		movl	24(%rax), %ecx
+ 532 0422 8B45E0   		movl	-32(%rbp), %eax
+ 533 0425 4863D0   		movslq	%eax, %rdx
+ 534 0428 4889D0   		movq	%rdx, %rax
+ 535 042b 4801C0   		addq	%rax, %rax
+ 536 042e 4801D0   		addq	%rdx, %rax
+ 537 0431 48C1E004 		salq	$4, %rax
+ 538 0435 4889C2   		movq	%rax, %rdx
+ 539 0438 488B45B0 		movq	-80(%rbp), %rax
+ 540 043c 4801D0   		addq	%rdx, %rax
+ 541 043f 8B401C   		movl	28(%rax), %eax
+ 542 0442 39C1     		cmpl	%eax, %ecx
+ 543 0444 7D19     		jge	.L28
+ 121:eagletest.c   **** 				strcpy(atleast,"at least ");
+ 544              		.loc 1 121 0
+ 545 0446 488D45C0 		leaq	-64(%rbp), %rax
+ 546 044a 48BB6174 		movabsq	$8391157618955023457, %rbx
+ 546      206C6561 
+ 546      7374
+ 547 0454 488918   		movq	%rbx, (%rax)
+ 548 0457 66C74008 		movw	$32, 8(%rax)
+ 548      2000
+ 549 045d EB04     		jmp	.L29
+ 550              	.L28:
+ 122:eagletest.c   **** 			else
+ 123:eagletest.c   **** 				atleast[0]=0;
+ 551              		.loc 1 123 0
+ 552 045f C645C000 		movb	$0, -64(%rbp)
+ 553              	.L29:
+ 124:eagletest.c   **** 			if (numArgs < cmds[cmdNum].minNumArgs) {
+ 554              		.loc 1 124 0
+ 555 0463 8B45E0   		movl	-32(%rbp), %eax
+ 556 0466 4863D0   		movslq	%eax, %rdx
+ 557 0469 4889D0   		movq	%rdx, %rax
+ 558 046c 4801C0   		addq	%rax, %rax
+ 559 046f 4801D0   		addq	%rdx, %rax
+ 560 0472 48C1E004 		salq	$4, %rax
+ 561 0476 4889C2   		movq	%rax, %rdx
+ 562 0479 488B45B0 		movq	-80(%rbp), %rax
+ 563 047d 4801D0   		addq	%rdx, %rax
+ 564 0480 8B4018   		movl	24(%rax), %eax
+ 565 0483 3B45AC   		cmpl	-84(%rbp), %eax
+ 566 0486 0F8EBE00 		jle	.L30
+ 566      0000
+ 125:eagletest.c   **** 				if (cmds[cmdNum].minNumArgs == 1) 
+ 567              		.loc 1 125 0
+ 568 048c 8B45E0   		movl	-32(%rbp), %eax
+ 569 048f 4863D0   		movslq	%eax, %rdx
+ 570 0492 4889D0   		movq	%rdx, %rax
+ 571 0495 4801C0   		addq	%rax, %rax
+ 572 0498 4801D0   		addq	%rdx, %rax
+ 573 049b 48C1E004 		salq	$4, %rax
+ 574 049f 4889C2   		movq	%rax, %rdx
+ 575 04a2 488B45B0 		movq	-80(%rbp), %rax
+ 576 04a6 4801D0   		addq	%rdx, %rax
+ 577 04a9 8B4018   		movl	24(%rax), %eax
+ 578 04ac 83F801   		cmpl	$1, %eax
+ 579 04af 753E     		jne	.L31
+ 126:eagletest.c   **** 					printf("%s requires %sone arg\n",cmds[cmdNum].name,atleast);
+ 580              		.loc 1 126 0
+ 581 04b1 8B45E0   		movl	-32(%rbp), %eax
+ 582 04b4 4863D0   		movslq	%eax, %rdx
+ 583 04b7 4889D0   		movq	%rdx, %rax
+ 584 04ba 4801C0   		addq	%rax, %rax
+ 585 04bd 4801D0   		addq	%rdx, %rax
+ 586 04c0 48C1E004 		salq	$4, %rax
+ 587 04c4 4889C2   		movq	%rax, %rdx
+ 588 04c7 488B45B0 		movq	-80(%rbp), %rax
+ 589 04cb 4801D0   		addq	%rdx, %rax
+ 590 04ce 4889C1   		movq	%rax, %rcx
+ 591 04d1 488D45C0 		leaq	-64(%rbp), %rax
+ 592 04d5 4889C2   		movq	%rax, %rdx
+ 593 04d8 4889CE   		movq	%rcx, %rsi
+ 594 04db BF000000 		movl	$.LC10, %edi
+ 594      00
+ 595 04e0 B8000000 		movl	$0, %eax
+ 595      00
+ 596 04e5 E8000000 		call	printf
+ 596      00
+ 597 04ea E91E0100 		jmp	.L25
+ 597      00
+ 598              	.L31:
+ 127:eagletest.c   **** 				else
+ 128:eagletest.c   **** 				    printf("%s requires %s%d args\n",cmds[cmdNum].name,atleast,cmds[cmdNum].minNumArgs);
+ 599              		.loc 1 128 0
+ 600 04ef 8B45E0   		movl	-32(%rbp), %eax
+ 601 04f2 4863D0   		movslq	%eax, %rdx
+ 602 04f5 4889D0   		movq	%rdx, %rax
+ 603 04f8 4801C0   		addq	%rax, %rax
+ 604 04fb 4801D0   		addq	%rdx, %rax
+ 605 04fe 48C1E004 		salq	$4, %rax
+ 606 0502 4889C2   		movq	%rax, %rdx
+ 607 0505 488B45B0 		movq	-80(%rbp), %rax
+ 608 0509 4801D0   		addq	%rdx, %rax
+ 609 050c 8B4818   		movl	24(%rax), %ecx
+ 610 050f 8B45E0   		movl	-32(%rbp), %eax
+ 611 0512 4863D0   		movslq	%eax, %rdx
+ 612 0515 4889D0   		movq	%rdx, %rax
+ 613 0518 4801C0   		addq	%rax, %rax
+ 614 051b 4801D0   		addq	%rdx, %rax
+ 615 051e 48C1E004 		salq	$4, %rax
+ 616 0522 4889C2   		movq	%rax, %rdx
+ 617 0525 488B45B0 		movq	-80(%rbp), %rax
+ 618 0529 4801D0   		addq	%rdx, %rax
+ 619 052c 4889C6   		movq	%rax, %rsi
+ 620 052f 488D45C0 		leaq	-64(%rbp), %rax
+ 621 0533 4889C2   		movq	%rax, %rdx
+ 622 0536 BF000000 		movl	$.LC11, %edi
+ 622      00
+ 623 053b B8000000 		movl	$0, %eax
+ 623      00
+ 624 0540 E8000000 		call	printf
+ 624      00
+ 625 0545 E9C30000 		jmp	.L25
+ 625      00
+ 626              	.L30:
+ 129:eagletest.c   **** 			} else {
+ 130:eagletest.c   **** 				if ((cmds[cmdNum].requiresAllArgsHex) && (allArgsAreHex == 0)) {
+ 627              		.loc 1 130 0
+ 628 054a 8B45E0   		movl	-32(%rbp), %eax
+ 629 054d 4863D0   		movslq	%eax, %rdx
+ 630 0550 4889D0   		movq	%rdx, %rax
+ 631 0553 4801C0   		addq	%rax, %rax
+ 632 0556 4801D0   		addq	%rdx, %rax
+ 633 0559 48C1E004 		salq	$4, %rax
+ 634 055d 4889C2   		movq	%rax, %rdx
+ 635 0560 488B45B0 		movq	-80(%rbp), %rax
+ 636 0564 4801D0   		addq	%rdx, %rax
+ 637 0567 8B4020   		movl	32(%rax), %eax
+ 638 056a 85C0     		testl	%eax, %eax
+ 639 056c 7437     		je	.L34
+ 640              		.loc 1 130 0 is_stmt 0 discriminator 1
+ 641 056e 837DDC00 		cmpl	$0, -36(%rbp)
+ 642 0572 7531     		jne	.L34
+ 131:eagletest.c   **** 					printf("%s requires all args to be values\n",cmds[cmdNum].name);
+ 643              		.loc 1 131 0 is_stmt 1
+ 644 0574 8B45E0   		movl	-32(%rbp), %eax
+ 645 0577 4863D0   		movslq	%eax, %rdx
+ 646 057a 4889D0   		movq	%rdx, %rax
+ 647 057d 4801C0   		addq	%rax, %rax
+ 648 0580 4801D0   		addq	%rdx, %rax
+ 649 0583 48C1E004 		salq	$4, %rax
+ 650 0587 4889C2   		movq	%rax, %rdx
+ 651 058a 488B45B0 		movq	-80(%rbp), %rax
+ 652 058e 4801D0   		addq	%rdx, %rax
+ 653 0591 4889C6   		movq	%rax, %rsi
+ 654 0594 BF000000 		movl	$.LC12, %edi
+ 654      00
+ 655 0599 B8000000 		movl	$0, %eax
+ 655      00
+ 656 059e E8000000 		call	printf
+ 656      00
+ 657 05a3 EB68     		jmp	.L25
+ 658              	.L34:
+ 132:eagletest.c   **** 				} else {
+ 133:eagletest.c   **** 					if (cmds[cmdNum].proc) {
+ 659              		.loc 1 133 0
+ 660 05a5 8B45E0   		movl	-32(%rbp), %eax
+ 661 05a8 4863D0   		movslq	%eax, %rdx
+ 662 05ab 4889D0   		movq	%rdx, %rax
+ 663 05ae 4801C0   		addq	%rax, %rax
+ 664 05b1 4801D0   		addq	%rdx, %rax
+ 665 05b4 48C1E004 		salq	$4, %rax
+ 666 05b8 4889C2   		movq	%rax, %rdx
+ 667 05bb 488B45B0 		movq	-80(%rbp), %rax
+ 668 05bf 4801D0   		addq	%rdx, %rax
+ 669 05c2 488B4010 		movq	16(%rax), %rax
+ 670 05c6 4885C0   		testq	%rax, %rax
+ 671 05c9 7442     		je	.L25
+ 134:eagletest.c   **** 						cmds[cmdNum].proc(numArgs,args);
+ 672              		.loc 1 134 0
+ 673 05cb 8B45E0   		movl	-32(%rbp), %eax
+ 674 05ce 4863D0   		movslq	%eax, %rdx
+ 675 05d1 4889D0   		movq	%rdx, %rax
+ 676 05d4 4801C0   		addq	%rax, %rax
+ 677 05d7 4801D0   		addq	%rdx, %rax
+ 678 05da 48C1E004 		salq	$4, %rax
+ 679 05de 4889C2   		movq	%rax, %rdx
+ 680 05e1 488B45B0 		movq	-80(%rbp), %rax
+ 681 05e5 4801D0   		addq	%rdx, %rax
+ 682 05e8 488B4010 		movq	16(%rax), %rax
+ 683 05ec 488B4DA0 		movq	-96(%rbp), %rcx
+ 684 05f0 8B55AC   		movl	-84(%rbp), %edx
+ 685 05f3 4889CE   		movq	%rcx, %rsi
+ 686 05f6 89D7     		movl	%edx, %edi
+ 687 05f8 FFD0     		call	*%rax
+ 135:eagletest.c   **** 						res = 1;
+ 688              		.loc 1 135 0
+ 689 05fa C745D801 		movl	$1, -40(%rbp)
+ 689      000000
+ 690 0601 EB0A     		jmp	.L25
+ 691              	.L27:
+ 136:eagletest.c   **** 					}
+ 137:eagletest.c   **** 				}
+ 138:eagletest.c   **** 			}
+ 139:eagletest.c   **** 		} else printf("what?\n");
+ 692              		.loc 1 139 0
+ 693 0603 BF000000 		movl	$.LC13, %edi
+ 693      00
+ 694 0608 E8000000 		call	puts
+ 694      00
+ 695              	.L25:
+ 140:eagletest.c   **** 	}
+ 141:eagletest.c   **** 	return res;
+ 696              		.loc 1 141 0
+ 697 060d 8B45D8   		movl	-40(%rbp), %eax
+ 142:eagletest.c   **** }
+ 698              		.loc 1 142 0
+ 699 0610 4883C458 		addq	$88, %rsp
+ 700 0614 5B       		popq	%rbx
+ 701 0615 5D       		popq	%rbp
+ 702              		.cfi_def_cfa 7, 8
+ 703 0616 C3       		ret
+ 704              		.cfi_endproc
+ 705              	.LFE7:
+ 707              		.section	.rodata
+ 708              	.LC14:
+ 709 0101 3C746573 		.string	"<tests> %s\n"
+ 709      74733E20 
+ 709      25730A00 
+ 710              	.LC15:
+ 711 010d 3C746573 		.string	"<tests>"
+ 711      74733E00 
+ 712              	.LC16:
+ 713 0115 2000     		.string	" "
+ 714              	.LC17:
+ 715 0117 71756974 		.string	"quit"
+ 715      00
+ 716              		.text
+ 717              		.globl	commandHandler
+ 719              	commandHandler:
+ 720              	.LFB8:
+ 143:eagletest.c   **** 
+ 144:eagletest.c   **** /* ========================================================================
+ 145:eagletest.c   ****  * command handler
+ 146:eagletest.c   ****  * Searches for command, checks required number of args, sets args and
+ 147:eagletest.c   ****  * calls routine given in cmds
+ 148:eagletest.c   ****  * If oneCmd is given, only that command will be executed
+ 149:eagletest.c   ****  * ======================================================================== */
+ 150:eagletest.c   **** 
+ 151:eagletest.c   **** void commandHandler(char * oneCmd)
+ 152:eagletest.c   **** {
+ 721              		.loc 1 152 0
+ 722              		.cfi_startproc
+ 723 0617 55       		pushq	%rbp
+ 724              		.cfi_def_cfa_offset 16
+ 725              		.cfi_offset 6, -16
+ 726 0618 4889E5   		movq	%rsp, %rbp
+ 727              		.cfi_def_cfa_register 6
+ 728 061b 53       		pushq	%rbx
+ 729 061c 4883EC48 		subq	$72, %rsp
+ 730              		.cfi_offset 3, -24
+ 731 0620 48897DB8 		movq	%rdi, -72(%rbp)
+ 732              	.L47:
+ 153:eagletest.c   **** 	char cmd[MAXCMDLEN+1];
+ 154:eagletest.c   **** 	int i,cmdNum;
+ 155:eagletest.c   **** 	char * tmp;
+ 156:eagletest.c   **** 	char * token;
+ 157:eagletest.c   **** 	
+ 158:eagletest.c   **** 
+ 159:eagletest.c   **** 	do {
+ 160:eagletest.c   **** 	  for (i=0;i<MAXNUMARGS;i++) {	/* clear all args */
+ 733              		.loc 1 160 0
+ 734 0624 C745EC00 		movl	$0, -20(%rbp)
+ 734      000000
+ 735 062b EB62     		jmp	.L37
+ 736              	.L38:
+ 161:eagletest.c   **** 		  args[i].txt[0] = 0;
+ 737              		.loc 1 161 0 discriminator 3
+ 738 062d 8B45EC   		movl	-20(%rbp), %eax
+ 739 0630 4863D0   		movslq	%eax, %rdx
+ 740 0633 4889D0   		movq	%rdx, %rax
+ 741 0636 48C1E002 		salq	$2, %rax
+ 742 063a 4801D0   		addq	%rdx, %rax
+ 743 063d 48C1E003 		salq	$3, %rax
+ 744 0641 48050000 		addq	$args, %rax
+ 744      0000
+ 745 0647 C60000   		movb	$0, (%rax)
+ 162:eagletest.c   **** 		  args[i].isValue = 0;
+ 746              		.loc 1 162 0 discriminator 3
+ 747 064a 8B45EC   		movl	-20(%rbp), %eax
+ 748 064d 4863D0   		movslq	%eax, %rdx
+ 749 0650 4889D0   		movq	%rdx, %rax
+ 750 0653 48C1E002 		salq	$2, %rax
+ 751 0657 4801D0   		addq	%rdx, %rax
+ 752 065a 48C1E003 		salq	$3, %rax
+ 753 065e 48050000 		addq	$args+32, %rax
+ 753      0000
+ 754 0664 C7000000 		movl	$0, (%rax)
+ 754      0000
+ 163:eagletest.c   **** 		  args[i].value = 0;
+ 755              		.loc 1 163 0 discriminator 3
+ 756 066a 8B45EC   		movl	-20(%rbp), %eax
+ 757 066d 4863D0   		movslq	%eax, %rdx
+ 758 0670 4889D0   		movq	%rdx, %rax
+ 759 0673 48C1E002 		salq	$2, %rax
+ 760 0677 4801D0   		addq	%rdx, %rax
+ 761 067a 48C1E003 		salq	$3, %rax
+ 762 067e 48050000 		addq	$args+32, %rax
+ 762      0000
+ 763 0684 C7400400 		movl	$0, 4(%rax)
+ 763      000000
+ 160:eagletest.c   **** 		  args[i].txt[0] = 0;
+ 764              		.loc 1 160 0 discriminator 3
+ 765 068b 8345EC01 		addl	$1, -20(%rbp)
+ 766              	.L37:
+ 160:eagletest.c   **** 		  args[i].txt[0] = 0;
+ 767              		.loc 1 160 0 is_stmt 0 discriminator 1
+ 768 068f 837DEC03 		cmpl	$3, -20(%rbp)
+ 769 0693 7E98     		jle	.L38
+ 164:eagletest.c   **** 	  }
+ 165:eagletest.c   **** 	  if (oneCmd) {
+ 770              		.loc 1 165 0 is_stmt 1
+ 771 0695 48837DB8 		cmpq	$0, -72(%rbp)
+ 771      00
+ 772 069a 7428     		je	.L39
+ 166:eagletest.c   **** 		  tmp = strdup(oneCmd);
+ 773              		.loc 1 166 0
+ 774 069c 488B45B8 		movq	-72(%rbp), %rax
+ 775 06a0 4889C7   		movq	%rax, %rdi
+ 776 06a3 E8000000 		call	strdup
+ 776      00
+ 777 06a8 488945E0 		movq	%rax, -32(%rbp)
+ 167:eagletest.c   **** 		  printf("<tests> %s\n",tmp);
+ 778              		.loc 1 167 0
+ 779 06ac 488B45E0 		movq	-32(%rbp), %rax
+ 780 06b0 4889C6   		movq	%rax, %rsi
+ 781 06b3 BF000000 		movl	$.LC14, %edi
+ 781      00
+ 782 06b8 B8000000 		movl	$0, %eax
+ 782      00
+ 783 06bd E8000000 		call	printf
+ 783      00
+ 784 06c2 EB34     		jmp	.L40
+ 785              	.L39:
+ 168:eagletest.c   **** 	  } else {
+ 169:eagletest.c   ****       	  tmp = readString("<tests>");		/* get command line */
+ 786              		.loc 1 169 0
+ 787 06c4 BF000000 		movl	$.LC15, %edi
+ 787      00
+ 788 06c9 E8000000 		call	readString
+ 788      00
+ 789 06ce 488945E0 		movq	%rax, -32(%rbp)
+ 170:eagletest.c   **** 	  	  if (tmp)
+ 790              		.loc 1 170 0
+ 791 06d2 48837DE0 		cmpq	$0, -32(%rbp)
+ 791      00
+ 792 06d7 741F     		je	.L40
+ 171:eagletest.c   **** 		    if (strlen(tmp) < 1) { free(tmp); tmp=NULL; }
+ 793              		.loc 1 171 0
+ 794 06d9 488B45E0 		movq	-32(%rbp), %rax
+ 795 06dd 0FB600   		movzbl	(%rax), %eax
+ 796 06e0 84C0     		testb	%al, %al
+ 797 06e2 7514     		jne	.L40
+ 798              		.loc 1 171 0 is_stmt 0 discriminator 1
+ 799 06e4 488B45E0 		movq	-32(%rbp), %rax
+ 800 06e8 4889C7   		movq	%rax, %rdi
+ 801 06eb E8000000 		call	free
+ 801      00
+ 802 06f0 48C745E0 		movq	$0, -32(%rbp)
+ 802      00000000 
+ 803              	.L40:
+ 172:eagletest.c   **** 	  }
+ 173:eagletest.c   **** 	  if (tmp) {
+ 804              		.loc 1 173 0 is_stmt 1
+ 805 06f8 48837DE0 		cmpq	$0, -32(%rbp)
+ 805      00
+ 806 06fd 0F848001 		je	.L41
+ 806      0000
+ 174:eagletest.c   **** 		  //add_history (tmp);		/* add cmd line to histrory buffer */
+ 175:eagletest.c   **** 		  /* split command line into args */
+ 176:eagletest.c   **** 		  token = strtok(tmp," ");
+ 807              		.loc 1 176 0
+ 808 0703 488B45E0 		movq	-32(%rbp), %rax
+ 809 0707 BE000000 		movl	$.LC16, %esi
+ 809      00
+ 810 070c 4889C7   		movq	%rax, %rdi
+ 811 070f E8000000 		call	strtok
+ 811      00
+ 812 0714 488945D8 		movq	%rax, -40(%rbp)
+ 177:eagletest.c   **** 		  numArgs = 0;
+ 813              		.loc 1 177 0
+ 814 0718 C7050000 		movl	$0, numArgs(%rip)
+ 814      00000000 
+ 814      0000
+ 178:eagletest.c   **** 		  strncpy(cmd,token,sizeof(cmd)); cmd[sizeof(cmd)-1]=0;
+ 815              		.loc 1 178 0
+ 816 0722 488B4DD8 		movq	-40(%rbp), %rcx
+ 817 0726 488D45C0 		leaq	-64(%rbp), %rax
+ 818 072a BA0B0000 		movl	$11, %edx
+ 818      00
+ 819 072f 4889CE   		movq	%rcx, %rsi
+ 820 0732 4889C7   		movq	%rax, %rdi
+ 821 0735 E8000000 		call	strncpy
+ 821      00
+ 822 073a C645CA00 		movb	$0, -54(%rbp)
+ 179:eagletest.c   **** 		  token = strtok(NULL," ");
+ 823              		.loc 1 179 0
+ 824 073e BE000000 		movl	$.LC16, %esi
+ 824      00
+ 825 0743 BF000000 		movl	$0, %edi
+ 825      00
+ 826 0748 E8000000 		call	strtok
+ 826      00
+ 827 074d 488945D8 		movq	%rax, -40(%rbp)
+ 180:eagletest.c   **** 		  while ((token) && (numArgs < MAXNUMARGS)) {
+ 828              		.loc 1 180 0
+ 829 0751 E9E20000 		jmp	.L42
+ 829      00
+ 830              	.L44:
+ 181:eagletest.c   **** 			  strncpy(args[numArgs].txt,token,sizeof(args[numArgs].txt));
+ 831              		.loc 1 181 0
+ 832 0756 8B050000 		movl	numArgs(%rip), %eax
+ 832      0000
+ 833 075c 4863D0   		movslq	%eax, %rdx
+ 834 075f 4889D0   		movq	%rdx, %rax
+ 835 0762 48C1E002 		salq	$2, %rax
+ 836 0766 4801D0   		addq	%rdx, %rax
+ 837 0769 48C1E003 		salq	$3, %rax
+ 838 076d 488D8800 		leaq	args(%rax), %rcx
+ 838      000000
+ 839 0774 488B45D8 		movq	-40(%rbp), %rax
+ 840 0778 BA1F0000 		movl	$31, %edx
+ 840      00
+ 841 077d 4889C6   		movq	%rax, %rsi
+ 842 0780 4889CF   		movq	%rcx, %rdi
+ 843 0783 E8000000 		call	strncpy
+ 843      00
+ 182:eagletest.c   **** 			  args[numArgs].txt[sizeof(args[numArgs].txt)-1] = 0;
+ 844              		.loc 1 182 0
+ 845 0788 8B050000 		movl	numArgs(%rip), %eax
+ 845      0000
+ 846 078e 4863D0   		movslq	%eax, %rdx
+ 847 0791 4889D0   		movq	%rdx, %rax
+ 848 0794 48C1E002 		salq	$2, %rax
+ 849 0798 4801D0   		addq	%rdx, %rax
+ 850 079b 48C1E003 		salq	$3, %rax
+ 851 079f 48050000 		addq	$args+30, %rax
+ 851      0000
+ 852 07a5 C60000   		movb	$0, (%rax)
+ 183:eagletest.c   **** 			  args[numArgs].isValue = strToULong(args[numArgs].txt,&args[numArgs].value);
+ 853              		.loc 1 183 0
+ 854 07a8 8B1D0000 		movl	numArgs(%rip), %ebx
+ 854      0000
+ 855 07ae 8B050000 		movl	numArgs(%rip), %eax
+ 855      0000
+ 856 07b4 4863D0   		movslq	%eax, %rdx
+ 857 07b7 4889D0   		movq	%rdx, %rax
+ 858 07ba 48C1E002 		salq	$2, %rax
+ 859 07be 4801D0   		addq	%rdx, %rax
+ 860 07c1 48C1E003 		salq	$3, %rax
+ 861 07c5 4883C020 		addq	$32, %rax
+ 862 07c9 48050000 		addq	$args, %rax
+ 862      0000
+ 863 07cf 488D4804 		leaq	4(%rax), %rcx
+ 864 07d3 8B050000 		movl	numArgs(%rip), %eax
+ 864      0000
+ 865 07d9 4863D0   		movslq	%eax, %rdx
+ 866 07dc 4889D0   		movq	%rdx, %rax
+ 867 07df 48C1E002 		salq	$2, %rax
+ 868 07e3 4801D0   		addq	%rdx, %rax
+ 869 07e6 48C1E003 		salq	$3, %rax
+ 870 07ea 48050000 		addq	$args, %rax
+ 870      0000
+ 871 07f0 4889CE   		movq	%rcx, %rsi
+ 872 07f3 4889C7   		movq	%rax, %rdi
+ 873 07f6 E8000000 		call	strToULong
+ 873      00
+ 874 07fb 89C1     		movl	%eax, %ecx
+ 875 07fd 4863D3   		movslq	%ebx, %rdx
+ 876 0800 4889D0   		movq	%rdx, %rax
+ 877 0803 48C1E002 		salq	$2, %rax
+ 878 0807 4801D0   		addq	%rdx, %rax
+ 879 080a 48C1E003 		salq	$3, %rax
+ 880 080e 48050000 		addq	$args+32, %rax
+ 880      0000
+ 881 0814 8908     		movl	%ecx, (%rax)
+ 184:eagletest.c   **** 			  token = strtok(NULL," ");
+ 882              		.loc 1 184 0
+ 883 0816 BE000000 		movl	$.LC16, %esi
+ 883      00
+ 884 081b BF000000 		movl	$0, %edi
+ 884      00
+ 885 0820 E8000000 		call	strtok
+ 885      00
+ 886 0825 488945D8 		movq	%rax, -40(%rbp)
+ 185:eagletest.c   **** 			  numArgs++;
+ 887              		.loc 1 185 0
+ 888 0829 8B050000 		movl	numArgs(%rip), %eax
+ 888      0000
+ 889 082f 83C001   		addl	$1, %eax
+ 890 0832 89050000 		movl	%eax, numArgs(%rip)
+ 890      0000
+ 891              	.L42:
+ 180:eagletest.c   **** 			  strncpy(args[numArgs].txt,token,sizeof(args[numArgs].txt));
+ 892              		.loc 1 180 0
+ 893 0838 48837DD8 		cmpq	$0, -40(%rbp)
+ 893      00
+ 894 083d 740F     		je	.L43
+ 180:eagletest.c   **** 			  strncpy(args[numArgs].txt,token,sizeof(args[numArgs].txt));
+ 895              		.loc 1 180 0 is_stmt 0 discriminator 1
+ 896 083f 8B050000 		movl	numArgs(%rip), %eax
+ 896      0000
+ 897 0845 83F803   		cmpl	$3, %eax
+ 898 0848 0F8E08FF 		jle	.L44
+ 898      FFFF
+ 899              	.L43:
+ 186:eagletest.c   **** 		  }
+ 187:eagletest.c   **** 		  free(tmp);
+ 900              		.loc 1 187 0 is_stmt 1
+ 901 084e 488B45E0 		movq	-32(%rbp), %rax
+ 902 0852 4889C7   		movq	%rax, %rdi
+ 903 0855 E8000000 		call	free
+ 903      00
+ 188:eagletest.c   **** 
+ 189:eagletest.c   **** 		  cmdNum = -1;
+ 904              		.loc 1 189 0
+ 905 085a C745D4FF 		movl	$-1, -44(%rbp)
+ 905      FFFFFF
+ 190:eagletest.c   **** 		  /* check for register */
+ 191:eagletest.c   **** 		  /*
+ 192:eagletest.c   **** 		  if (strlen(cmd) == 2) {
+ 193:eagletest.c   **** 			  if ((toupper(cmd[0]) == 'D') && (cmd[1] >= '0') && (cmd[1] <= '7')) {
+ 194:eagletest.c   **** 				  numArgs = 1;
+ 195:eagletest.c   **** 				  strcpy(args[0].txt,cmd);
+ 196:eagletest.c   **** 				  dbgCmd_andn('D',M68K_REG_D0,numArgs,args);
+ 197:eagletest.c   **** 				  cmdNum = 0xffff;
+ 198:eagletest.c   **** 			  } else
+ 199:eagletest.c   **** 			  if ((toupper(cmd[0]) == 'A') && (cmd[1] >= '0') && (cmd[1] <= '7')) {
+ 200:eagletest.c   **** 				  numArgs = 1;
+ 201:eagletest.c   **** 				  strcpy(args[0].txt,cmd);
+ 202:eagletest.c   **** 				  dbgCmd_andn('A',M68K_REG_A0,numArgs,args);
+ 203:eagletest.c   **** 				  cmdNum = 0xffff;
+ 204:eagletest.c   **** 			  }  
+ 205:eagletest.c   **** 		  }
+ 206:eagletest.c   ****          */
+ 207:eagletest.c   **** 		if (cmdNum == -1) findAndExecCommand (cmd,cmds,numArgs,args);
+ 906              		.loc 1 207 0
+ 907 0861 837DD4FF 		cmpl	$-1, -44(%rbp)
+ 908 0865 751C     		jne	.L41
+ 909              		.loc 1 207 0 is_stmt 0 discriminator 1
+ 910 0867 8B150000 		movl	numArgs(%rip), %edx
+ 910      0000
+ 911 086d 488D45C0 		leaq	-64(%rbp), %rax
+ 912 0871 B9000000 		movl	$args, %ecx
+ 912      00
+ 913 0876 BE000000 		movl	$cmds, %esi
+ 913      00
+ 914 087b 4889C7   		movq	%rax, %rdi
+ 915 087e E8000000 		call	findAndExecCommand
+ 915      00
+ 916              	.L41:
+ 208:eagletest.c   **** 	  }
+ 209:eagletest.c   **** 	  /*printf("\n");*/
+ 210:eagletest.c   **** 	if (oneCmd) return;
+ 917              		.loc 1 210 0 is_stmt 1
+ 918 0883 48837DB8 		cmpq	$0, -72(%rbp)
+ 918      00
+ 919 0888 7519     		jne	.L36
+ 211:eagletest.c   **** 	} while ((strcmp(cmd,"quit")));
+ 920              		.loc 1 211 0
+ 921 088a 488D45C0 		leaq	-64(%rbp), %rax
+ 922 088e BE000000 		movl	$.LC17, %esi
+ 922      00
+ 923 0893 4889C7   		movq	%rax, %rdi
+ 924 0896 E8000000 		call	strcmp
+ 924      00
+ 925 089b 85C0     		testl	%eax, %eax
+ 926 089d 0F8581FD 		jne	.L47
+ 926      FFFF
+ 927              	.L36:
+ 212:eagletest.c   **** }
+ 928              		.loc 1 212 0
+ 929 08a3 4883C448 		addq	$72, %rsp
+ 930 08a7 5B       		popq	%rbx
+ 931 08a8 5D       		popq	%rbp
+ 932              		.cfi_def_cfa 7, 8
+ 933 08a9 C3       		ret
+ 934              		.cfi_endproc
+ 935              	.LFE8:
+ 937              		.section	.rodata
+ 938              	.LC18:
+ 939 011c 6D616C6C 		.string	"malloc returned NULL"
+ 939      6F632072 
+ 939      65747572 
+ 939      6E656420 
+ 939      4E554C4C 
+ 940              	.LC19:
+ 941 0131 0A416C6C 		.string	"\nAllocated %d times %d bytes\n"
+ 941      6F636174 
+ 941      65642025 
+ 941      64207469 
+ 941      6D657320 
+ 942              	.LC20:
+ 943 014f 0A667265 		.string	"\nfreed %d items\n"
+ 943      65642025 
+ 943      64206974 
+ 943      656D730A 
+ 943      00
+ 944              		.text
+ 945              		.globl	mtest
+ 947              	mtest:
+ 948              	.LFB9:
+ 213:eagletest.c   **** 
+ 214:eagletest.c   **** 
+ 215:eagletest.c   **** 
+ 216:eagletest.c   **** #define NUMMALLOCS 1000
+ 217:eagletest.c   **** #define ALLOCSIZE 1024
+ 218:eagletest.c   **** void mtest() {
+ 949              		.loc 1 218 0
+ 950              		.cfi_startproc
+ 951 08aa 55       		pushq	%rbp
+ 952              		.cfi_def_cfa_offset 16
+ 953              		.cfi_offset 6, -16
+ 954 08ab 4889E5   		movq	%rsp, %rbp
+ 955              		.cfi_def_cfa_register 6
+ 956 08ae 4881EC50 		subq	$8016, %rsp
+ 956      1F0000
+ 219:eagletest.c   ****   char * m[NUMMALLOCS+1];
+ 220:eagletest.c   ****   int i;
+ 221:eagletest.c   ****   
+ 222:eagletest.c   ****   for (i=0;i<NUMMALLOCS;i++) m[i] = NULL;
+ 957              		.loc 1 222 0
+ 958 08b5 C745FC00 		movl	$0, -4(%rbp)
+ 958      000000
+ 959 08bc EB15     		jmp	.L49
+ 960              	.L50:
+ 961              		.loc 1 222 0 is_stmt 0 discriminator 3
+ 962 08be 8B45FC   		movl	-4(%rbp), %eax
+ 963 08c1 4898     		cltq
+ 964 08c3 48C784C5 		movq	$0, -8016(%rbp,%rax,8)
+ 964      B0E0FFFF 
+ 964      00000000 
+ 965 08cf 8345FC01 		addl	$1, -4(%rbp)
+ 966              	.L49:
+ 967              		.loc 1 222 0 discriminator 1
+ 968 08d3 817DFCE7 		cmpl	$999, -4(%rbp)
+ 968      030000
+ 969 08da 7EE2     		jle	.L50
+ 223:eagletest.c   ****   
+ 224:eagletest.c   ****   for (i=0;i<NUMMALLOCS;i++) {
+ 970              		.loc 1 224 0 is_stmt 1
+ 971 08dc C745FC00 		movl	$0, -4(%rbp)
+ 971      000000
+ 972 08e3 EB65     		jmp	.L51
+ 973              	.L54:
+ 225:eagletest.c   **** 	  m[i] = malloc(ALLOCSIZE);
+ 974              		.loc 1 225 0
+ 975 08e5 BF000400 		movl	$1024, %edi
+ 975      00
+ 976 08ea E8000000 		call	malloc
+ 976      00
+ 977 08ef 4889C2   		movq	%rax, %rdx
+ 978 08f2 8B45FC   		movl	-4(%rbp), %eax
+ 979 08f5 4898     		cltq
+ 980 08f7 488994C5 		movq	%rdx, -8016(%rbp,%rax,8)
+ 980      B0E0FFFF 
+ 226:eagletest.c   **** 	  if(m[i] == NULL) {
+ 981              		.loc 1 226 0
+ 982 08ff 8B45FC   		movl	-4(%rbp), %eax
+ 983 0902 4898     		cltq
+ 984 0904 488B84C5 		movq	-8016(%rbp,%rax,8), %rax
+ 984      B0E0FFFF 
+ 985 090c 4885C0   		testq	%rax, %rax
+ 986 090f 750C     		jne	.L52
+ 227:eagletest.c   **** 		  printf("malloc returned NULL\n");
+ 987              		.loc 1 227 0
+ 988 0911 BF000000 		movl	$.LC18, %edi
+ 988      00
+ 989 0916 E8000000 		call	puts
+ 989      00
+ 228:eagletest.c   **** 		  break;
+ 990              		.loc 1 228 0
+ 991 091b EB36     		jmp	.L53
+ 992              	.L52:
+ 229:eagletest.c   **** 	  }
+ 230:eagletest.c   **** 	  putchar('+');
+ 993              		.loc 1 230 0 discriminator 2
+ 994 091d BF2B0000 		movl	$43, %edi
+ 994      00
+ 995 0922 E8000000 		call	putchar
+ 995      00
+ 231:eagletest.c   **** 	  memset (m[i], 0, ALLOCSIZE);
+ 996              		.loc 1 231 0 discriminator 2
+ 997 0927 8B45FC   		movl	-4(%rbp), %eax
+ 998 092a 4898     		cltq
+ 999 092c 488B84C5 		movq	-8016(%rbp,%rax,8), %rax
+ 999      B0E0FFFF 
+ 1000 0934 BA000400 		movl	$1024, %edx
+ 1000      00
+ 1001 0939 BE000000 		movl	$0, %esi
+ 1001      00
+ 1002 093e 4889C7   		movq	%rax, %rdi
+ 1003 0941 E8000000 		call	memset
+ 1003      00
+ 224:eagletest.c   **** 	  m[i] = malloc(ALLOCSIZE);
+ 1004              		.loc 1 224 0 discriminator 2
+ 1005 0946 8345FC01 		addl	$1, -4(%rbp)
+ 1006              	.L51:
+ 224:eagletest.c   **** 	  m[i] = malloc(ALLOCSIZE);
+ 1007              		.loc 1 224 0 is_stmt 0 discriminator 1
+ 1008 094a 817DFCE7 		cmpl	$999, -4(%rbp)
+ 1008      030000
+ 1009 0951 7E92     		jle	.L54
+ 1010              	.L53:
+ 232:eagletest.c   ****   }
+ 233:eagletest.c   ****   printf("\nAllocated %d times %d bytes\n",i,ALLOCSIZE);
+ 1011              		.loc 1 233 0 is_stmt 1
+ 1012 0953 8B45FC   		movl	-4(%rbp), %eax
+ 1013 0956 BA000400 		movl	$1024, %edx
+ 1013      00
+ 1014 095b 89C6     		movl	%eax, %esi
+ 1015 095d BF000000 		movl	$.LC19, %edi
+ 1015      00
+ 1016 0962 B8000000 		movl	$0, %eax
+ 1016      00
+ 1017 0967 E8000000 		call	printf
+ 1017      00
+ 234:eagletest.c   ****   for (i=0;i<NUMMALLOCS;i++) {
+ 1018              		.loc 1 234 0
+ 1019 096c C745FC00 		movl	$0, -4(%rbp)
+ 1019      000000
+ 1020 0973 EB46     		jmp	.L55
+ 1021              	.L57:
+ 235:eagletest.c   **** 	  if(m[i]) {
+ 1022              		.loc 1 235 0
+ 1023 0975 8B45FC   		movl	-4(%rbp), %eax
+ 1024 0978 4898     		cltq
+ 1025 097a 488B84C5 		movq	-8016(%rbp,%rax,8), %rax
+ 1025      B0E0FFFF 
+ 1026 0982 4885C0   		testq	%rax, %rax
+ 1027 0985 7430     		je	.L56
+ 236:eagletest.c   **** 	    free(m[i]);
+ 1028              		.loc 1 236 0
+ 1029 0987 8B45FC   		movl	-4(%rbp), %eax
+ 1030 098a 4898     		cltq
+ 1031 098c 488B84C5 		movq	-8016(%rbp,%rax,8), %rax
+ 1031      B0E0FFFF 
+ 1032 0994 4889C7   		movq	%rax, %rdi
+ 1033 0997 E8000000 		call	free
+ 1033      00
+ 237:eagletest.c   **** 	    putchar('-');
+ 1034              		.loc 1 237 0
+ 1035 099c BF2D0000 		movl	$45, %edi
+ 1035      00
+ 1036 09a1 E8000000 		call	putchar
+ 1036      00
+ 238:eagletest.c   **** 	    m[i] = NULL;
+ 1037              		.loc 1 238 0
+ 1038 09a6 8B45FC   		movl	-4(%rbp), %eax
+ 1039 09a9 4898     		cltq
+ 1040 09ab 48C784C5 		movq	$0, -8016(%rbp,%rax,8)
+ 1040      B0E0FFFF 
+ 1040      00000000 
+ 1041              	.L56:
+ 234:eagletest.c   **** 	  if(m[i]) {
+ 1042              		.loc 1 234 0 discriminator 2
+ 1043 09b7 8345FC01 		addl	$1, -4(%rbp)
+ 1044              	.L55:
+ 234:eagletest.c   **** 	  if(m[i]) {
+ 1045              		.loc 1 234 0 is_stmt 0 discriminator 1
+ 1046 09bb 817DFCE7 		cmpl	$999, -4(%rbp)
+ 1046      030000
+ 1047 09c2 7EB1     		jle	.L57
+ 239:eagletest.c   ****       }
+ 240:eagletest.c   ****   }
+ 241:eagletest.c   ****   printf("\nfreed %d items\n",NUMMALLOCS);
+ 1048              		.loc 1 241 0 is_stmt 1
+ 1049 09c4 BEE80300 		movl	$1000, %esi
+ 1049      00
+ 1050 09c9 BF000000 		movl	$.LC20, %edi
+ 1050      00
+ 1051 09ce B8000000 		movl	$0, %eax
+ 1051      00
+ 1052 09d3 E8000000 		call	printf
+ 1052      00
+ 242:eagletest.c   ****   
+ 243:eagletest.c   **** }
+ 1053              		.loc 1 243 0
+ 1054 09d8 C9       		leave
+ 1055              		.cfi_def_cfa 7, 8
+ 1056 09d9 C3       		ret
+ 1057              		.cfi_endproc
+ 1058              	.LFE9:
+ 1060              		.section	.rodata
+ 1061              	.LC21:
+ 1062 0160 70726F6D 		.string	"prompt>"
+ 1062      70743E00 
+ 1063              	.LC22:
+ 1064 0168 676F7420 		.string	"got '%s', len=%d\n"
+ 1064      27257327 
+ 1064      2C206C65 
+ 1064      6E3D2564 
+ 1064      0A00
+ 1065              		.text
+ 1066              		.globl	testReadStr
+ 1068              	testReadStr:
+ 1069              	.LFB10:
+ 244:eagletest.c   **** 
+ 245:eagletest.c   **** void testReadStr() {
+ 1070              		.loc 1 245 0
+ 1071              		.cfi_startproc
+ 1072 09da 55       		pushq	%rbp
+ 1073              		.cfi_def_cfa_offset 16
+ 1074              		.cfi_offset 6, -16
+ 1075 09db 4889E5   		movq	%rsp, %rbp
+ 1076              		.cfi_def_cfa_register 6
+ 1077 09de 4883EC10 		subq	$16, %rsp
+ 246:eagletest.c   **** 	char * s;
+ 247:eagletest.c   **** 	
+ 248:eagletest.c   **** 	s = readString ("prompt>");
+ 1078              		.loc 1 248 0
+ 1079 09e2 BF000000 		movl	$.LC21, %edi
+ 1079      00
+ 1080 09e7 E8000000 		call	readString
+ 1080      00
+ 1081 09ec 488945F8 		movq	%rax, -8(%rbp)
+ 249:eagletest.c   **** 	printf ("got '%s', len=%d\n",s,(int)strlen(s));
+ 1082              		.loc 1 249 0
+ 1083 09f0 488B45F8 		movq	-8(%rbp), %rax
+ 1084 09f4 4889C7   		movq	%rax, %rdi
+ 1085 09f7 E8000000 		call	strlen
+ 1085      00
+ 1086 09fc 89C2     		movl	%eax, %edx
+ 1087 09fe 488B45F8 		movq	-8(%rbp), %rax
+ 1088 0a02 4889C6   		movq	%rax, %rsi
+ 1089 0a05 BF000000 		movl	$.LC22, %edi
+ 1089      00
+ 1090 0a0a B8000000 		movl	$0, %eax
+ 1090      00
+ 1091 0a0f E8000000 		call	printf
+ 1091      00
+ 250:eagletest.c   **** 	free(s);
+ 1092              		.loc 1 250 0
+ 1093 0a14 488B45F8 		movq	-8(%rbp), %rax
+ 1094 0a18 4889C7   		movq	%rax, %rdi
+ 1095 0a1b E8000000 		call	free
+ 1095      00
+ 251:eagletest.c   **** }
+ 1096              		.loc 1 251 0
+ 1097 0a20 C9       		leave
+ 1098              		.cfi_def_cfa 7, 8
+ 1099 0a21 C3       		ret
+ 1100              		.cfi_endproc
+ 1101              	.LFE10:
+ 1103              		.section	.rodata
+ 1104              	.LC23:
+ 1105 017a 68657265 		.string	"here we are\n"
+ 1105      20776520 
+ 1105      6172650A 
+ 1105      00
+ 1106              		.text
+ 1107              		.globl	main
+ 1109              	main:
+ 1110              	.LFB11:
+ 252:eagletest.c   **** 
+ 253:eagletest.c   **** int main ()
+ 254:eagletest.c   **** {
+ 1111              		.loc 1 254 0
+ 1112              		.cfi_startproc
+ 1113 0a22 55       		pushq	%rbp
+ 1114              		.cfi_def_cfa_offset 16
+ 1115              		.cfi_offset 6, -16
+ 1116 0a23 4889E5   		movq	%rsp, %rbp
+ 1117              		.cfi_def_cfa_register 6
+ 255:eagletest.c   ****   setbuf(stdout, NULL);
+ 1118              		.loc 1 255 0
+ 1119 0a26 488B0500 		movq	stdout(%rip), %rax
+ 1119      000000
+ 1120 0a2d BE000000 		movl	$0, %esi
+ 1120      00
+ 1121 0a32 4889C7   		movq	%rax, %rdi
+ 1122 0a35 E8000000 		call	setbuf
+ 1122      00
+ 256:eagletest.c   ****   putchar('-'); putchar('*'); putchar('-');
+ 1123              		.loc 1 256 0
+ 1124 0a3a BF2D0000 		movl	$45, %edi
+ 1124      00
+ 1125 0a3f E8000000 		call	putchar
+ 1125      00
+ 1126 0a44 BF2A0000 		movl	$42, %edi
+ 1126      00
+ 1127 0a49 E8000000 		call	putchar
+ 1127      00
+ 1128 0a4e BF2D0000 		movl	$45, %edi
+ 1128      00
+ 1129 0a53 E8000000 		call	putchar
+ 1129      00
+ 257:eagletest.c   ****   printf("here we are\n\n");
+ 1130              		.loc 1 257 0
+ 1131 0a58 BF000000 		movl	$.LC23, %edi
+ 1131      00
+ 1132 0a5d E8000000 		call	puts
+ 1132      00
+ 258:eagletest.c   ****   
+ 259:eagletest.c   ****   mtest();
+ 1133              		.loc 1 259 0
+ 1134 0a62 B8000000 		movl	$0, %eax
+ 1134      00
+ 1135 0a67 E8000000 		call	mtest
+ 1135      00
+ 260:eagletest.c   ****   //testReadStr();
+ 261:eagletest.c   ****   commandHandler(NULL);
+ 1136              		.loc 1 261 0
+ 1137 0a6c BF000000 		movl	$0, %edi
+ 1137      00
+ 1138 0a71 E8000000 		call	commandHandler
+ 1138      00
+ 262:eagletest.c   ****   return 0;
+ 1139              		.loc 1 262 0
+ 1140 0a76 B8000000 		movl	$0, %eax
+ 1140      00
+ 263:eagletest.c   ****   
+ 264:eagletest.c   ****   char c;
+ 265:eagletest.c   ****   do {
+ 266:eagletest.c   **** 
+ 267:eagletest.c   **** 	  c = getch();
+ 268:eagletest.c   **** 	  putchar(c);
+ 269:eagletest.c   **** 
+ 270:eagletest.c   ****   } while (c != ' ');
+ 271:eagletest.c   **** }
+ 1141              		.loc 1 271 0
+ 1142 0a7b 5D       		popq	%rbp
+ 1143              		.cfi_def_cfa 7, 8
+ 1144 0a7c C3       		ret
+ 1145              		.cfi_endproc
+ 1146              	.LFE11:
+ 1148              	.Letext0:
+ 1149              		.file 2 "/usr/lib/gcc/x86_64-redhat-linux/4.9.2/include/stddef.h"
+ 1150              		.file 3 "/usr/include/bits/types.h"
+ 1151              		.file 4 "/usr/include/libio.h"
+ 1152              		.file 5 "eagletest.h"
+ 1153              		.file 6 "/usr/include/stdio.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 eagletest.c
+                            *COM*:0000000000000004 numArgs
+                            *COM*:00000000000000a0 args
+     /tmp/ccPF9VxJ.s:12     .text:0000000000000000 invalidArgs
+     /tmp/ccPF9VxJ.s:38     .text:0000000000000010 cmd_dummy
+     /tmp/ccPF9VxJ.s:78     .data:0000000000000000 cmds
+     /tmp/ccPF9VxJ.s:248    .text:0000000000000180 cmd_help
+     /tmp/ccPF9VxJ.s:132    .text:0000000000000035 showHelp
+     /tmp/ccPF9VxJ.s:274    .text:00000000000001a5 strToULong
+     /tmp/ccPF9VxJ.s:347    .text:000000000000023c findAndExecCommand
+     /tmp/ccPF9VxJ.s:719    .text:0000000000000617 commandHandler
+     /tmp/ccPF9VxJ.s:947    .text:00000000000008aa mtest
+     /tmp/ccPF9VxJ.s:1068   .text:00000000000009da testReadStr
+     /tmp/ccPF9VxJ.s:1109   .text:0000000000000a22 main
+
+UNDEFINED SYMBOLS
+puts
+printf
+strlen
+xtoui
+strcpy
+strtol
+strcmp
+strncmp
+strdup
+readString
+free
+strtok
+strncpy
+malloc
+putchar
+memset
+stdout
+setbuf

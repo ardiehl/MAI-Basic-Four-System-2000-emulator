@@ -1,0 +1,1950 @@
+   1               	#NO_APP
+   2               		.file	"test.c"
+   3               		.text
+   4               	.Ltext0:
+   5               		.cfi_sections	.debug_frame
+   6               		.comm	numArgs,4,2
+   7               		.comm	args,160,2
+   8               		.section	.rodata
+   9               	.LC0:
+  10 0000 0A69 6E76 		.string	"\ninvalid arguments"
+  10      616C 6964 
+  10      2061 7267 
+  10      756D 656E 
+  10      7473 00
+  11               		.text
+  12               		.align	2
+  13               		.globl	invalidArgs
+  15               	invalidArgs:
+  16               	.LFB0:
+  17               		.file 1 "test.c"
+   1:test.c        **** #include <stdio.h>
+   2:test.c        **** #include <stdlib.h>
+   3:test.c        **** #include <string.h>
+   4:test.c        **** #include "util.h"
+   5:test.c        **** #include "test.h"
+   6:test.c        **** 
+   7:test.c        **** //void __reboot () {
+   8:test.c        ****   // here we need to boot
+   9:test.c        **** //}
+  10:test.c        **** 
+  11:test.c        **** 
+  12:test.c        **** int numArgs;
+  13:test.c        **** 
+  14:test.c        **** struct args_t args [MAXNUMARGS];
+  15:test.c        **** 
+  16:test.c        **** 
+  17:test.c        **** void invalidArgs(void) {
+  18               		.loc 1 17 0
+  19               		.cfi_startproc
+  20 0000 4E56 0000 		link.w %fp,#0
+  21               		.cfi_offset 14, -8
+  22               		.cfi_def_cfa 14, 8
+  18:test.c        **** 	printf("\ninvalid arguments\n");
+  23               		.loc 1 18 0
+  24 0004 4879 0000 		pea .LC0
+  24      0000 
+  25 000a 4EB9 0000 		jsr puts
+  25      0000 
+  26 0010 588F      		addq.l #4,%sp
+  19:test.c        **** }
+  27               		.loc 1 19 0
+  28 0012 4E71      		nop
+  29 0014 4E5E      		unlk %fp
+  30 0016 4E75      		rts
+  31               		.cfi_endproc
+  32               	.LFE0:
+  34               		.section	.rodata
+  35               	.LC1:
+  36 0013 636D 645F 		.string	"cmd_dummy %d args\n"
+  36      6475 6D6D 
+  36      7920 2564 
+  36      2061 7267 
+  36      730A 00
+  37               		.text
+  38               		.align	2
+  39               		.globl	cmd_dummy
+  41               	cmd_dummy:
+  42               	.LFB1:
+  20:test.c        **** 
+  21:test.c        **** 
+  22:test.c        **** 
+  23:test.c        **** void cmd_dummy (int numArgs, struct args_t *args) {
+  43               		.loc 1 23 0
+  44               		.cfi_startproc
+  45 0018 4E56 0000 		link.w %fp,#0
+  46               		.cfi_offset 14, -8
+  47               		.cfi_def_cfa 14, 8
+  24:test.c        **** 	printf("cmd_dummy %d args\n",numArgs);
+  48               		.loc 1 24 0
+  49 001c 2F2E 0008 		move.l 8(%fp),-(%sp)
+  50 0020 4879 0000 		pea .LC1
+  50      0000 
+  51 0026 4EB9 0000 		jsr printf
+  51      0000 
+  52 002c 508F      		addq.l #8,%sp
+  25:test.c        **** }
+  53               		.loc 1 25 0
+  54 002e 4E71      		nop
+  55 0030 4E5E      		unlk %fp
+  56 0032 4E75      		rts
+  57               		.cfi_endproc
+  58               	.LFE1:
+  60               		.globl	cmds
+  61               		.section	.rodata
+  62               	.LC2:
+  63 0026 6475 6D6D 		.string	"dummy command"
+  63      7920 636F 
+  63      6D6D 616E 
+  63      6400 
+  64               	.LC3:
+  65 0034 7368 6F77 		.string	"show this help"
+  65      2074 6869 
+  65      7320 6865 
+  65      6C70 00
+  66               	.LC4:
+  67 0043 7465 726D 		.string	"terminate to internal debugger"
+  67      696E 6174 
+  67      6520 746F 
+  67      2069 6E74 
+  67      6572 6E61 
+  68               	.LC5:
+  69 0062 00        		.string	""
+  70               		.data
+  71               		.align	2
+  74               	cmds:
+  75 0000 6475 6D6D 		.string	"dummy"
+  75      7900 
+  76 0006 0000 0000 		.zero	5
+  76      00
+  77 000b 00        		.zero	1
+  78 000c 0000 0000 		.long	cmd_dummy
+  79 0010 0000 0000 		.long	0
+  80 0014 0000 0001 		.long	1
+  81 0018 0000 0000 		.long	0
+  82 001c 0000 0000 		.long	.LC2
+  83 0020 3F00      		.string	"?"
+  84 0022 0000 0000 		.zero	9
+  84      0000 0000 
+  84      00
+  85 002b 00        		.zero	1
+  86 002c 0000 0000 		.long	cmd_help
+  87 0030 0000 0000 		.long	0
+  88 0034 0000 0000 		.long	0
+  89 0038 0000 0000 		.long	0
+  90 003c 0000 0000 		.long	.LC3
+  91 0040 6865 6C70 		.string	"help"
+  91      00
+  92 0045 0000 0000 		.zero	6
+  92      0000 
+  93 004b 00        		.zero	1
+  94 004c 0000 0000 		.long	cmd_help
+  95 0050 0000 0000 		.long	0
+  96 0054 0000 0000 		.long	0
+  97 0058 0000 0000 		.long	0
+  98 005c 0000 0000 		.long	.LC3
+  99 0060 7175 6974 		.string	"quit"
+  99      00
+ 100 0065 0000 0000 		.zero	6
+ 100      0000 
+ 101 006b 00        		.zero	1
+ 102 006c 0000 0000 		.long	0
+ 103 0070 0000 0000 		.long	0
+ 104 0074 0000 0000 		.long	0
+ 105 0078 0000 0000 		.long	0
+ 106 007c 0000 0000 		.long	.LC4
+ 107 0080 00        		.string	""
+ 108 0081 0000 0000 		.zero	10
+ 108      0000 0000 
+ 108      0000 
+ 109 008b 00        		.zero	1
+ 110 008c 0000 0000 		.long	0
+ 111 0090 0000 0000 		.long	0
+ 112 0094 0000 0000 		.long	0
+ 113 0098 0000 0000 		.long	0
+ 114 009c 0000 0000 		.long	.LC5
+ 115               		.section	.rodata
+ 116               	.LC6:
+ 117 0063 0A20 2573 		.string	"\n %s\n %s\n"
+ 117      0A20 2573 
+ 117      0A00 
+ 118               	.LC7:
+ 119 006d 2025 2D31 		.string	" %-10s %s\n"
+ 119      3073 2025 
+ 119      730A 00
+ 120               		.text
+ 121               		.align	2
+ 122               		.globl	showHelp
+ 124               	showHelp:
+ 125               	.LFB2:
+  26:test.c        **** 
+  27:test.c        **** 
+  28:test.c        **** void cmd_help (int numArgs, struct args_t *args);
+  29:test.c        **** 
+  30:test.c        **** struct cmds_t cmds[] =
+  31:test.c        **** {
+  32:test.c        ****     { "dummy", cmd_dummy    , 0,1,0,"dummy command"},
+  33:test.c        ****     { "?",     cmd_help     , 0,0,0,"show this help"},
+  34:test.c        **** 	{ "help",  cmd_help     , 0,0,0,"show this help"},
+  35:test.c        **** 	{ "quit", NULL          , 0,0,0,"terminate to internal debugger"},
+  36:test.c        ****     { "",  NULL, 0,0,0,""}
+  37:test.c        **** };
+  38:test.c        **** 
+  39:test.c        **** 
+  40:test.c        **** 
+  41:test.c        **** void showHelp (char * caption, struct cmds_t * cmds, int extended) {
+ 126               		.loc 1 41 0
+ 127               		.cfi_startproc
+ 128 0034 4E56 FEFC 		link.w %fp,#-260
+ 129               		.cfi_offset 14, -8
+ 130               		.cfi_def_cfa 14, 8
+  42:test.c        **** 	char st[255];
+  43:test.c        **** 	int i;
+  44:test.c        **** 
+  45:test.c        **** 	if (caption) {
+ 131               		.loc 1 45 0
+ 132 0038 4AAE 0008 		tst.l 8(%fp)
+ 133 003c 676A      		jeq .L4
+  46:test.c        **** 		st[0]=0;
+ 134               		.loc 1 46 0
+ 135 003e 422E FEFD 		clr.b -259(%fp)
+  47:test.c        **** 		for (i=0;i<strlen(caption);i++) strcat(st,"=");
+ 136               		.loc 1 47 0
+ 137 0042 42AE FFFC 		clr.l -4(%fp)
+ 138 0046 602C      		jra .L5
+ 139               	.L6:
+ 140               		.loc 1 47 0 is_stmt 0 discriminator 3
+ 141 0048 200E      		move.l %fp,%d0
+ 142 004a 0680 FFFF 		add.l #-259,%d0
+ 142      FEFD 
+ 143 0050 2F00      		move.l %d0,-(%sp)
+ 144 0052 4EB9 0000 		jsr strlen
+ 144      0000 
+ 145 0058 588F      		addq.l #4,%sp
+ 146 005a 2200      		move.l %d0,%d1
+ 147 005c 200E      		move.l %fp,%d0
+ 148 005e 0680 FFFF 		add.l #-259,%d0
+ 148      FEFD 
+ 149 0064 2040      		move.l %d0,%a0
+ 150 0066 D1C1      		add.l %d1,%a0
+ 151 0068 10BC 003D 		move.b #61,(%a0)
+ 152 006c 4228 0001 		clr.b 1(%a0)
+ 153 0070 52AE FFFC 		addq.l #1,-4(%fp)
+ 154               	.L5:
+ 155               		.loc 1 47 0 discriminator 1
+ 156 0074 2F2E 0008 		move.l 8(%fp),-(%sp)
+ 157 0078 4EB9 0000 		jsr strlen
+ 157      0000 
+ 158 007e 588F      		addq.l #4,%sp
+ 159 0080 2200      		move.l %d0,%d1
+ 160 0082 202E FFFC 		move.l -4(%fp),%d0
+ 161 0086 B081      		cmp.l %d1,%d0
+ 162 0088 65BE      		jcs .L6
+  48:test.c        **** 		printf("\n %s\n %s\n",caption,st);
+ 163               		.loc 1 48 0 is_stmt 1
+ 164 008a 200E      		move.l %fp,%d0
+ 165 008c 0680 FFFF 		add.l #-259,%d0
+ 165      FEFD 
+ 166 0092 2F00      		move.l %d0,-(%sp)
+ 167 0094 2F2E 0008 		move.l 8(%fp),-(%sp)
+ 168 0098 4879 0000 		pea .LC6
+ 168      0000 
+ 169 009e 4EB9 0000 		jsr printf
+ 169      0000 
+ 170 00a4 4FEF 000C 		lea (12,%sp),%sp
+ 171               	.L4:
+  49:test.c        **** 	}
+  50:test.c        **** 	i=0;
+ 172               		.loc 1 50 0
+ 173 00a8 42AE FFFC 		clr.l -4(%fp)
+  51:test.c        **** 	while (cmds[i].name[0] != 0) {
+ 174               		.loc 1 51 0
+ 175 00ac 6032      		jra .L7
+ 176               	.L8:
+  52:test.c        **** 	    printf(" %-10s %s\n",cmds[i].name,cmds[i].usage);
+ 177               		.loc 1 52 0
+ 178 00ae 202E FFFC 		move.l -4(%fp),%d0
+ 179 00b2 EB88      		lsl.l #5,%d0
+ 180 00b4 206E 000C 		move.l 12(%fp),%a0
+ 181 00b8 D1C0      		add.l %d0,%a0
+ 182 00ba 2228 001C 		move.l 28(%a0),%d1
+ 183 00be 202E FFFC 		move.l -4(%fp),%d0
+ 184 00c2 EB88      		lsl.l #5,%d0
+ 185 00c4 D0AE 000C 		add.l 12(%fp),%d0
+ 186 00c8 2F01      		move.l %d1,-(%sp)
+ 187 00ca 2F00      		move.l %d0,-(%sp)
+ 188 00cc 4879 0000 		pea .LC7
+ 188      0000 
+ 189 00d2 4EB9 0000 		jsr printf
+ 189      0000 
+ 190 00d8 4FEF 000C 		lea (12,%sp),%sp
+  53:test.c        **** 		i++;
+ 191               		.loc 1 53 0
+ 192 00dc 52AE FFFC 		addq.l #1,-4(%fp)
+ 193               	.L7:
+  51:test.c        **** 	while (cmds[i].name[0] != 0) {
+ 194               		.loc 1 51 0
+ 195 00e0 202E FFFC 		move.l -4(%fp),%d0
+ 196 00e4 EB88      		lsl.l #5,%d0
+ 197 00e6 206E 000C 		move.l 12(%fp),%a0
+ 198 00ea D1C0      		add.l %d0,%a0
+ 199 00ec 1010      		move.b (%a0),%d0
+ 200 00ee 4A00      		tst.b %d0
+ 201 00f0 66BC      		jne .L8
+  54:test.c        ****     }
+  55:test.c        **** 	if (extended) {
+  56:test.c        **** 	}
+  57:test.c        **** }
+ 202               		.loc 1 57 0
+ 203 00f2 4E71      		nop
+ 204 00f4 4E5E      		unlk %fp
+ 205 00f6 4E75      		rts
+ 206               		.cfi_endproc
+ 207               	.LFE2:
+ 209               		.section	.rodata
+ 210               	.LC8:
+ 211 0078 4865 6C70 		.string	"Help for eagle tests"
+ 211      2066 6F72 
+ 211      2065 6167 
+ 211      6C65 2074 
+ 211      6573 7473 
+ 212               		.text
+ 213               		.align	2
+ 214               		.globl	cmd_help
+ 216               	cmd_help:
+ 217               	.LFB3:
+  58:test.c        **** 
+  59:test.c        **** void cmd_help (int numArgs, struct args_t *args) {
+ 218               		.loc 1 59 0
+ 219               		.cfi_startproc
+ 220 00f8 4E56 0000 		link.w %fp,#0
+ 221               		.cfi_offset 14, -8
+ 222               		.cfi_def_cfa 14, 8
+  60:test.c        **** 
+  61:test.c        **** 	showHelp("Help for eagle tests",cmds,1);
+ 223               		.loc 1 61 0
+ 224 00fc 4878 0001 		pea 1.w
+ 225 0100 4879 0000 		pea cmds
+ 225      0000 
+ 226 0106 4879 0000 		pea .LC8
+ 226      0000 
+ 227 010c 4EBA FF26 		jsr showHelp
+ 228 0110 4FEF 000C 		lea (12,%sp),%sp
+  62:test.c        **** }
+ 229               		.loc 1 62 0
+ 230 0114 4E71      		nop
+ 231 0116 4E5E      		unlk %fp
+ 232 0118 4E75      		rts
+ 233               		.cfi_endproc
+ 234               	.LFE3:
+ 236               		.align	2
+ 237               		.globl	strToULong
+ 239               	strToULong:
+ 240               	.LFB4:
+  63:test.c        **** 
+  64:test.c        **** 
+  65:test.c        **** /* ========================================================================
+  66:test.c        ****  * Convert input string to number
+  67:test.c        ****  * returns 1 if value found
+  68:test.c        ****  * pure hex
+  69:test.c        ****  * #xx decumal number
+  70:test.c        ****  * ======================================================================== */
+  71:test.c        **** 
+  72:test.c        **** unsigned int strToULong(char * txt, unsigned int * value) {
+ 241               		.loc 1 72 0
+ 242               		.cfi_startproc
+ 243 011a 4E56 FF00 		link.w %fp,#-256
+ 244               		.cfi_offset 14, -8
+ 245               		.cfi_def_cfa 14, 8
+  73:test.c        **** 	char buf[255];
+  74:test.c        **** 
+  75:test.c        **** 	if (xtoui(txt,value)) return 1;  /* pure hex value */
+ 246               		.loc 1 75 0
+ 247 011e 2F2E 000C 		move.l 12(%fp),-(%sp)
+ 248 0122 2F2E 0008 		move.l 8(%fp),-(%sp)
+ 249 0126 4EB9 0000 		jsr xtoui
+ 249      0000 
+ 250 012c 508F      		addq.l #8,%sp
+ 251 012e 4A80      		tst.l %d0
+ 252 0130 6704      		jeq .L11
+ 253               		.loc 1 75 0 is_stmt 0 discriminator 1
+ 254 0132 7001      		moveq #1,%d0
+ 255 0134 6048      		jra .L14
+ 256               	.L11:
+  76:test.c        **** 	strcpy(buf,txt);
+ 257               		.loc 1 76 0 is_stmt 1
+ 258 0136 2F2E 0008 		move.l 8(%fp),-(%sp)
+ 259 013a 200E      		move.l %fp,%d0
+ 260 013c 0680 FFFF 		add.l #-255,%d0
+ 260      FF01 
+ 261 0142 2F00      		move.l %d0,-(%sp)
+ 262 0144 4EB9 0000 		jsr strcpy
+ 262      0000 
+ 263 014a 508F      		addq.l #8,%sp
+  77:test.c        **** 	if (buf[0]=='#') {  /* decimal value */	
+ 264               		.loc 1 77 0
+ 265 014c 102E FF01 		move.b -255(%fp),%d0
+ 266 0150 0C00 0023 		cmp.b #35,%d0
+ 267 0154 6626      		jne .L13
+  78:test.c        ****       *value = strtol(&buf[1],NULL,10);
+ 268               		.loc 1 78 0
+ 269 0156 4878 000A 		pea 10.w
+ 270 015a 42A7      		clr.l -(%sp)
+ 271 015c 200E      		move.l %fp,%d0
+ 272 015e 0680 FFFF 		add.l #-255,%d0
+ 272      FF01 
+ 273 0164 5280      		addq.l #1,%d0
+ 274 0166 2F00      		move.l %d0,-(%sp)
+ 275 0168 4EB9 0000 		jsr strtol
+ 275      0000 
+ 276 016e 4FEF 000C 		lea (12,%sp),%sp
+ 277 0172 206E 000C 		move.l 12(%fp),%a0
+ 278 0176 2080      		move.l %d0,(%a0)
+  79:test.c        **** 	  return 1;
+ 279               		.loc 1 79 0
+ 280 0178 7001      		moveq #1,%d0
+ 281 017a 6002      		jra .L14
+ 282               	.L13:
+  80:test.c        **** 	}
+  81:test.c        ****   return 0;
+ 283               		.loc 1 81 0
+ 284 017c 7000      		moveq #0,%d0
+ 285               	.L14:
+  82:test.c        **** }
+ 286               		.loc 1 82 0 discriminator 1
+ 287 017e 4E5E      		unlk %fp
+ 288 0180 4E75      		rts
+ 289               		.cfi_endproc
+ 290               	.LFE4:
+ 292               		.section	.rodata
+ 293               	.LC9:
+ 294 008d 616D 6269 		.string	"ambiguous command"
+ 294      6775 6F75 
+ 294      7320 636F 
+ 294      6D6D 616E 
+ 294      6400 
+ 295               	.LC10:
+ 296 009f 2573 2072 		.string	"%s requires %sone arg\n"
+ 296      6571 7569 
+ 296      7265 7320 
+ 296      2573 6F6E 
+ 296      6520 6172 
+ 297               	.LC11:
+ 298 00b6 2573 2072 		.string	"%s requires %s%d args\n"
+ 298      6571 7569 
+ 298      7265 7320 
+ 298      2573 2564 
+ 298      2061 7267 
+ 299               	.LC12:
+ 300 00cd 2573 2072 		.string	"%s requires all args to be values\n"
+ 300      6571 7569 
+ 300      7265 7320 
+ 300      616C 6C20 
+ 300      6172 6773 
+ 301               	.LC13:
+ 302 00f0 7768 6174 		.string	"what?"
+ 302      3F00 
+ 303               		.text
+ 304               		.align	2
+ 305               		.globl	findAndExecCommand
+ 307               	findAndExecCommand:
+ 308               	.LFB5:
+  83:test.c        **** 
+  84:test.c        **** int findAndExecCommand (	char * cmd, 
+  85:test.c        ****                  			struct cmds_t *cmds, int numArgs, 
+  86:test.c        ****                  			struct args_t *args) {
+ 309               		.loc 1 86 0
+ 310               		.cfi_startproc
+ 311 0182 4E56 FFD8 		link.w %fp,#-40
+ 312               		.cfi_offset 14, -8
+ 313               		.cfi_def_cfa 14, 8
+ 314 0186 2F02      		move.l %d2,-(%sp)
+ 315               		.cfi_offset 2, -52
+  87:test.c        **** 	int i;
+  88:test.c        **** 	int cmdNumPartMatch = -1; 
+ 316               		.loc 1 88 0
+ 317 0188 70FF      		moveq #-1,%d0
+ 318 018a 2D40 FFF8 		move.l %d0,-8(%fp)
+  89:test.c        **** 	int cmdPartMatchCount = 0;
+ 319               		.loc 1 89 0
+ 320 018e 42AE FFF4 		clr.l -12(%fp)
+  90:test.c        **** 	int cmdNum = -1;
+ 321               		.loc 1 90 0
+ 322 0192 72FF      		moveq #-1,%d1
+ 323 0194 2D41 FFF0 		move.l %d1,-16(%fp)
+  91:test.c        **** 	int allArgsAreHex = 1;
+ 324               		.loc 1 91 0
+ 325 0198 7001      		moveq #1,%d0
+ 326 019a 2D40 FFEC 		move.l %d0,-20(%fp)
+  92:test.c        **** 	char atleast[12];
+  93:test.c        **** 	int j;
+  94:test.c        **** 	int res = 0;
+ 327               		.loc 1 94 0
+ 328 019e 42AE FFE8 		clr.l -24(%fp)
+  95:test.c        **** 					
+  96:test.c        **** 
+  97:test.c        **** 	for (i=0;i<numArgs;i++) {
+ 329               		.loc 1 97 0
+ 330 01a2 42AE FFFC 		clr.l -4(%fp)
+ 331 01a6 6024      		jra .L16
+ 332               	.L18:
+  98:test.c        **** 		if (!(args[i].isValue)) allArgsAreHex = 0; 
+ 333               		.loc 1 98 0
+ 334 01a8 222E FFFC 		move.l -4(%fp),%d1
+ 335 01ac 2001      		move.l %d1,%d0
+ 336 01ae D080      		add.l %d0,%d0
+ 337 01b0 D080      		add.l %d0,%d0
+ 338 01b2 D081      		add.l %d1,%d0
+ 339 01b4 E788      		lsl.l #3,%d0
+ 340 01b6 206E 0014 		move.l 20(%fp),%a0
+ 341 01ba D1C0      		add.l %d0,%a0
+ 342 01bc 2028 0020 		move.l 32(%a0),%d0
+ 343 01c0 4A80      		tst.l %d0
+ 344 01c2 6604      		jne .L17
+ 345               		.loc 1 98 0 is_stmt 0 discriminator 1
+ 346 01c4 42AE FFEC 		clr.l -20(%fp)
+ 347               	.L17:
+  97:test.c        **** 		if (!(args[i].isValue)) allArgsAreHex = 0; 
+ 348               		.loc 1 97 0 is_stmt 1 discriminator 2
+ 349 01c8 52AE FFFC 		addq.l #1,-4(%fp)
+ 350               	.L16:
+  97:test.c        **** 		if (!(args[i].isValue)) allArgsAreHex = 0; 
+ 351               		.loc 1 97 0 is_stmt 0 discriminator 1
+ 352 01cc 222E FFFC 		move.l -4(%fp),%d1
+ 353 01d0 B2AE 0010 		cmp.l 16(%fp),%d1
+ 354 01d4 6DD2      		jlt .L18
+  99:test.c        **** 	}
+ 100:test.c        **** 	i = 0;			 
+ 355               		.loc 1 100 0 is_stmt 1
+ 356 01d6 42AE FFFC 		clr.l -4(%fp)
+ 101:test.c        **** 	/* search command */
+ 102:test.c        **** 	while ((cmdPartMatchCount < 2) && (cmdNum == -1) & (cmds[i].name[0] != 0)) {
+ 357               		.loc 1 102 0
+ 358 01da 6000 0084 		jra .L19
+ 359               	.L23:
+ 103:test.c        **** 	    if (strcmp(cmd,cmds[i].name) == 0) {
+ 360               		.loc 1 103 0
+ 361 01de 202E FFFC 		move.l -4(%fp),%d0
+ 362 01e2 EB88      		lsl.l #5,%d0
+ 363 01e4 D0AE 000C 		add.l 12(%fp),%d0
+ 364 01e8 2F00      		move.l %d0,-(%sp)
+ 365 01ea 2F2E 0008 		move.l 8(%fp),-(%sp)
+ 366 01ee 4EB9 0000 		jsr strcmp
+ 366      0000 
+ 367 01f4 508F      		addq.l #8,%sp
+ 368 01f6 4A80      		tst.l %d0
+ 369 01f8 6608      		jne .L20
+ 104:test.c        **** 			cmdNum = i;
+ 370               		.loc 1 104 0
+ 371 01fa 2D6E FFFC 		move.l -4(%fp),-16(%fp)
+ 371      FFF0 
+ 372 0200 605A      		jra .L21
+ 373               	.L20:
+ 105:test.c        **** 		} else
+ 106:test.c        **** 		if ((j = strlen(cmd)) < strlen(cmds[i].name)) {
+ 374               		.loc 1 106 0
+ 375 0202 2F2E 0008 		move.l 8(%fp),-(%sp)
+ 376 0206 4EB9 0000 		jsr strlen
+ 376      0000 
+ 377 020c 588F      		addq.l #4,%sp
+ 378 020e 2D40 FFE4 		move.l %d0,-28(%fp)
+ 379 0212 242E FFE4 		move.l -28(%fp),%d2
+ 380 0216 202E FFFC 		move.l -4(%fp),%d0
+ 381 021a EB88      		lsl.l #5,%d0
+ 382 021c D0AE 000C 		add.l 12(%fp),%d0
+ 383 0220 2F00      		move.l %d0,-(%sp)
+ 384 0222 4EB9 0000 		jsr strlen
+ 384      0000 
+ 385 0228 588F      		addq.l #4,%sp
+ 386 022a B082      		cmp.l %d2,%d0
+ 387 022c 632E      		jls .L21
+ 107:test.c        **** 			if (strncmp(cmd,cmds[i].name,j) == 0) {
+ 388               		.loc 1 107 0
+ 389 022e 222E FFE4 		move.l -28(%fp),%d1
+ 390 0232 202E FFFC 		move.l -4(%fp),%d0
+ 391 0236 EB88      		lsl.l #5,%d0
+ 392 0238 D0AE 000C 		add.l 12(%fp),%d0
+ 393 023c 2F01      		move.l %d1,-(%sp)
+ 394 023e 2F00      		move.l %d0,-(%sp)
+ 395 0240 2F2E 0008 		move.l 8(%fp),-(%sp)
+ 396 0244 4EB9 0000 		jsr strncmp
+ 396      0000 
+ 397 024a 4FEF 000C 		lea (12,%sp),%sp
+ 398 024e 4A80      		tst.l %d0
+ 399 0250 660A      		jne .L21
+ 108:test.c        **** 				cmdPartMatchCount++;
+ 400               		.loc 1 108 0
+ 401 0252 52AE FFF4 		addq.l #1,-12(%fp)
+ 109:test.c        **** 				cmdNumPartMatch = i;
+ 402               		.loc 1 109 0
+ 403 0256 2D6E FFFC 		move.l -4(%fp),-8(%fp)
+ 403      FFF8 
+ 404               	.L21:
+ 110:test.c        **** 			}
+ 111:test.c        **** 		}
+ 112:test.c        **** 		i++;
+ 405               		.loc 1 112 0
+ 406 025c 52AE FFFC 		addq.l #1,-4(%fp)
+ 407               	.L19:
+ 102:test.c        **** 	    if (strcmp(cmd,cmds[i].name) == 0) {
+ 408               		.loc 1 102 0
+ 409 0260 7001      		moveq #1,%d0
+ 410 0262 B0AE FFF4 		cmp.l -12(%fp),%d0
+ 411 0266 6D26      		jlt .L22
+ 102:test.c        **** 	    if (strcmp(cmd,cmds[i].name) == 0) {
+ 412               		.loc 1 102 0 is_stmt 0 discriminator 1
+ 413 0268 72FF      		moveq #-1,%d1
+ 414 026a B2AE FFF0 		cmp.l -16(%fp),%d1
+ 415 026e 57C1      		seq %d1
+ 416 0270 4401      		neg.b %d1
+ 417 0272 202E FFFC 		move.l -4(%fp),%d0
+ 418 0276 EB88      		lsl.l #5,%d0
+ 419 0278 206E 000C 		move.l 12(%fp),%a0
+ 420 027c D1C0      		add.l %d0,%a0
+ 421 027e 1010      		move.b (%a0),%d0
+ 422 0280 4A00      		tst.b %d0
+ 423 0282 56C0      		sne %d0
+ 424 0284 4400      		neg.b %d0
+ 425 0286 C001      		and.b %d1,%d0
+ 426 0288 4A00      		tst.b %d0
+ 427 028a 6600 FF52 		jne .L23
+ 428               	.L22:
+ 113:test.c        **** 	}
+ 114:test.c        **** 
+ 115:test.c        **** 	if ((cmdNum == -1) && (cmdPartMatchCount > 1)) {
+ 429               		.loc 1 115 0 is_stmt 1
+ 430 028e 70FF      		moveq #-1,%d0
+ 431 0290 B0AE FFF0 		cmp.l -16(%fp),%d0
+ 432 0294 661A      		jne .L24
+ 433               		.loc 1 115 0 is_stmt 0 discriminator 1
+ 434 0296 7201      		moveq #1,%d1
+ 435 0298 B2AE FFF4 		cmp.l -12(%fp),%d1
+ 436 029c 6C12      		jge .L24
+ 116:test.c        **** 		printf("ambiguous command\n");
+ 437               		.loc 1 116 0 is_stmt 1
+ 438 029e 4879 0000 		pea .LC9
+ 438      0000 
+ 439 02a4 4EB9 0000 		jsr puts
+ 439      0000 
+ 440 02aa 588F      		addq.l #4,%sp
+ 441 02ac 6000 016C 		jra .L25
+ 442               	.L24:
+ 117:test.c        **** 	} else if (cmdNum != 0xffff) {
+ 443               		.loc 1 117 0
+ 444 02b0 0CAE 0000 		cmp.l #65535,-16(%fp)
+ 444      FFFF FFF0 
+ 445 02b8 6700 0160 		jeq .L25
+ 118:test.c        **** 		if (cmdNum == -1) cmdNum = cmdNumPartMatch;
+ 446               		.loc 1 118 0
+ 447 02bc 70FF      		moveq #-1,%d0
+ 448 02be B0AE FFF0 		cmp.l -16(%fp),%d0
+ 449 02c2 6606      		jne .L26
+ 450               		.loc 1 118 0 is_stmt 0 discriminator 1
+ 451 02c4 2D6E FFF8 		move.l -8(%fp),-16(%fp)
+ 451      FFF0 
+ 452               	.L26:
+ 119:test.c        **** 		if (cmdNum >= 0) {
+ 453               		.loc 1 119 0 is_stmt 1
+ 454 02ca 4AAE FFF0 		tst.l -16(%fp)
+ 455 02ce 6D00 013C 		jlt .L27
+ 120:test.c        **** 			if (cmds[cmdNum].minNumArgs < cmds[cmdNum].maxNumArgs)
+ 456               		.loc 1 120 0
+ 457 02d2 202E FFF0 		move.l -16(%fp),%d0
+ 458 02d6 EB88      		lsl.l #5,%d0
+ 459 02d8 206E 000C 		move.l 12(%fp),%a0
+ 460 02dc D1C0      		add.l %d0,%a0
+ 461 02de 2228 0010 		move.l 16(%a0),%d1
+ 462 02e2 202E FFF0 		move.l -16(%fp),%d0
+ 463 02e6 EB88      		lsl.l #5,%d0
+ 464 02e8 206E 000C 		move.l 12(%fp),%a0
+ 465 02ec D1C0      		add.l %d0,%a0
+ 466 02ee 2028 0014 		move.l 20(%a0),%d0
+ 467 02f2 B081      		cmp.l %d1,%d0
+ 468 02f4 6F1C      		jle .L28
+ 121:test.c        **** 				strcpy(atleast,"at least ");
+ 469               		.loc 1 121 0
+ 470 02f6 41EE FFD8 		lea (-40,%fp),%a0
+ 471 02fa 20BC 6174 		move.l #1635000428,(%a0)
+ 471      206C 
+ 472 0300 5888      		addq.l #4,%a0
+ 473 0302 20BC 6561 		move.l #1700885364,(%a0)
+ 473      7374 
+ 474 0308 5888      		addq.l #4,%a0
+ 475 030a 30BC 2000 		move.w #8192,(%a0)
+ 476 030e 5488      		addq.l #2,%a0
+ 477 0310 6004      		jra .L29
+ 478               	.L28:
+ 122:test.c        **** 			else
+ 123:test.c        **** 				atleast[0]=0;
+ 479               		.loc 1 123 0
+ 480 0312 422E FFD8 		clr.b -40(%fp)
+ 481               	.L29:
+ 124:test.c        **** 			if (numArgs < cmds[cmdNum].minNumArgs) {
+ 482               		.loc 1 124 0
+ 483 0316 202E FFF0 		move.l -16(%fp),%d0
+ 484 031a EB88      		lsl.l #5,%d0
+ 485 031c 206E 000C 		move.l 12(%fp),%a0
+ 486 0320 D1C0      		add.l %d0,%a0
+ 487 0322 2028 0010 		move.l 16(%a0),%d0
+ 488 0326 B0AE 0010 		cmp.l 16(%fp),%d0
+ 489 032a 6F72      		jle .L30
+ 125:test.c        **** 				if (cmds[cmdNum].minNumArgs == 1) 
+ 490               		.loc 1 125 0
+ 491 032c 202E FFF0 		move.l -16(%fp),%d0
+ 492 0330 EB88      		lsl.l #5,%d0
+ 493 0332 206E 000C 		move.l 12(%fp),%a0
+ 494 0336 D1C0      		add.l %d0,%a0
+ 495 0338 2028 0010 		move.l 16(%a0),%d0
+ 496 033c 7201      		moveq #1,%d1
+ 497 033e B280      		cmp.l %d0,%d1
+ 498 0340 6626      		jne .L31
+ 126:test.c        **** 					printf("%s requires %sone arg\n",cmds[cmdNum].name,atleast);
+ 499               		.loc 1 126 0
+ 500 0342 202E FFF0 		move.l -16(%fp),%d0
+ 501 0346 EB88      		lsl.l #5,%d0
+ 502 0348 D0AE 000C 		add.l 12(%fp),%d0
+ 503 034c 41EE FFD8 		lea (-40,%fp),%a0
+ 504 0350 2F08      		move.l %a0,-(%sp)
+ 505 0352 2F00      		move.l %d0,-(%sp)
+ 506 0354 4879 0000 		pea .LC10
+ 506      0000 
+ 507 035a 4EB9 0000 		jsr printf
+ 507      0000 
+ 508 0360 4FEF 000C 		lea (12,%sp),%sp
+ 509 0364 6000 00B4 		jra .L25
+ 510               	.L31:
+ 127:test.c        **** 				else
+ 128:test.c        **** 				    printf("%s requires %s%d args\n",cmds[cmdNum].name,atleast,cmds[cmdNum].minNumArgs);
+ 511               		.loc 1 128 0
+ 512 0368 202E FFF0 		move.l -16(%fp),%d0
+ 513 036c EB88      		lsl.l #5,%d0
+ 514 036e 206E 000C 		move.l 12(%fp),%a0
+ 515 0372 D1C0      		add.l %d0,%a0
+ 516 0374 2228 0010 		move.l 16(%a0),%d1
+ 517 0378 202E FFF0 		move.l -16(%fp),%d0
+ 518 037c EB88      		lsl.l #5,%d0
+ 519 037e D0AE 000C 		add.l 12(%fp),%d0
+ 520 0382 2F01      		move.l %d1,-(%sp)
+ 521 0384 41EE FFD8 		lea (-40,%fp),%a0
+ 522 0388 2F08      		move.l %a0,-(%sp)
+ 523 038a 2F00      		move.l %d0,-(%sp)
+ 524 038c 4879 0000 		pea .LC11
+ 524      0000 
+ 525 0392 4EB9 0000 		jsr printf
+ 525      0000 
+ 526 0398 4FEF 0010 		lea (16,%sp),%sp
+ 527 039c 607C      		jra .L25
+ 528               	.L30:
+ 129:test.c        **** 			} else {
+ 130:test.c        **** 				if ((cmds[cmdNum].requiresAllArgsHex) && (allArgsAreHex == 0)) {
+ 529               		.loc 1 130 0
+ 530 039e 202E FFF0 		move.l -16(%fp),%d0
+ 531 03a2 EB88      		lsl.l #5,%d0
+ 532 03a4 206E 000C 		move.l 12(%fp),%a0
+ 533 03a8 D1C0      		add.l %d0,%a0
+ 534 03aa 2028 0018 		move.l 24(%a0),%d0
+ 535 03ae 4A80      		tst.l %d0
+ 536 03b0 6722      		jeq .L34
+ 537               		.loc 1 130 0 is_stmt 0 discriminator 1
+ 538 03b2 4AAE FFEC 		tst.l -20(%fp)
+ 539 03b6 661C      		jne .L34
+ 131:test.c        **** 					printf("%s requires all args to be values\n",cmds[cmdNum].name);
+ 540               		.loc 1 131 0 is_stmt 1
+ 541 03b8 202E FFF0 		move.l -16(%fp),%d0
+ 542 03bc EB88      		lsl.l #5,%d0
+ 543 03be D0AE 000C 		add.l 12(%fp),%d0
+ 544 03c2 2F00      		move.l %d0,-(%sp)
+ 545 03c4 4879 0000 		pea .LC12
+ 545      0000 
+ 546 03ca 4EB9 0000 		jsr printf
+ 546      0000 
+ 547 03d0 508F      		addq.l #8,%sp
+ 548 03d2 6046      		jra .L25
+ 549               	.L34:
+ 132:test.c        **** 				} else {
+ 133:test.c        **** 					if (cmds[cmdNum].proc) {
+ 550               		.loc 1 133 0
+ 551 03d4 202E FFF0 		move.l -16(%fp),%d0
+ 552 03d8 EB88      		lsl.l #5,%d0
+ 553 03da 206E 000C 		move.l 12(%fp),%a0
+ 554 03de D1C0      		add.l %d0,%a0
+ 555 03e0 2028 000C 		move.l 12(%a0),%d0
+ 556 03e4 4A80      		tst.l %d0
+ 557 03e6 6732      		jeq .L25
+ 134:test.c        **** 						cmds[cmdNum].proc(numArgs,args);
+ 558               		.loc 1 134 0
+ 559 03e8 202E FFF0 		move.l -16(%fp),%d0
+ 560 03ec EB88      		lsl.l #5,%d0
+ 561 03ee 206E 000C 		move.l 12(%fp),%a0
+ 562 03f2 D1C0      		add.l %d0,%a0
+ 563 03f4 2068 000C 		move.l 12(%a0),%a0
+ 564 03f8 2F2E 0014 		move.l 20(%fp),-(%sp)
+ 565 03fc 2F2E 0010 		move.l 16(%fp),-(%sp)
+ 566 0400 4E90      		jsr (%a0)
+ 567 0402 508F      		addq.l #8,%sp
+ 135:test.c        **** 						res = 1;
+ 568               		.loc 1 135 0
+ 569 0404 7001      		moveq #1,%d0
+ 570 0406 2D40 FFE8 		move.l %d0,-24(%fp)
+ 571 040a 600E      		jra .L25
+ 572               	.L27:
+ 136:test.c        **** 					}
+ 137:test.c        **** 				}
+ 138:test.c        **** 			}
+ 139:test.c        **** 		} else printf("what?\n");
+ 573               		.loc 1 139 0
+ 574 040c 4879 0000 		pea .LC13
+ 574      0000 
+ 575 0412 4EB9 0000 		jsr puts
+ 575      0000 
+ 576 0418 588F      		addq.l #4,%sp
+ 577               	.L25:
+ 140:test.c        **** 	}
+ 141:test.c        **** 	return res;
+ 578               		.loc 1 141 0
+ 579 041a 202E FFE8 		move.l -24(%fp),%d0
+ 142:test.c        **** }
+ 580               		.loc 1 142 0
+ 581 041e 242E FFD4 		move.l -44(%fp),%d2
+ 582 0422 4E5E      		unlk %fp
+ 583 0424 4E75      		rts
+ 584               		.cfi_endproc
+ 585               	.LFE5:
+ 587               		.section	.rodata
+ 588               	.LC14:
+ 589 00f6 3C74 6573 		.string	"<tests> %s\n"
+ 589      7473 3E20 
+ 589      2573 0A00 
+ 590               	.LC15:
+ 591 0102 3C74 6573 		.string	"<tests>"
+ 591      7473 3E00 
+ 592               	.LC16:
+ 593 010a 2000      		.string	" "
+ 594               	.LC17:
+ 595 010c 7175 6974 		.string	"quit"
+ 595      00
+ 596               		.text
+ 597               		.align	2
+ 598               		.globl	commandHandler
+ 600               	commandHandler:
+ 601               	.LFB6:
+ 143:test.c        **** 
+ 144:test.c        **** /* ========================================================================
+ 145:test.c        ****  * command handler
+ 146:test.c        ****  * Searches for command, checks required number of args, sets args and
+ 147:test.c        ****  * calls routine given in cmds
+ 148:test.c        ****  * If oneCmd is given, only that command will be executed
+ 149:test.c        ****  * ======================================================================== */
+ 150:test.c        **** 
+ 151:test.c        **** void commandHandler(char * oneCmd)
+ 152:test.c        **** {
+ 602               		.loc 1 152 0
+ 603               		.cfi_startproc
+ 604 0426 4E56 FFE4 		link.w %fp,#-28
+ 605               		.cfi_offset 14, -8
+ 606               		.cfi_def_cfa 14, 8
+ 607 042a 2F02      		move.l %d2,-(%sp)
+ 608               		.cfi_offset 2, -40
+ 609               	.L47:
+ 153:test.c        **** 	char cmd[MAXCMDLEN+1];
+ 154:test.c        **** 	int i,cmdNum;
+ 155:test.c        **** 	char * tmp;
+ 156:test.c        **** 	char * token;
+ 157:test.c        **** 	
+ 158:test.c        **** 
+ 159:test.c        **** 	do {
+ 160:test.c        **** 	  for (i=0;i<MAXNUMARGS;i++) {	/* clear all args */
+ 610               		.loc 1 160 0
+ 611 042c 42AE FFFC 		clr.l -4(%fp)
+ 612 0430 604C      		jra .L37
+ 613               	.L38:
+ 161:test.c        **** 		  args[i].txt[0] = 0;
+ 614               		.loc 1 161 0 discriminator 3
+ 615 0432 222E FFFC 		move.l -4(%fp),%d1
+ 616 0436 2001      		move.l %d1,%d0
+ 617 0438 D080      		add.l %d0,%d0
+ 618 043a D080      		add.l %d0,%d0
+ 619 043c D081      		add.l %d1,%d0
+ 620 043e E788      		lsl.l #3,%d0
+ 621 0440 41F9 0000 		lea args,%a0
+ 621      0000 
+ 622 0446 4230 0800 		clr.b (%a0,%d0.l)
+ 162:test.c        **** 		  args[i].isValue = 0;
+ 623               		.loc 1 162 0 discriminator 3
+ 624 044a 222E FFFC 		move.l -4(%fp),%d1
+ 625 044e 2001      		move.l %d1,%d0
+ 626 0450 D080      		add.l %d0,%d0
+ 627 0452 D080      		add.l %d0,%d0
+ 628 0454 D081      		add.l %d1,%d0
+ 629 0456 E788      		lsl.l #3,%d0
+ 630 0458 41F9 0000 		lea args+32,%a0
+ 630      0000 
+ 631 045e 42B0 0800 		clr.l (%a0,%d0.l)
+ 163:test.c        **** 		  args[i].value = 0;
+ 632               		.loc 1 163 0 discriminator 3
+ 633 0462 222E FFFC 		move.l -4(%fp),%d1
+ 634 0466 2001      		move.l %d1,%d0
+ 635 0468 D080      		add.l %d0,%d0
+ 636 046a D080      		add.l %d0,%d0
+ 637 046c D081      		add.l %d1,%d0
+ 638 046e E788      		lsl.l #3,%d0
+ 639 0470 41F9 0000 		lea args+36,%a0
+ 639      0000 
+ 640 0476 42B0 0800 		clr.l (%a0,%d0.l)
+ 160:test.c        **** 		  args[i].txt[0] = 0;
+ 641               		.loc 1 160 0 discriminator 3
+ 642 047a 52AE FFFC 		addq.l #1,-4(%fp)
+ 643               	.L37:
+ 160:test.c        **** 		  args[i].txt[0] = 0;
+ 644               		.loc 1 160 0 is_stmt 0 discriminator 1
+ 645 047e 7003      		moveq #3,%d0
+ 646 0480 B0AE FFFC 		cmp.l -4(%fp),%d0
+ 647 0484 6CAC      		jge .L38
+ 164:test.c        **** 	  }
+ 165:test.c        **** 	  if (oneCmd) {
+ 648               		.loc 1 165 0 is_stmt 1
+ 649 0486 4AAE 0008 		tst.l 8(%fp)
+ 650 048a 6724      		jeq .L39
+ 166:test.c        **** 		  tmp = strdup(oneCmd);
+ 651               		.loc 1 166 0
+ 652 048c 2F2E 0008 		move.l 8(%fp),-(%sp)
+ 653 0490 4EB9 0000 		jsr strdup
+ 653      0000 
+ 654 0496 588F      		addq.l #4,%sp
+ 655 0498 2D40 FFF8 		move.l %d0,-8(%fp)
+ 167:test.c        **** 		  printf("<tests> %s\n",tmp);
+ 656               		.loc 1 167 0
+ 657 049c 2F2E FFF8 		move.l -8(%fp),-(%sp)
+ 658 04a0 4879 0000 		pea .LC14
+ 658      0000 
+ 659 04a6 4EB9 0000 		jsr printf
+ 659      0000 
+ 660 04ac 508F      		addq.l #8,%sp
+ 661 04ae 6032      		jra .L40
+ 662               	.L39:
+ 168:test.c        **** 	  } else {
+ 169:test.c        ****       	  tmp = readString("<tests>");		/* get command line */
+ 663               		.loc 1 169 0
+ 664 04b0 4879 0000 		pea .LC15
+ 664      0000 
+ 665 04b6 4EB9 0000 		jsr readString
+ 665      0000 
+ 666 04bc 588F      		addq.l #4,%sp
+ 667 04be 2D40 FFF8 		move.l %d0,-8(%fp)
+ 170:test.c        **** 	  	  if (tmp)
+ 668               		.loc 1 170 0
+ 669 04c2 4AAE FFF8 		tst.l -8(%fp)
+ 670 04c6 671A      		jeq .L40
+ 171:test.c        **** 		    if (strlen(tmp) < 1) { free(tmp); tmp=NULL; }
+ 671               		.loc 1 171 0
+ 672 04c8 206E FFF8 		move.l -8(%fp),%a0
+ 673 04cc 1010      		move.b (%a0),%d0
+ 674 04ce 4A00      		tst.b %d0
+ 675 04d0 6610      		jne .L40
+ 676               		.loc 1 171 0 is_stmt 0 discriminator 1
+ 677 04d2 2F2E FFF8 		move.l -8(%fp),-(%sp)
+ 678 04d6 4EB9 0000 		jsr free
+ 678      0000 
+ 679 04dc 588F      		addq.l #4,%sp
+ 680 04de 42AE FFF8 		clr.l -8(%fp)
+ 681               	.L40:
+ 172:test.c        **** 	  }
+ 173:test.c        **** 	  if (tmp) {
+ 682               		.loc 1 173 0 is_stmt 1
+ 683 04e2 4AAE FFF8 		tst.l -8(%fp)
+ 684 04e6 6700 0160 		jeq .L41
+ 174:test.c        **** 		  //add_history (tmp);		/* add cmd line to histrory buffer */
+ 175:test.c        **** 		  /* split command line into args */
+ 176:test.c        **** 		  token = strtok(tmp," ");
+ 685               		.loc 1 176 0
+ 686 04ea 4879 0000 		pea .LC16
+ 686      0000 
+ 687 04f0 2F2E FFF8 		move.l -8(%fp),-(%sp)
+ 688 04f4 4EB9 0000 		jsr strtok
+ 688      0000 
+ 689 04fa 508F      		addq.l #8,%sp
+ 690 04fc 2D40 FFF4 		move.l %d0,-12(%fp)
+ 177:test.c        **** 		  numArgs = 0;
+ 691               		.loc 1 177 0
+ 692 0500 42B9 0000 		clr.l numArgs
+ 692      0000 
+ 178:test.c        **** 		  strncpy(cmd,token,sizeof(cmd)); cmd[sizeof(cmd)-1]=0;
+ 693               		.loc 1 178 0
+ 694 0506 4878 000B 		pea 11.w
+ 695 050a 2F2E FFF4 		move.l -12(%fp),-(%sp)
+ 696 050e 41EE FFE5 		lea (-27,%fp),%a0
+ 697 0512 2F08      		move.l %a0,-(%sp)
+ 698 0514 4EB9 0000 		jsr strncpy
+ 698      0000 
+ 699 051a 4FEF 000C 		lea (12,%sp),%sp
+ 700 051e 422E FFEF 		clr.b -17(%fp)
+ 179:test.c        **** 		  token = strtok(NULL," ");
+ 701               		.loc 1 179 0
+ 702 0522 4879 0000 		pea .LC16
+ 702      0000 
+ 703 0528 42A7      		clr.l -(%sp)
+ 704 052a 4EB9 0000 		jsr strtok
+ 704      0000 
+ 705 0530 508F      		addq.l #8,%sp
+ 706 0532 2D40 FFF4 		move.l %d0,-12(%fp)
+ 180:test.c        **** 		  while ((token) && (numArgs < MAXNUMARGS)) {
+ 707               		.loc 1 180 0
+ 708 0536 6000 00C0 		jra .L42
+ 709               	.L44:
+ 181:test.c        **** 			  strncpy(args[numArgs].txt,token,sizeof(args[numArgs].txt));
+ 710               		.loc 1 181 0
+ 711 053a 2239 0000 		move.l numArgs,%d1
+ 711      0000 
+ 712 0540 2001      		move.l %d1,%d0
+ 713 0542 D080      		add.l %d0,%d0
+ 714 0544 D080      		add.l %d0,%d0
+ 715 0546 D081      		add.l %d1,%d0
+ 716 0548 E788      		lsl.l #3,%d0
+ 717 054a 0680 0000 		add.l #args,%d0
+ 717      0000 
+ 718 0550 4878 001F 		pea 31.w
+ 719 0554 2F2E FFF4 		move.l -12(%fp),-(%sp)
+ 720 0558 2F00      		move.l %d0,-(%sp)
+ 721 055a 4EB9 0000 		jsr strncpy
+ 721      0000 
+ 722 0560 4FEF 000C 		lea (12,%sp),%sp
+ 182:test.c        **** 			  args[numArgs].txt[sizeof(args[numArgs].txt)-1] = 0;
+ 723               		.loc 1 182 0
+ 724 0564 2239 0000 		move.l numArgs,%d1
+ 724      0000 
+ 725 056a 2001      		move.l %d1,%d0
+ 726 056c D080      		add.l %d0,%d0
+ 727 056e D080      		add.l %d0,%d0
+ 728 0570 D081      		add.l %d1,%d0
+ 729 0572 E788      		lsl.l #3,%d0
+ 730 0574 41F9 0000 		lea args+30,%a0
+ 730      0000 
+ 731 057a 4230 0800 		clr.b (%a0,%d0.l)
+ 183:test.c        **** 			  args[numArgs].isValue = strToULong(args[numArgs].txt,&args[numArgs].value);
+ 732               		.loc 1 183 0
+ 733 057e 2439 0000 		move.l numArgs,%d2
+ 733      0000 
+ 734 0584 2239 0000 		move.l numArgs,%d1
+ 734      0000 
+ 735 058a 2001      		move.l %d1,%d0
+ 736 058c D080      		add.l %d0,%d0
+ 737 058e D080      		add.l %d0,%d0
+ 738 0590 D081      		add.l %d1,%d0
+ 739 0592 E788      		lsl.l #3,%d0
+ 740 0594 307C 0024 		move.w #36,%a0
+ 741 0598 D1C0      		add.l %d0,%a0
+ 742 059a D1FC 0000 		add.l #args,%a0
+ 742      0000 
+ 743 05a0 2239 0000 		move.l numArgs,%d1
+ 743      0000 
+ 744 05a6 2001      		move.l %d1,%d0
+ 745 05a8 D080      		add.l %d0,%d0
+ 746 05aa D080      		add.l %d0,%d0
+ 747 05ac D081      		add.l %d1,%d0
+ 748 05ae E788      		lsl.l #3,%d0
+ 749 05b0 0680 0000 		add.l #args,%d0
+ 749      0000 
+ 750 05b6 2F08      		move.l %a0,-(%sp)
+ 751 05b8 2F00      		move.l %d0,-(%sp)
+ 752 05ba 4EBA FB5E 		jsr strToULong
+ 753 05be 508F      		addq.l #8,%sp
+ 754 05c0 2200      		move.l %d0,%d1
+ 755 05c2 2002      		move.l %d2,%d0
+ 756 05c4 D080      		add.l %d0,%d0
+ 757 05c6 D080      		add.l %d0,%d0
+ 758 05c8 D082      		add.l %d2,%d0
+ 759 05ca E788      		lsl.l #3,%d0
+ 760 05cc 41F9 0000 		lea args+32,%a0
+ 760      0000 
+ 761 05d2 2181 0800 		move.l %d1,(%a0,%d0.l)
+ 184:test.c        **** 			  token = strtok(NULL," ");
+ 762               		.loc 1 184 0
+ 763 05d6 4879 0000 		pea .LC16
+ 763      0000 
+ 764 05dc 42A7      		clr.l -(%sp)
+ 765 05de 4EB9 0000 		jsr strtok
+ 765      0000 
+ 766 05e4 508F      		addq.l #8,%sp
+ 767 05e6 2D40 FFF4 		move.l %d0,-12(%fp)
+ 185:test.c        **** 			  numArgs++;
+ 768               		.loc 1 185 0
+ 769 05ea 2039 0000 		move.l numArgs,%d0
+ 769      0000 
+ 770 05f0 5280      		addq.l #1,%d0
+ 771 05f2 23C0 0000 		move.l %d0,numArgs
+ 771      0000 
+ 772               	.L42:
+ 180:test.c        **** 			  strncpy(args[numArgs].txt,token,sizeof(args[numArgs].txt));
+ 773               		.loc 1 180 0
+ 774 05f8 4AAE FFF4 		tst.l -12(%fp)
+ 775 05fc 670E      		jeq .L43
+ 180:test.c        **** 			  strncpy(args[numArgs].txt,token,sizeof(args[numArgs].txt));
+ 776               		.loc 1 180 0 is_stmt 0 discriminator 1
+ 777 05fe 2039 0000 		move.l numArgs,%d0
+ 777      0000 
+ 778 0604 7203      		moveq #3,%d1
+ 779 0606 B280      		cmp.l %d0,%d1
+ 780 0608 6C00 FF30 		jge .L44
+ 781               	.L43:
+ 186:test.c        **** 		  }
+ 187:test.c        **** 		  free(tmp);
+ 782               		.loc 1 187 0 is_stmt 1
+ 783 060c 2F2E FFF8 		move.l -8(%fp),-(%sp)
+ 784 0610 4EB9 0000 		jsr free
+ 784      0000 
+ 785 0616 588F      		addq.l #4,%sp
+ 188:test.c        **** 
+ 189:test.c        **** 		  cmdNum = -1;
+ 786               		.loc 1 189 0
+ 787 0618 70FF      		moveq #-1,%d0
+ 788 061a 2D40 FFF0 		move.l %d0,-16(%fp)
+ 190:test.c        **** 		  /* check for register */
+ 191:test.c        **** 		  /*
+ 192:test.c        **** 		  if (strlen(cmd) == 2) {
+ 193:test.c        **** 			  if ((toupper(cmd[0]) == 'D') && (cmd[1] >= '0') && (cmd[1] <= '7')) {
+ 194:test.c        **** 				  numArgs = 1;
+ 195:test.c        **** 				  strcpy(args[0].txt,cmd);
+ 196:test.c        **** 				  dbgCmd_andn('D',M68K_REG_D0,numArgs,args);
+ 197:test.c        **** 				  cmdNum = 0xffff;
+ 198:test.c        **** 			  } else
+ 199:test.c        **** 			  if ((toupper(cmd[0]) == 'A') && (cmd[1] >= '0') && (cmd[1] <= '7')) {
+ 200:test.c        **** 				  numArgs = 1;
+ 201:test.c        **** 				  strcpy(args[0].txt,cmd);
+ 202:test.c        **** 				  dbgCmd_andn('A',M68K_REG_A0,numArgs,args);
+ 203:test.c        **** 				  cmdNum = 0xffff;
+ 204:test.c        **** 			  }  
+ 205:test.c        **** 		  }
+ 206:test.c        ****          */
+ 207:test.c        **** 		if (cmdNum == -1) findAndExecCommand (cmd,cmds,numArgs,args);
+ 789               		.loc 1 207 0
+ 790 061e 72FF      		moveq #-1,%d1
+ 791 0620 B2AE FFF0 		cmp.l -16(%fp),%d1
+ 792 0624 6622      		jne .L41
+ 793               		.loc 1 207 0 is_stmt 0 discriminator 1
+ 794 0626 2039 0000 		move.l numArgs,%d0
+ 794      0000 
+ 795 062c 4879 0000 		pea args
+ 795      0000 
+ 796 0632 2F00      		move.l %d0,-(%sp)
+ 797 0634 4879 0000 		pea cmds
+ 797      0000 
+ 798 063a 41EE FFE5 		lea (-27,%fp),%a0
+ 799 063e 2F08      		move.l %a0,-(%sp)
+ 800 0640 4EBA FB40 		jsr findAndExecCommand
+ 801 0644 4FEF 0010 		lea (16,%sp),%sp
+ 802               	.L41:
+ 208:test.c        **** 	  }
+ 209:test.c        **** 	  /*printf("\n");*/
+ 210:test.c        **** 	if (oneCmd) return;
+ 803               		.loc 1 210 0 is_stmt 1
+ 804 0648 4AAE 0008 		tst.l 8(%fp)
+ 805 064c 661C      		jne .L48
+ 211:test.c        **** 	} while ((strcmp(cmd,"quit")));
+ 806               		.loc 1 211 0
+ 807 064e 4879 0000 		pea .LC17
+ 807      0000 
+ 808 0654 41EE FFE5 		lea (-27,%fp),%a0
+ 809 0658 2F08      		move.l %a0,-(%sp)
+ 810 065a 4EB9 0000 		jsr strcmp
+ 810      0000 
+ 811 0660 508F      		addq.l #8,%sp
+ 812 0662 4A80      		tst.l %d0
+ 813 0664 6600 FDC6 		jne .L47
+ 814 0668 6002      		jra .L36
+ 815               	.L48:
+ 210:test.c        **** 	} while ((strcmp(cmd,"quit")));
+ 816               		.loc 1 210 0
+ 817 066a 4E71      		nop
+ 818               	.L36:
+ 212:test.c        **** }
+ 819               		.loc 1 212 0
+ 820 066c 242E FFE0 		move.l -32(%fp),%d2
+ 821 0670 4E5E      		unlk %fp
+ 822 0672 4E75      		rts
+ 823               		.cfi_endproc
+ 824               	.LFE6:
+ 826               		.section	.rodata
+ 827               	.LC18:
+ 828 0111 6D61 6C6C 		.string	"malloc returned NULL"
+ 828      6F63 2072 
+ 828      6574 7572 
+ 828      6E65 6420 
+ 828      4E55 4C4C 
+ 829               	.LC19:
+ 830 0126 0A41 6C6C 		.string	"\nAllocated %d times %d bytes\n"
+ 830      6F63 6174 
+ 830      6564 2025 
+ 830      6420 7469 
+ 830      6D65 7320 
+ 831               	.LC20:
+ 832 0144 0A66 7265 		.string	"\nfreed %d items\n"
+ 832      6564 2025 
+ 832      6420 6974 
+ 832      656D 730A 
+ 832      00
+ 833               		.text
+ 834               		.align	2
+ 835               		.globl	mtest
+ 837               	mtest:
+ 838               	.LFB7:
+ 213:test.c        **** 
+ 214:test.c        **** 
+ 215:test.c        **** 
+ 216:test.c        **** #define NUMMALLOCS 1000
+ 217:test.c        **** #define ALLOCSIZE 1024
+ 218:test.c        **** void mtest() {
+ 839               		.loc 1 218 0
+ 840               		.cfi_startproc
+ 841 0674 4E56 F058 		link.w %fp,#-4008
+ 842               		.cfi_offset 14, -8
+ 843               		.cfi_def_cfa 14, 8
+ 219:test.c        ****   char * m[NUMMALLOCS+1];
+ 220:test.c        ****   int i;
+ 221:test.c        ****   
+ 222:test.c        ****   for (i=0;i<NUMMALLOCS;i++) m[i] = NULL;
+ 844               		.loc 1 222 0
+ 845 0678 42AE FFFC 		clr.l -4(%fp)
+ 846 067c 6016      		jra .L50
+ 847               	.L51:
+ 848               		.loc 1 222 0 is_stmt 0 discriminator 3
+ 849 067e 202E FFFC 		move.l -4(%fp),%d0
+ 850 0682 D080      		add.l %d0,%d0
+ 851 0684 D080      		add.l %d0,%d0
+ 852 0686 D08E      		add.l %fp,%d0
+ 853 0688 2040      		move.l %d0,%a0
+ 854 068a 41E8 F058 		lea (-4008,%a0),%a0
+ 855 068e 4290      		clr.l (%a0)
+ 856 0690 52AE FFFC 		addq.l #1,-4(%fp)
+ 857               	.L50:
+ 858               		.loc 1 222 0 discriminator 1
+ 859 0694 0CAE 0000 		cmp.l #999,-4(%fp)
+ 859      03E7 FFFC 
+ 860 069c 6FE0      		jle .L51
+ 223:test.c        ****   
+ 224:test.c        ****   for (i=0;i<NUMMALLOCS;i++) {
+ 861               		.loc 1 224 0 is_stmt 1
+ 862 069e 42AE FFFC 		clr.l -4(%fp)
+ 863 06a2 6000 014C 		jra .L52
+ 864               	.L61:
+ 225:test.c        **** 	  m[i] = malloc(ALLOCSIZE);
+ 865               		.loc 1 225 0
+ 866 06a6 4878 0400 		pea 1024.w
+ 867 06aa 4EB9 0000 		jsr malloc
+ 867      0000 
+ 868 06b0 588F      		addq.l #4,%sp
+ 869 06b2 222E FFFC 		move.l -4(%fp),%d1
+ 870 06b6 D281      		add.l %d1,%d1
+ 871 06b8 D281      		add.l %d1,%d1
+ 872 06ba D28E      		add.l %fp,%d1
+ 873 06bc 2041      		move.l %d1,%a0
+ 874 06be 41E8 F058 		lea (-4008,%a0),%a0
+ 875 06c2 2080      		move.l %d0,(%a0)
+ 226:test.c        **** 	  if(m[i] == NULL) {
+ 876               		.loc 1 226 0
+ 877 06c4 202E FFFC 		move.l -4(%fp),%d0
+ 878 06c8 D080      		add.l %d0,%d0
+ 879 06ca D080      		add.l %d0,%d0
+ 880 06cc D08E      		add.l %fp,%d0
+ 881 06ce 2040      		move.l %d0,%a0
+ 882 06d0 41E8 F058 		lea (-4008,%a0),%a0
+ 883 06d4 2010      		move.l (%a0),%d0
+ 884 06d6 4A80      		tst.l %d0
+ 885 06d8 6612      		jne .L53
+ 227:test.c        **** 		  printf("malloc returned NULL\n");
+ 886               		.loc 1 227 0
+ 887 06da 4879 0000 		pea .LC18
+ 887      0000 
+ 888 06e0 4EB9 0000 		jsr puts
+ 888      0000 
+ 889 06e6 588F      		addq.l #4,%sp
+ 228:test.c        **** 		  break;
+ 890               		.loc 1 228 0
+ 891 06e8 6000 0112 		jra .L54
+ 892               	.L53:
+ 229:test.c        **** 	  }
+ 230:test.c        **** 	  putchar('+');
+ 893               		.loc 1 230 0
+ 894 06ec 2079 0000 		move.l _impure_ptr,%a0
+ 894      0000 
+ 895 06f2 2068 0008 		move.l 8(%a0),%a0
+ 896 06f6 2028 0008 		move.l 8(%a0),%d0
+ 897 06fa 5380      		subq.l #1,%d0
+ 898 06fc 2140 0008 		move.l %d0,8(%a0)
+ 899 0700 2028 0008 		move.l 8(%a0),%d0
+ 900 0704 4A80      		tst.l %d0
+ 901 0706 6C00 00A0 		jge .L55
+ 902               		.loc 1 230 0 is_stmt 0 discriminator 1
+ 903 070a 2079 0000 		move.l _impure_ptr,%a0
+ 903      0000 
+ 904 0710 2068 0008 		move.l 8(%a0),%a0
+ 905 0714 2228 0008 		move.l 8(%a0),%d1
+ 906 0718 2079 0000 		move.l _impure_ptr,%a0
+ 906      0000 
+ 907 071e 2068 0008 		move.l 8(%a0),%a0
+ 908 0722 2028 0018 		move.l 24(%a0),%d0
+ 909 0726 B081      		cmp.l %d1,%d0
+ 910 0728 6E5A      		jgt .L56
+ 911               		.loc 1 230 0 discriminator 3
+ 912 072a 2079 0000 		move.l _impure_ptr,%a0
+ 912      0000 
+ 913 0730 2068 0008 		move.l 8(%a0),%a0
+ 914 0734 2050      		move.l (%a0),%a0
+ 915 0736 10BC 002B 		move.b #43,(%a0)
+ 916 073a 2079 0000 		move.l _impure_ptr,%a0
+ 916      0000 
+ 917 0740 2068 0008 		move.l 8(%a0),%a0
+ 918 0744 2050      		move.l (%a0),%a0
+ 919 0746 1010      		move.b (%a0),%d0
+ 920 0748 0C00 000A 		cmp.b #10,%d0
+ 921 074c 6712      		jeq .L57
+ 922               		.loc 1 230 0 discriminator 5
+ 923 074e 2079 0000 		move.l _impure_ptr,%a0
+ 923      0000 
+ 924 0754 2068 0008 		move.l 8(%a0),%a0
+ 925 0758 2010      		move.l (%a0),%d0
+ 926 075a 5280      		addq.l #1,%d0
+ 927 075c 2080      		move.l %d0,(%a0)
+ 928 075e 6068      		jra .L60
+ 929               	.L57:
+ 930               		.loc 1 230 0 discriminator 6
+ 931 0760 2079 0000 		move.l _impure_ptr,%a0
+ 931      0000 
+ 932 0766 2228 0008 		move.l 8(%a0),%d1
+ 933 076a 2039 0000 		move.l _impure_ptr,%d0
+ 933      0000 
+ 934 0770 2F01      		move.l %d1,-(%sp)
+ 935 0772 4878 000A 		pea 10.w
+ 936 0776 2F00      		move.l %d0,-(%sp)
+ 937 0778 4EB9 0000 		jsr __swbuf_r
+ 937      0000 
+ 938 077e 4FEF 000C 		lea (12,%sp),%sp
+ 939 0782 6044      		jra .L60
+ 940               	.L56:
+ 941               		.loc 1 230 0 discriminator 4
+ 942 0784 2079 0000 		move.l _impure_ptr,%a0
+ 942      0000 
+ 943 078a 2228 0008 		move.l 8(%a0),%d1
+ 944 078e 2039 0000 		move.l _impure_ptr,%d0
+ 944      0000 
+ 945 0794 2F01      		move.l %d1,-(%sp)
+ 946 0796 4878 002B 		pea 43.w
+ 947 079a 2F00      		move.l %d0,-(%sp)
+ 948 079c 4EB9 0000 		jsr __swbuf_r
+ 948      0000 
+ 949 07a2 4FEF 000C 		lea (12,%sp),%sp
+ 950 07a6 6020      		jra .L60
+ 951               	.L55:
+ 952               		.loc 1 230 0 discriminator 2
+ 953 07a8 2079 0000 		move.l _impure_ptr,%a0
+ 953      0000 
+ 954 07ae 2068 0008 		move.l 8(%a0),%a0
+ 955 07b2 2050      		move.l (%a0),%a0
+ 956 07b4 10BC 002B 		move.b #43,(%a0)
+ 957 07b8 2079 0000 		move.l _impure_ptr,%a0
+ 957      0000 
+ 958 07be 2068 0008 		move.l 8(%a0),%a0
+ 959 07c2 2010      		move.l (%a0),%d0
+ 960 07c4 5280      		addq.l #1,%d0
+ 961 07c6 2080      		move.l %d0,(%a0)
+ 962               	.L60:
+ 231:test.c        **** 	  memset (m[i], 0, ALLOCSIZE);
+ 963               		.loc 1 231 0 is_stmt 1 discriminator 2
+ 964 07c8 202E FFFC 		move.l -4(%fp),%d0
+ 965 07cc D080      		add.l %d0,%d0
+ 966 07ce D080      		add.l %d0,%d0
+ 967 07d0 D08E      		add.l %fp,%d0
+ 968 07d2 2040      		move.l %d0,%a0
+ 969 07d4 41E8 F058 		lea (-4008,%a0),%a0
+ 970 07d8 2010      		move.l (%a0),%d0
+ 971 07da 4878 0400 		pea 1024.w
+ 972 07de 42A7      		clr.l -(%sp)
+ 973 07e0 2F00      		move.l %d0,-(%sp)
+ 974 07e2 4EB9 0000 		jsr memset
+ 974      0000 
+ 975 07e8 4FEF 000C 		lea (12,%sp),%sp
+ 224:test.c        **** 	  m[i] = malloc(ALLOCSIZE);
+ 976               		.loc 1 224 0 discriminator 2
+ 977 07ec 52AE FFFC 		addq.l #1,-4(%fp)
+ 978               	.L52:
+ 224:test.c        **** 	  m[i] = malloc(ALLOCSIZE);
+ 979               		.loc 1 224 0 is_stmt 0 discriminator 1
+ 980 07f0 0CAE 0000 		cmp.l #999,-4(%fp)
+ 980      03E7 FFFC 
+ 981 07f8 6F00 FEAC 		jle .L61
+ 982               	.L54:
+ 232:test.c        ****   }
+ 233:test.c        ****   printf("\nAllocated %d times %d bytes\n",i,ALLOCSIZE);
+ 983               		.loc 1 233 0 is_stmt 1
+ 984 07fc 4878 0400 		pea 1024.w
+ 985 0800 2F2E FFFC 		move.l -4(%fp),-(%sp)
+ 986 0804 4879 0000 		pea .LC19
+ 986      0000 
+ 987 080a 4EB9 0000 		jsr printf
+ 987      0000 
+ 988 0810 4FEF 000C 		lea (12,%sp),%sp
+ 234:test.c        ****   for (i=0;i<NUMMALLOCS;i++) {
+ 989               		.loc 1 234 0
+ 990 0814 42AE FFFC 		clr.l -4(%fp)
+ 991 0818 6000 0128 		jra .L62
+ 992               	.L70:
+ 235:test.c        **** 	  if(m[i]) {
+ 993               		.loc 1 235 0
+ 994 081c 202E FFFC 		move.l -4(%fp),%d0
+ 995 0820 D080      		add.l %d0,%d0
+ 996 0822 D080      		add.l %d0,%d0
+ 997 0824 D08E      		add.l %fp,%d0
+ 998 0826 2040      		move.l %d0,%a0
+ 999 0828 41E8 F058 		lea (-4008,%a0),%a0
+ 1000 082c 2010      		move.l (%a0),%d0
+ 1001 082e 4A80      		tst.l %d0
+ 1002 0830 6700 010C 		jeq .L63
+ 236:test.c        **** 	    free(m[i]);
+ 1003               		.loc 1 236 0
+ 1004 0834 202E FFFC 		move.l -4(%fp),%d0
+ 1005 0838 D080      		add.l %d0,%d0
+ 1006 083a D080      		add.l %d0,%d0
+ 1007 083c D08E      		add.l %fp,%d0
+ 1008 083e 2040      		move.l %d0,%a0
+ 1009 0840 41E8 F058 		lea (-4008,%a0),%a0
+ 1010 0844 2010      		move.l (%a0),%d0
+ 1011 0846 2F00      		move.l %d0,-(%sp)
+ 1012 0848 4EB9 0000 		jsr free
+ 1012      0000 
+ 1013 084e 588F      		addq.l #4,%sp
+ 237:test.c        **** 	    putchar('-');
+ 1014               		.loc 1 237 0
+ 1015 0850 2079 0000 		move.l _impure_ptr,%a0
+ 1015      0000 
+ 1016 0856 2068 0008 		move.l 8(%a0),%a0
+ 1017 085a 2028 0008 		move.l 8(%a0),%d0
+ 1018 085e 5380      		subq.l #1,%d0
+ 1019 0860 2140 0008 		move.l %d0,8(%a0)
+ 1020 0864 2028 0008 		move.l 8(%a0),%d0
+ 1021 0868 4A80      		tst.l %d0
+ 1022 086a 6C00 00A0 		jge .L64
+ 1023               		.loc 1 237 0 is_stmt 0 discriminator 1
+ 1024 086e 2079 0000 		move.l _impure_ptr,%a0
+ 1024      0000 
+ 1025 0874 2068 0008 		move.l 8(%a0),%a0
+ 1026 0878 2228 0008 		move.l 8(%a0),%d1
+ 1027 087c 2079 0000 		move.l _impure_ptr,%a0
+ 1027      0000 
+ 1028 0882 2068 0008 		move.l 8(%a0),%a0
+ 1029 0886 2028 0018 		move.l 24(%a0),%d0
+ 1030 088a B081      		cmp.l %d1,%d0
+ 1031 088c 6E5A      		jgt .L65
+ 1032               		.loc 1 237 0 discriminator 3
+ 1033 088e 2079 0000 		move.l _impure_ptr,%a0
+ 1033      0000 
+ 1034 0894 2068 0008 		move.l 8(%a0),%a0
+ 1035 0898 2050      		move.l (%a0),%a0
+ 1036 089a 10BC 002D 		move.b #45,(%a0)
+ 1037 089e 2079 0000 		move.l _impure_ptr,%a0
+ 1037      0000 
+ 1038 08a4 2068 0008 		move.l 8(%a0),%a0
+ 1039 08a8 2050      		move.l (%a0),%a0
+ 1040 08aa 1010      		move.b (%a0),%d0
+ 1041 08ac 0C00 000A 		cmp.b #10,%d0
+ 1042 08b0 6712      		jeq .L66
+ 1043               		.loc 1 237 0 discriminator 5
+ 1044 08b2 2079 0000 		move.l _impure_ptr,%a0
+ 1044      0000 
+ 1045 08b8 2068 0008 		move.l 8(%a0),%a0
+ 1046 08bc 2010      		move.l (%a0),%d0
+ 1047 08be 5280      		addq.l #1,%d0
+ 1048 08c0 2080      		move.l %d0,(%a0)
+ 1049 08c2 6068      		jra .L69
+ 1050               	.L66:
+ 1051               		.loc 1 237 0 discriminator 6
+ 1052 08c4 2079 0000 		move.l _impure_ptr,%a0
+ 1052      0000 
+ 1053 08ca 2228 0008 		move.l 8(%a0),%d1
+ 1054 08ce 2039 0000 		move.l _impure_ptr,%d0
+ 1054      0000 
+ 1055 08d4 2F01      		move.l %d1,-(%sp)
+ 1056 08d6 4878 000A 		pea 10.w
+ 1057 08da 2F00      		move.l %d0,-(%sp)
+ 1058 08dc 4EB9 0000 		jsr __swbuf_r
+ 1058      0000 
+ 1059 08e2 4FEF 000C 		lea (12,%sp),%sp
+ 1060 08e6 6044      		jra .L69
+ 1061               	.L65:
+ 1062               		.loc 1 237 0 discriminator 4
+ 1063 08e8 2079 0000 		move.l _impure_ptr,%a0
+ 1063      0000 
+ 1064 08ee 2228 0008 		move.l 8(%a0),%d1
+ 1065 08f2 2039 0000 		move.l _impure_ptr,%d0
+ 1065      0000 
+ 1066 08f8 2F01      		move.l %d1,-(%sp)
+ 1067 08fa 4878 002D 		pea 45.w
+ 1068 08fe 2F00      		move.l %d0,-(%sp)
+ 1069 0900 4EB9 0000 		jsr __swbuf_r
+ 1069      0000 
+ 1070 0906 4FEF 000C 		lea (12,%sp),%sp
+ 1071 090a 6020      		jra .L69
+ 1072               	.L64:
+ 1073               		.loc 1 237 0 discriminator 2
+ 1074 090c 2079 0000 		move.l _impure_ptr,%a0
+ 1074      0000 
+ 1075 0912 2068 0008 		move.l 8(%a0),%a0
+ 1076 0916 2050      		move.l (%a0),%a0
+ 1077 0918 10BC 002D 		move.b #45,(%a0)
+ 1078 091c 2079 0000 		move.l _impure_ptr,%a0
+ 1078      0000 
+ 1079 0922 2068 0008 		move.l 8(%a0),%a0
+ 1080 0926 2010      		move.l (%a0),%d0
+ 1081 0928 5280      		addq.l #1,%d0
+ 1082 092a 2080      		move.l %d0,(%a0)
+ 1083               	.L69:
+ 238:test.c        **** 	    m[i] = NULL;
+ 1084               		.loc 1 238 0 is_stmt 1
+ 1085 092c 202E FFFC 		move.l -4(%fp),%d0
+ 1086 0930 D080      		add.l %d0,%d0
+ 1087 0932 D080      		add.l %d0,%d0
+ 1088 0934 D08E      		add.l %fp,%d0
+ 1089 0936 2040      		move.l %d0,%a0
+ 1090 0938 41E8 F058 		lea (-4008,%a0),%a0
+ 1091 093c 4290      		clr.l (%a0)
+ 1092               	.L63:
+ 234:test.c        **** 	  if(m[i]) {
+ 1093               		.loc 1 234 0 discriminator 2
+ 1094 093e 52AE FFFC 		addq.l #1,-4(%fp)
+ 1095               	.L62:
+ 234:test.c        **** 	  if(m[i]) {
+ 1096               		.loc 1 234 0 is_stmt 0 discriminator 1
+ 1097 0942 0CAE 0000 		cmp.l #999,-4(%fp)
+ 1097      03E7 FFFC 
+ 1098 094a 6F00 FED0 		jle .L70
+ 239:test.c        ****       }
+ 240:test.c        ****   }
+ 241:test.c        ****   printf("\nfreed %d items\n",NUMMALLOCS);
+ 1099               		.loc 1 241 0 is_stmt 1
+ 1100 094e 4878 03E8 		pea 1000.w
+ 1101 0952 4879 0000 		pea .LC20
+ 1101      0000 
+ 1102 0958 4EB9 0000 		jsr printf
+ 1102      0000 
+ 1103 095e 508F      		addq.l #8,%sp
+ 242:test.c        ****   
+ 243:test.c        **** }
+ 1104               		.loc 1 243 0
+ 1105 0960 4E71      		nop
+ 1106 0962 4E5E      		unlk %fp
+ 1107 0964 4E75      		rts
+ 1108               		.cfi_endproc
+ 1109               	.LFE7:
+ 1111               		.section	.rodata
+ 1112               	.LC21:
+ 1113 0155 7072 6F6D 		.string	"prompt>"
+ 1113      7074 3E00 
+ 1114               	.LC22:
+ 1115 015d 676F 7420 		.string	"got '%s', len=%d\n"
+ 1115      2725 7327 
+ 1115      2C20 6C65 
+ 1115      6E3D 2564 
+ 1115      0A00 
+ 1116               		.text
+ 1117               		.align	2
+ 1118               		.globl	testReadStr
+ 1120               	testReadStr:
+ 1121               	.LFB8:
+ 244:test.c        **** 
+ 245:test.c        **** void testReadStr() {
+ 1122               		.loc 1 245 0
+ 1123               		.cfi_startproc
+ 1124 0966 4E56 FFFC 		link.w %fp,#-4
+ 1125               		.cfi_offset 14, -8
+ 1126               		.cfi_def_cfa 14, 8
+ 246:test.c        **** 	char * s;
+ 247:test.c        **** 	
+ 248:test.c        **** 	s = readString ("prompt>");
+ 1127               		.loc 1 248 0
+ 1128 096a 4879 0000 		pea .LC21
+ 1128      0000 
+ 1129 0970 4EB9 0000 		jsr readString
+ 1129      0000 
+ 1130 0976 588F      		addq.l #4,%sp
+ 1131 0978 2D40 FFFC 		move.l %d0,-4(%fp)
+ 249:test.c        **** 	printf ("got '%s', len=%d\n",s,(int)strlen(s));
+ 1132               		.loc 1 249 0
+ 1133 097c 2F2E FFFC 		move.l -4(%fp),-(%sp)
+ 1134 0980 4EB9 0000 		jsr strlen
+ 1134      0000 
+ 1135 0986 588F      		addq.l #4,%sp
+ 1136 0988 2F00      		move.l %d0,-(%sp)
+ 1137 098a 2F2E FFFC 		move.l -4(%fp),-(%sp)
+ 1138 098e 4879 0000 		pea .LC22
+ 1138      0000 
+ 1139 0994 4EB9 0000 		jsr printf
+ 1139      0000 
+ 1140 099a 4FEF 000C 		lea (12,%sp),%sp
+ 250:test.c        **** 	free(s);
+ 1141               		.loc 1 250 0
+ 1142 099e 2F2E FFFC 		move.l -4(%fp),-(%sp)
+ 1143 09a2 4EB9 0000 		jsr free
+ 1143      0000 
+ 1144 09a8 588F      		addq.l #4,%sp
+ 251:test.c        **** }
+ 1145               		.loc 1 251 0
+ 1146 09aa 4E71      		nop
+ 1147 09ac 4E5E      		unlk %fp
+ 1148 09ae 4E75      		rts
+ 1149               		.cfi_endproc
+ 1150               	.LFE8:
+ 1152               		.section	.rodata
+ 1153               	.LC23:
+ 1154 016f 6865 7265 		.string	"here we are\n"
+ 1154      2077 6520 
+ 1154      6172 650A 
+ 1154      00
+ 1155               		.text
+ 1156               		.align	2
+ 1157               		.globl	main
+ 1159               	main:
+ 1160               	.LFB9:
+ 252:test.c        **** 
+ 253:test.c        **** int main ()
+ 254:test.c        **** {
+ 1161               		.loc 1 254 0
+ 1162               		.cfi_startproc
+ 1163 09b0 4E56 0000 		link.w %fp,#0
+ 1164               		.cfi_offset 14, -8
+ 1165               		.cfi_def_cfa 14, 8
+ 255:test.c        ****   setbuf(stdout, NULL);
+ 1166               		.loc 1 255 0
+ 1167 09b4 2079 0000 		move.l _impure_ptr,%a0
+ 1167      0000 
+ 1168 09ba 2028 0008 		move.l 8(%a0),%d0
+ 1169 09be 42A7      		clr.l -(%sp)
+ 1170 09c0 2F00      		move.l %d0,-(%sp)
+ 1171 09c2 4EB9 0000 		jsr setbuf
+ 1171      0000 
+ 1172 09c8 508F      		addq.l #8,%sp
+ 256:test.c        ****   putchar('-'); putchar('*'); putchar('-');
+ 1173               		.loc 1 256 0
+ 1174 09ca 2079 0000 		move.l _impure_ptr,%a0
+ 1174      0000 
+ 1175 09d0 2068 0008 		move.l 8(%a0),%a0
+ 1176 09d4 2028 0008 		move.l 8(%a0),%d0
+ 1177 09d8 5380      		subq.l #1,%d0
+ 1178 09da 2140 0008 		move.l %d0,8(%a0)
+ 1179 09de 2028 0008 		move.l 8(%a0),%d0
+ 1180 09e2 4A80      		tst.l %d0
+ 1181 09e4 6C00 00A0 		jge .L73
+ 1182               		.loc 1 256 0 is_stmt 0 discriminator 1
+ 1183 09e8 2079 0000 		move.l _impure_ptr,%a0
+ 1183      0000 
+ 1184 09ee 2068 0008 		move.l 8(%a0),%a0
+ 1185 09f2 2228 0008 		move.l 8(%a0),%d1
+ 1186 09f6 2079 0000 		move.l _impure_ptr,%a0
+ 1186      0000 
+ 1187 09fc 2068 0008 		move.l 8(%a0),%a0
+ 1188 0a00 2028 0018 		move.l 24(%a0),%d0
+ 1189 0a04 B081      		cmp.l %d1,%d0
+ 1190 0a06 6E5A      		jgt .L74
+ 1191               		.loc 1 256 0 discriminator 3
+ 1192 0a08 2079 0000 		move.l _impure_ptr,%a0
+ 1192      0000 
+ 1193 0a0e 2068 0008 		move.l 8(%a0),%a0
+ 1194 0a12 2050      		move.l (%a0),%a0
+ 1195 0a14 10BC 002D 		move.b #45,(%a0)
+ 1196 0a18 2079 0000 		move.l _impure_ptr,%a0
+ 1196      0000 
+ 1197 0a1e 2068 0008 		move.l 8(%a0),%a0
+ 1198 0a22 2050      		move.l (%a0),%a0
+ 1199 0a24 1010      		move.b (%a0),%d0
+ 1200 0a26 0C00 000A 		cmp.b #10,%d0
+ 1201 0a2a 6712      		jeq .L75
+ 1202               		.loc 1 256 0 discriminator 5
+ 1203 0a2c 2079 0000 		move.l _impure_ptr,%a0
+ 1203      0000 
+ 1204 0a32 2068 0008 		move.l 8(%a0),%a0
+ 1205 0a36 2010      		move.l (%a0),%d0
+ 1206 0a38 5280      		addq.l #1,%d0
+ 1207 0a3a 2080      		move.l %d0,(%a0)
+ 1208 0a3c 6068      		jra .L78
+ 1209               	.L75:
+ 1210               		.loc 1 256 0 discriminator 6
+ 1211 0a3e 2079 0000 		move.l _impure_ptr,%a0
+ 1211      0000 
+ 1212 0a44 2228 0008 		move.l 8(%a0),%d1
+ 1213 0a48 2039 0000 		move.l _impure_ptr,%d0
+ 1213      0000 
+ 1214 0a4e 2F01      		move.l %d1,-(%sp)
+ 1215 0a50 4878 000A 		pea 10.w
+ 1216 0a54 2F00      		move.l %d0,-(%sp)
+ 1217 0a56 4EB9 0000 		jsr __swbuf_r
+ 1217      0000 
+ 1218 0a5c 4FEF 000C 		lea (12,%sp),%sp
+ 1219 0a60 6044      		jra .L78
+ 1220               	.L74:
+ 1221               		.loc 1 256 0 discriminator 4
+ 1222 0a62 2079 0000 		move.l _impure_ptr,%a0
+ 1222      0000 
+ 1223 0a68 2228 0008 		move.l 8(%a0),%d1
+ 1224 0a6c 2039 0000 		move.l _impure_ptr,%d0
+ 1224      0000 
+ 1225 0a72 2F01      		move.l %d1,-(%sp)
+ 1226 0a74 4878 002D 		pea 45.w
+ 1227 0a78 2F00      		move.l %d0,-(%sp)
+ 1228 0a7a 4EB9 0000 		jsr __swbuf_r
+ 1228      0000 
+ 1229 0a80 4FEF 000C 		lea (12,%sp),%sp
+ 1230 0a84 6020      		jra .L78
+ 1231               	.L73:
+ 1232               		.loc 1 256 0 discriminator 2
+ 1233 0a86 2079 0000 		move.l _impure_ptr,%a0
+ 1233      0000 
+ 1234 0a8c 2068 0008 		move.l 8(%a0),%a0
+ 1235 0a90 2050      		move.l (%a0),%a0
+ 1236 0a92 10BC 002D 		move.b #45,(%a0)
+ 1237 0a96 2079 0000 		move.l _impure_ptr,%a0
+ 1237      0000 
+ 1238 0a9c 2068 0008 		move.l 8(%a0),%a0
+ 1239 0aa0 2010      		move.l (%a0),%d0
+ 1240 0aa2 5280      		addq.l #1,%d0
+ 1241 0aa4 2080      		move.l %d0,(%a0)
+ 1242               	.L78:
+ 1243               		.loc 1 256 0 discriminator 12
+ 1244 0aa6 2079 0000 		move.l _impure_ptr,%a0
+ 1244      0000 
+ 1245 0aac 2068 0008 		move.l 8(%a0),%a0
+ 1246 0ab0 2028 0008 		move.l 8(%a0),%d0
+ 1247 0ab4 5380      		subq.l #1,%d0
+ 1248 0ab6 2140 0008 		move.l %d0,8(%a0)
+ 1249 0aba 2028 0008 		move.l 8(%a0),%d0
+ 1250 0abe 4A80      		tst.l %d0
+ 1251 0ac0 6C00 00A0 		jge .L79
+ 1252               		.loc 1 256 0 discriminator 13
+ 1253 0ac4 2079 0000 		move.l _impure_ptr,%a0
+ 1253      0000 
+ 1254 0aca 2068 0008 		move.l 8(%a0),%a0
+ 1255 0ace 2228 0008 		move.l 8(%a0),%d1
+ 1256 0ad2 2079 0000 		move.l _impure_ptr,%a0
+ 1256      0000 
+ 1257 0ad8 2068 0008 		move.l 8(%a0),%a0
+ 1258 0adc 2028 0018 		move.l 24(%a0),%d0
+ 1259 0ae0 B081      		cmp.l %d1,%d0
+ 1260 0ae2 6E5A      		jgt .L80
+ 1261               		.loc 1 256 0 discriminator 15
+ 1262 0ae4 2079 0000 		move.l _impure_ptr,%a0
+ 1262      0000 
+ 1263 0aea 2068 0008 		move.l 8(%a0),%a0
+ 1264 0aee 2050      		move.l (%a0),%a0
+ 1265 0af0 10BC 002A 		move.b #42,(%a0)
+ 1266 0af4 2079 0000 		move.l _impure_ptr,%a0
+ 1266      0000 
+ 1267 0afa 2068 0008 		move.l 8(%a0),%a0
+ 1268 0afe 2050      		move.l (%a0),%a0
+ 1269 0b00 1010      		move.b (%a0),%d0
+ 1270 0b02 0C00 000A 		cmp.b #10,%d0
+ 1271 0b06 6712      		jeq .L81
+ 1272               		.loc 1 256 0 discriminator 17
+ 1273 0b08 2079 0000 		move.l _impure_ptr,%a0
+ 1273      0000 
+ 1274 0b0e 2068 0008 		move.l 8(%a0),%a0
+ 1275 0b12 2010      		move.l (%a0),%d0
+ 1276 0b14 5280      		addq.l #1,%d0
+ 1277 0b16 2080      		move.l %d0,(%a0)
+ 1278 0b18 6068      		jra .L84
+ 1279               	.L81:
+ 1280               		.loc 1 256 0 discriminator 18
+ 1281 0b1a 2079 0000 		move.l _impure_ptr,%a0
+ 1281      0000 
+ 1282 0b20 2228 0008 		move.l 8(%a0),%d1
+ 1283 0b24 2039 0000 		move.l _impure_ptr,%d0
+ 1283      0000 
+ 1284 0b2a 2F01      		move.l %d1,-(%sp)
+ 1285 0b2c 4878 000A 		pea 10.w
+ 1286 0b30 2F00      		move.l %d0,-(%sp)
+ 1287 0b32 4EB9 0000 		jsr __swbuf_r
+ 1287      0000 
+ 1288 0b38 4FEF 000C 		lea (12,%sp),%sp
+ 1289 0b3c 6044      		jra .L84
+ 1290               	.L80:
+ 1291               		.loc 1 256 0 discriminator 16
+ 1292 0b3e 2079 0000 		move.l _impure_ptr,%a0
+ 1292      0000 
+ 1293 0b44 2228 0008 		move.l 8(%a0),%d1
+ 1294 0b48 2039 0000 		move.l _impure_ptr,%d0
+ 1294      0000 
+ 1295 0b4e 2F01      		move.l %d1,-(%sp)
+ 1296 0b50 4878 002A 		pea 42.w
+ 1297 0b54 2F00      		move.l %d0,-(%sp)
+ 1298 0b56 4EB9 0000 		jsr __swbuf_r
+ 1298      0000 
+ 1299 0b5c 4FEF 000C 		lea (12,%sp),%sp
+ 1300 0b60 6020      		jra .L84
+ 1301               	.L79:
+ 1302               		.loc 1 256 0 discriminator 14
+ 1303 0b62 2079 0000 		move.l _impure_ptr,%a0
+ 1303      0000 
+ 1304 0b68 2068 0008 		move.l 8(%a0),%a0
+ 1305 0b6c 2050      		move.l (%a0),%a0
+ 1306 0b6e 10BC 002A 		move.b #42,(%a0)
+ 1307 0b72 2079 0000 		move.l _impure_ptr,%a0
+ 1307      0000 
+ 1308 0b78 2068 0008 		move.l 8(%a0),%a0
+ 1309 0b7c 2010      		move.l (%a0),%d0
+ 1310 0b7e 5280      		addq.l #1,%d0
+ 1311 0b80 2080      		move.l %d0,(%a0)
+ 1312               	.L84:
+ 1313               		.loc 1 256 0 discriminator 24
+ 1314 0b82 2079 0000 		move.l _impure_ptr,%a0
+ 1314      0000 
+ 1315 0b88 2068 0008 		move.l 8(%a0),%a0
+ 1316 0b8c 2028 0008 		move.l 8(%a0),%d0
+ 1317 0b90 5380      		subq.l #1,%d0
+ 1318 0b92 2140 0008 		move.l %d0,8(%a0)
+ 1319 0b96 2028 0008 		move.l 8(%a0),%d0
+ 1320 0b9a 4A80      		tst.l %d0
+ 1321 0b9c 6C00 00A0 		jge .L85
+ 1322               		.loc 1 256 0 discriminator 25
+ 1323 0ba0 2079 0000 		move.l _impure_ptr,%a0
+ 1323      0000 
+ 1324 0ba6 2068 0008 		move.l 8(%a0),%a0
+ 1325 0baa 2228 0008 		move.l 8(%a0),%d1
+ 1326 0bae 2079 0000 		move.l _impure_ptr,%a0
+ 1326      0000 
+ 1327 0bb4 2068 0008 		move.l 8(%a0),%a0
+ 1328 0bb8 2028 0018 		move.l 24(%a0),%d0
+ 1329 0bbc B081      		cmp.l %d1,%d0
+ 1330 0bbe 6E5A      		jgt .L86
+ 1331               		.loc 1 256 0 discriminator 27
+ 1332 0bc0 2079 0000 		move.l _impure_ptr,%a0
+ 1332      0000 
+ 1333 0bc6 2068 0008 		move.l 8(%a0),%a0
+ 1334 0bca 2050      		move.l (%a0),%a0
+ 1335 0bcc 10BC 002D 		move.b #45,(%a0)
+ 1336 0bd0 2079 0000 		move.l _impure_ptr,%a0
+ 1336      0000 
+ 1337 0bd6 2068 0008 		move.l 8(%a0),%a0
+ 1338 0bda 2050      		move.l (%a0),%a0
+ 1339 0bdc 1010      		move.b (%a0),%d0
+ 1340 0bde 0C00 000A 		cmp.b #10,%d0
+ 1341 0be2 6712      		jeq .L87
+ 1342               		.loc 1 256 0 discriminator 29
+ 1343 0be4 2079 0000 		move.l _impure_ptr,%a0
+ 1343      0000 
+ 1344 0bea 2068 0008 		move.l 8(%a0),%a0
+ 1345 0bee 2010      		move.l (%a0),%d0
+ 1346 0bf0 5280      		addq.l #1,%d0
+ 1347 0bf2 2080      		move.l %d0,(%a0)
+ 1348 0bf4 6068      		jra .L90
+ 1349               	.L87:
+ 1350               		.loc 1 256 0 discriminator 30
+ 1351 0bf6 2079 0000 		move.l _impure_ptr,%a0
+ 1351      0000 
+ 1352 0bfc 2228 0008 		move.l 8(%a0),%d1
+ 1353 0c00 2039 0000 		move.l _impure_ptr,%d0
+ 1353      0000 
+ 1354 0c06 2F01      		move.l %d1,-(%sp)
+ 1355 0c08 4878 000A 		pea 10.w
+ 1356 0c0c 2F00      		move.l %d0,-(%sp)
+ 1357 0c0e 4EB9 0000 		jsr __swbuf_r
+ 1357      0000 
+ 1358 0c14 4FEF 000C 		lea (12,%sp),%sp
+ 1359 0c18 6044      		jra .L90
+ 1360               	.L86:
+ 1361               		.loc 1 256 0 discriminator 28
+ 1362 0c1a 2079 0000 		move.l _impure_ptr,%a0
+ 1362      0000 
+ 1363 0c20 2228 0008 		move.l 8(%a0),%d1
+ 1364 0c24 2039 0000 		move.l _impure_ptr,%d0
+ 1364      0000 
+ 1365 0c2a 2F01      		move.l %d1,-(%sp)
+ 1366 0c2c 4878 002D 		pea 45.w
+ 1367 0c30 2F00      		move.l %d0,-(%sp)
+ 1368 0c32 4EB9 0000 		jsr __swbuf_r
+ 1368      0000 
+ 1369 0c38 4FEF 000C 		lea (12,%sp),%sp
+ 1370 0c3c 6020      		jra .L90
+ 1371               	.L85:
+ 1372               		.loc 1 256 0 discriminator 26
+ 1373 0c3e 2079 0000 		move.l _impure_ptr,%a0
+ 1373      0000 
+ 1374 0c44 2068 0008 		move.l 8(%a0),%a0
+ 1375 0c48 2050      		move.l (%a0),%a0
+ 1376 0c4a 10BC 002D 		move.b #45,(%a0)
+ 1377 0c4e 2079 0000 		move.l _impure_ptr,%a0
+ 1377      0000 
+ 1378 0c54 2068 0008 		move.l 8(%a0),%a0
+ 1379 0c58 2010      		move.l (%a0),%d0
+ 1380 0c5a 5280      		addq.l #1,%d0
+ 1381 0c5c 2080      		move.l %d0,(%a0)
+ 1382               	.L90:
+ 257:test.c        ****   printf("here we are\n\n");
+ 1383               		.loc 1 257 0 is_stmt 1
+ 1384 0c5e 4879 0000 		pea .LC23
+ 1384      0000 
+ 1385 0c64 4EB9 0000 		jsr puts
+ 1385      0000 
+ 1386 0c6a 588F      		addq.l #4,%sp
+ 258:test.c        ****   
+ 259:test.c        ****   mtest();
+ 1387               		.loc 1 259 0
+ 1388 0c6c 4EBA FA06 		jsr mtest
+ 260:test.c        ****   //testReadStr();
+ 261:test.c        ****   commandHandler(NULL);
+ 1389               		.loc 1 261 0
+ 1390 0c70 42A7      		clr.l -(%sp)
+ 1391 0c72 4EBA F7B2 		jsr commandHandler
+ 1392 0c76 588F      		addq.l #4,%sp
+ 262:test.c        ****   return 0;
+ 1393               		.loc 1 262 0
+ 1394 0c78 7000      		moveq #0,%d0
+ 263:test.c        ****   
+ 264:test.c        ****   char c;
+ 265:test.c        ****   do {
+ 266:test.c        **** 
+ 267:test.c        **** 	  c = getch();
+ 268:test.c        **** 	  putchar(c);
+ 269:test.c        **** 
+ 270:test.c        ****   } while (c != ' ');
+ 271:test.c        **** }
+ 1395               		.loc 1 271 0
+ 1396 0c7a 4E5E      		unlk %fp
+ 1397 0c7c 4E75      		rts
+ 1398               		.cfi_endproc
+ 1399               	.LFE9:
+ 1401               	.Letext0:
+ 1402               		.file 2 "/home/ad/gcc68k/m68k-elf/include/sys/lock.h"
+ 1403               		.file 3 "/home/ad/gcc68k/m68k-elf/include/sys/_types.h"
+ 1404               		.file 4 "/home/ad/gcc68k/lib/gcc/m68k-elf/5.1.0/include/stddef.h"
+ 1405               		.file 5 "/home/ad/gcc68k/m68k-elf/include/sys/reent.h"
+ 1406               		.file 6 "test.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 test.c
+                            *COM*:0000000000000004 numArgs
+                            *COM*:00000000000000a0 args
+     /tmp/cca5yyX3.s:15     .text:0000000000000000 invalidArgs
+     /tmp/cca5yyX3.s:41     .text:0000000000000018 cmd_dummy
+     /tmp/cca5yyX3.s:74     .data:0000000000000000 cmds
+     /tmp/cca5yyX3.s:216    .text:00000000000000f8 cmd_help
+     /tmp/cca5yyX3.s:124    .text:0000000000000034 showHelp
+     /tmp/cca5yyX3.s:239    .text:000000000000011a strToULong
+     /tmp/cca5yyX3.s:307    .text:0000000000000182 findAndExecCommand
+     /tmp/cca5yyX3.s:600    .text:0000000000000426 commandHandler
+     /tmp/cca5yyX3.s:837    .text:0000000000000674 mtest
+     /tmp/cca5yyX3.s:1120   .text:0000000000000966 testReadStr
+     /tmp/cca5yyX3.s:1159   .text:00000000000009b0 main
+
+UNDEFINED SYMBOLS
+puts
+printf
+strlen
+xtoui
+strcpy
+strtol
+strcmp
+strncmp
+strdup
+readString
+free
+strtok
+strncpy
+malloc
+_impure_ptr
+__swbuf_r
+memset
+setbuf

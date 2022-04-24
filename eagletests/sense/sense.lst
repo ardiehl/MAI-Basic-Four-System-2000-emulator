@@ -1,0 +1,352 @@
+ AS V1.42 Beta [Bld 81] - source file sense.asm68 - page 1 - 12/25/2011 2:38:49
+
+
+       1/       0 :                     ;-----------------------------------------------------------
+       2/       0 :                     ; Program    : sense
+       3/       0 :                     ; Written by : Armin Diehl
+       4/       0 :                     ; Date       : Dec 24, 2011
+       5/       0 :                     ; Description: Sense Test for the mai2000 emulator (wd)
+       6/       0 :                     ;-----------------------------------------------------------
+       7/       0 :                     ; only works when console is connected to scc port 0
+       8/    1000 :                     	ORG	$1000
+       9/    1000 : =$600006            sccdata		equ	$600006
+      10/    1000 : =$600004            scccmd		equ	$600004
+      11/    1000 :                     
+      12/    1000 :                     ; result on real hw:
+      13/    1000 :                     ;Sense status codes test for MAI2000, A.Diehl 12/2011
+      14/    1000 :                     ;55*00 02*40 C0 C2 	after reset controller
+      15/    1000 :                     ;03*C0 C2 		0 command block
+      16/    1000 :                     ;03*C0 C2 		1
+      17/    1000 :                     ;03*C0 C2 		2
+      18/    1000 :                     ;03*C0 C2 		3
+      19/    1000 :                     ;03*C0 C2 		4
+      20/    1000 :                     ;12*C0 02*40 48 	command processing until result available, result byte 0 was read
+      21/    1000 :                     ;06*40 48 		result byte 1
+      22/    1000 :                     ;05*40 48 		2
+      23/    1000 :                     ;05*40 48 		3
+      24/    1000 :                     ;06*40 02*C0 CC 	CC=Complete, read status byte
+      25/    1000 :                     ;04*C0 02*E0 E8 	Message Phase, read Message Byte (always 0)
+      26/    1000 :                     ;Timeout 03*E0 FF*00 	00: controller deselected = Bus Free Phase
+      27/    1000 :                     ;End of program
+      28/    1000 :                     
+      29/    1000 :                     ; a1 addess of status buffer
+      30/    1000 :                     ; a2 cmd address
+      31/    1000 :                     ; a6 controller address
+      32/    1000 :                     ; d0 status register
+      33/    1000 :                     ; d1 cmd byte
+      34/    1000 :                     ; d2 last cmd index
+      35/    1000 :                     ; d3 last status
+      36/    1000 :                     ; d4 cmd load counter
+      37/    1000 :                     ; d5 timeout counter
+      38/    1000 :                     ; d6 temp
+      39/    1000 :                     
+      40/    1000 :                     START:				
+      41/    1000 : 2E7C 0000 3000      	move.l	#$3000,sp	; stack in unused area
+      42/    1006 :                     	
+      43/    1006 : 2C7C 00CC 0000      	move.l	#$cc0000,a6	; controller address
+      44/    100C : 1D7C 0003 0007      	move.b	#$03,(7,a6)	; assert controller reset
+      45/    1012 :                     	
+      46/    1012 : 41F8 1432           	lea	MsgStart,a0
+      47/    1016 : 6100 0394           	bsr	StrOut
+      48/    101A : 1D7C 0000 0007      	move.b	#$0,(7,a6)	; end reset controller
+      49/    1020 : 1D7C 0001 000A      	move.b	#1,($a,a6)	; select controller
+      50/    1026 : 45F8 136E           	lea	cmd,a2
+      51/    102A : 283C 0000 0005      	move.l	#5,d4		; counter
+      52/    1030 : 163C 00FF           	move.b	#$ff,d3
+      53/    1034 : 2A3C 0000 0FFF      	move.l	#$fff,d5
+      54/    103A : 6100 00EA           	bsr	initStatBuf
+      55/    103E : 102E 0009           wloop:	move.b	(9,a6),d0	; read status
+      56/    1042 : 6100 00AA           	bsr	saveStatus
+      57/    1046 : B038 0000           	cmp.b	0,d0
+      58/    104A : 67F2                	beq	wloop		; wait for status <> 0
+      59/    104C : 0800 0001           	btst	#1,d0		; test output reg empty (1)
+      60/    1050 : 6608                	bne	wlok		; jmp if bit is 1
+ AS V1.42 Beta [Bld 81] - source file sense.asm68 - page 2 - 12/25/2011 2:38:49
+
+
+      61/    1052 : 51CD FFEA           	dbra	d5,wloop
+      62/    1056 : 6000 00FC           	bra	timeout
+      63/    105A :                     wlok:
+      64/    105A : 6152                	bsr	printStatBuf
+      65/    105C : 121A                	move.b	(a2)+,d1	; load cmd byte
+      66/    105E : 1D41 0008           	move.b	d1,(8,A6)	; to controller
+      67/    1062 : 51CC FFDA           	dbra	d4,wloop
+      68/    1066 :                     	
+      69/    1066 :                     ; all commands transferred, wait for input register full, we should get 4 bytes result
+      70/    1066 :                     ; plus status plus message byte
+      71/    1066 : 283C 0000 0006      	move.l	#6,d4
+      72/    106C : 2A3C 0000 FFFF      	move.l	#$ffff,d5
+      73/    1072 : 102E 0009           wloop2:	move.b	(9,a6),d0	; read status
+      74/    1076 : 6176                	bsr	saveStatus
+      75/    1078 :                     ;	cmp.b	#$48,d0
+      76/    1078 : 0800 0003           	btst	#3,d0		; input data register full
+      77/    107C : 6608                	bne	wlok2		; wait for status, bra if bit is 1
+      78/    107E : 51CD FFF2           	dbra	d5,wloop2
+      79/    1082 : 6000 00D0           	bra	timeout
+      80/    1086 : 6126                wlok2:	bsr	printStatBuf
+      81/    1088 : 102E 000B           	move.b	($b,a6),d0	; read input register
+      82/    108C : 51CC FFE4           	dbra	d4,wloop2
+      83/    1090 :                     	
+      84/    1090 :                     	; just to see what's next
+      85/    1090 : 283C 0000 FFFF      	move.l	#$ffff,d4
+      86/    1096 : 102E 0009           wloop3:	move.b	(9,a6),d0	; read status
+      87/    109A : 6152                	bsr	saveStatus
+      88/    109C : 51CC FFF8           	dbra	d4,wloop3
+      89/    10A0 : 610C                	bsr	printStatBuf
+      90/    10A2 :                     
+      91/    10A2 :                     xstop:
+      92/    10A2 : 41F8 146A           	lea	MsgEnd,a0
+      93/    10A6 : 6100 0304           	bsr	strOut
+      94/    10AA :                     xstop2:
+      95/    10AA : 4E4F                	trap	#$f		; activate rom debugger
+      96/    10AC : 60FC                	bra	xstop2
+      97/    10AE :                     
+      98/    10AE :                     printStatBuf:
+      99/    10AE : 43F8 116E           	lea	statBuf,a1
+     100/    10B2 : 4BF8 126E           	lea	statBufCount,a5
+     101/    10B6 : 4A02                psb2:	tst.b	d2		; index
+     102/    10B8 : 6606                	bne	psb3		; not empty
+     103/    10BA : 6100 0302           	bsr	crlf		; if empty, out crlf and return
+     104/    10BE : 6066                	bra	initStatBuf
+     105/    10C0 : 101D                psb3	move.b	(a5)+,d0	; load count
+     106/    10C2 : B03C 0000           	cmp.b	#0,d0
+     107/    10C6 : 6714                	beq	psbNoCount
+     108/    10C8 : B03C 00FF           	cmp.b	#$ff,d0
+     109/    10CC : 6702                	beq	psb4		; dont increment ff to 00
+     110/    10CE : 5240                	addq	#1,d0
+     111/    10D0 : 6100 030C           psb4:	bsr	hexOutB		; print count
+     112/    10D4 : 123C 002A           	move.b	#'*',d1
+     113/    10D8 : 6100 02B6           	bsr	charOut
+     114/    10DC :                     psbNoCount:
+     115/    10DC : 1019                	move.b	(a1)+,d0	; load from statbuf and increment a1
+     116/    10DE : 5302                	subq.b	#1,d2		; dec index
+     117/    10E0 : 6100 02FC           	bsr	hexOutB		; print status byte
+     118/    10E4 : 123C 0020           	move.b	#32,d1		; and
+     119/    10E8 : 6100 02A6           	bsr	CharOut		; one space
+     120/    10EC : 60C8                	bra	psb2		; next status
+ AS V1.42 Beta [Bld 81] - source file sense.asm68 - page 3 - 12/25/2011 2:38:49
+
+
+     121/    10EE :                     
+     122/    10EE :                     saveStatus:
+     123/    10EE : B600                	cmp.b	d0,d3		; curr <> last Staus ?
+     124/    10F0 : 661A                	bne	sav2		; yes, bra
+     125/    10F2 : 43F8 126E           	lea	statBufCount,a1
+     126/    10F6 : D3C2                	add.l	d2,a1
+     127/    10F8 : 93FC 0000 0001      	sub.l	#1,a1		; index is already at next byte, will fail with FF
+     128/    10FE : 1C11                	move.b	(a1),d6
+     129/    1100 : BC3C 00FF           	cmp.b	#$ff,d6
+     130/    1104 : 6704                	beq	sav3		; stay at FF
+     131/    1106 : 5206                	addq.b	#1,d6
+     132/    1108 : 1286                	move.b	d6,(a1)
+     133/    110A : 4E75                sav3:	rts
+     134/    110C : 1600                sav2:	move.b	d0,d3		; last status in d3
+     135/    110E : 43F8 116E           	lea	statBuf,a1	; get addr of statbuf
+     136/    1112 : D3C2                	add.l	d2,a1		; and add the index
+     137/    1114 : 1280                	move.b	d0,(a1)		; save status
+     138/    1116 : 5202                	addq.b	#1,d2		; index +1
+     139/    1118 : 671E                	beq	savOverflow	; overflow if index is zero after add
+     140/    111A : 43F8 126E           	lea	statBufCount,a1
+     141/    111E : D3C2                	add.l	d2,a1
+     142/    1120 : 12BC 0000           	move.b	#0,(a1)		; clear count
+     143/    1124 : 4E75                	rts
+     144/    1126 :                     
+     145/    1126 :                     initStatBuf:
+     146/    1126 : 163C 00FF           	move.b	#$ff,d3		; last status
+     147/    112A : 143C 0000           	move.b	#0,d2		; index=0
+     148/    112E : 43F8 126E           	lea	statBufCount,a1
+     149/    1132 : 12BC 0000           	move.b	#0,(a1)		; init first counter
+     150/    1136 : 4E75                	rts
+     151/    1138 :                     
+     152/    1138 :                     savOverflow:
+     153/    1138 : 41F8 114A           	lea	msgOverflow,a0
+     154/    113C : 6100 026E           	bsr	StrOut
+     155/    1140 : 5302                	subq.b	#1,d2		; index -1
+     156/    1142 : 6100 FF6A           	bsr	printStatBuf
+     157/    1146 : 6000 FF5A           	bra	xStop
+     158/    114A :                     
+     159/    114A :                     msgOverflow:
+     160/    114A : 4F76 6572 666C 6F77 		dc.b	"Overflow ",0
+                    2000                
+     161/    1154 :                     
+     162/    1154 :                     Timeout:
+     163/    1154 : 41F8 1164           	lea	msgTimeout,a0
+     164/    1158 : 6100 0252           	bsr	StrOut
+     165/    115C : 6100 FF50           	bsr	printStatBuf
+     166/    1160 : 6000 FF40           	bra	xStop
+     167/    1164 :                     
+     168/    1164 :                     
+     169/    1164 :                     msgTimeout:
+     170/    1164 : 5469 6D65 6F75 7420 		dc.b	"Timeout ",0
+                    0000                
+     171/    116E :                     
+     172/    116E :                     statBuf:	ds.b	255
+     173/    126E :                     statBufCount:	ds.b	255
+     174/    136E :                     
+     175/    136E :                     
+     176/    136E : 0300 0000 0400      cmd:	dc.b	3,0,0,0,4,0
+     177/    1374 :                     
+     178/    1374 :                     
+ AS V1.42 Beta [Bld 81] - source file sense.asm68 - page 4 - 12/25/2011 2:38:49
+
+
+     179/    1374 :                     hexTest:
+     180/    1374 : 103C 00F1           	move.b	#$f1,d0
+     181/    1378 : 6164                	bsr	HexOutB
+     182/    137A : 6142                	bsr	crlf
+     183/    137C : 303C ABCD           	move.w	#$abcd,d0
+     184/    1380 : 6164                	bsr	HexOutW
+     185/    1382 : 613A                	bsr	crlf
+     186/    1384 : 203C 1234 5678      	move.l	#$12345678,d0
+     187/    138A : 6162                	bsr	HexOutL
+     188/    138C : 6130                	bsr	crlf
+     189/    138E : 4E75                	rts
+     190/    1390 :                     	
+     191/    1390 :                     CharOut:
+     192/    1390 : 48A7 0100           	movem.w d7,-(a7)	;save d7
+     193/    1394 :                     CharOut2:
+     194/    1394 : 1E39 0060 0004      	move.b	scccmd,d7	; scc status register, bit 2=1=tx buffer emoty
+     195/    139A : CE3C 0004           	and.b	#$04,d7
+     196/    139E : 67F4                	beq	CharOut2	; wait for scc tx empty
+     197/    13A0 : 13C1 0060 0006      	move.b	d1,sccdata
+     198/    13A6 : 4C9F 0080           	movem.w (a7)+,d7	;restore d7
+     199/    13AA : 4E75                	rts
+     200/    13AC :                     
+     201/    13AC : 48A7 4000           StrOut:	movem.w d1,-(a7)
+     202/    13B0 :                     StrOut1:
+     203/    13B0 : 1218                	move.b	(a0)+,d1		;a0: string
+     204/    13B2 : 6704                	beq	StrOutEnd
+     205/    13B4 : 61DA                	bsr	CharOut
+     206/    13B6 : 60F8                	bra	StrOut1
+     207/    13B8 :                     StrOutEnd:
+     208/    13B8 : 4C9F 0002           	movem.w	(a7)+,d1
+     209/    13BC : 4E75                	rts
+     210/    13BE :                     
+     211/    13BE : 48A7 4000           crlf:	movem.w d1,-(a7)
+     212/    13C2 : 123C 000D           	move.b	#13,d1
+     213/    13C6 : 61C8                	bsr	CharOut
+     214/    13C8 : 123C 000A           	move.b	#10,d1
+     215/    13CC : 61C2                	bsr	CharOut
+     216/    13CE : 4C9F 0002           	movem.w (a7)+,d1	;restore d1
+     217/    13D2 : 4E75                	rts
+     218/    13D4 :                     
+     219/    13D4 : 0000                temp1:	dc.w	$0000
+     220/    13D6 : 0000                temp2:	dc.w	$0000
+     221/    13D8 : 0000                temp3:	dc.w	$0000
+     222/    13DA : 0000                temp4:	dc.w	$0000
+     223/    13DC : 0000                temp5:	dc.w	$0000
+     224/    13DE :                     
+     225/    13DE :                     
+     226/    13DE :                     ;hex routines taken from:
+     227/    13DE :                     ;VUBug  written by Edward M. Carter, Russell G. Brown at Vanderbilt University
+     228/    13DE :                     
+     229/    13DE :                     ;Generalized routine to write
+     230/    13DE :                     ;a word, byte or long word (in d0).
+     231/    13DE :                     ;
+     232/    13DE :                     HexOutB:
+     233/    13DE : 31FC 0001 13D4      	move.w  #$1,temp1		;t1 is the number of bytes
+     234/    13E4 : 600E                	bra     HexOut
+     235/    13E6 :                     HexOutW:
+     236/    13E6 : 31FC 0003 13D4      	move.w  #$3,temp1
+     237/    13EC : 6006                	bra     HexOut
+     238/    13EE :                     HexOutL:
+ AS V1.42 Beta [Bld 81] - source file sense.asm68 - page 5 - 12/25/2011 2:38:49
+
+
+     239/    13EE : 31FC 0007 13D4      	move.w  #$7,temp1
+     240/    13F4 : 48E7 6082           HexOut:	movem.l d1-d2/a0/a6,-(a7)	;save registers d1,d2,a0,a6
+     241/    13F8 : 3438 13D4           	move.w  temp1,d2		;set count
+     242/    13FC : 11FC 0000 13DD      	move.b  #$00,temp5+1		;set a null at end
+     243/    1402 : 4DF8 13DD           	lea     temp5+1,a6		;use temps as a stack
+     244/    1406 : 1200                alp:	move.b  d0,d1			;make each hex digit a
+     245/    1408 : C23C 000F           	and.b   #$0f,d1			;writable ascii byte
+     246/    140C : B23C 000A           	cmp.b   #$0a,d1			;check for abcdef
+     247/    1410 : 6D0A                	blt     or3
+     248/    1412 : 823C 0040           	or.b    #$40,d1
+     249/    1416 : 923C 0009           	sub.b   #$09,d1
+     250/    141A : 6004                	bra     m1
+     251/    141C : 823C 0030           or3:	or.b    #$30,d1			;set high-order bits
+     252/    1420 : 1D01                m1:	move.b  d1,-(a6)		;put on stack
+     253/    1422 : E888                	lsr.l   #$4,d0			;get next hex digit
+     254/    1424 : 51CA FFE0           	dbf     d2,alp
+     255/    1428 : 304E                	movea.w a6,a0			;write the stack with StrOut
+     256/    142A : 6180                	bsr     StrOut
+     257/    142C : 4CDF 4106           	movem.l (a7)+,a6/a0/d2/d1	;restore registers d1,d2,a0,a6
+     258/    1430 : 4E75                	rts
+     259/    1432 :                     
+     260/    1432 :                     MsgStart:
+     261/    1432 : 5365 6E73 6520 7374 	dc.b	"Sense status codes test for MAI2000, A.Diehl 12/2011",13,10,0
+                    6174 7573 2063 6F64 
+                    6573 2074 6573 7420 
+                    666F 7220 4D41 4932 
+                    3030 302C 2041 2E44 
+                    6965 686C 2031 322F 
+                    3230 3131 0D0A 0000 
+     262/    146A : 456E 6420 6F66 2070 MsgEnd:	dc.b	"End of program",13,10,0
+                    726F 6772 616D 0D0A 
+                    0000                
+     263/    147C :                     
+     264/    147C :                     	END START
+ AS V1.42 Beta [Bld 81] - source file sense.asm68 - page 6 - 12/25/2011 2:38:49
+
+
+  symbol table (* = unused):
+  ------------------------
+
+ ALP :                         1406 C | *ARCHITECTURE :  i386-unknown-linux - |
+*BIGENDIAN :                      0 - | *BRANCHEXT :                      0 - |
+*CASESENSITIVE :                  0 - |  CHAROUT :                     1390 C |
+ CHAROUT2 :                    1394 C |  CMD :                         136E C |
+*CONSTPI :        3.141592653589793 - |  CRLF :                        13BE C |
+*DATE :                  12/25/2011 - | *FALSE :                          0 - |
+*FULLPMMU :                       1 - | *HAS64 :                          1 - |
+*HASDSP :                         0 - | *HASFPU :                         0 - |
+*HASPMMU :                        0 - |  HEXOUT :                      13F4 C |
+ HEXOUTB :                     13DE C |  HEXOUTL :                     13EE C |
+ HEXOUTW :                     13E6 C | *HEXTEST :                     1374 C |
+*INEXTMODE :                      0 - |  INITSTATBUF :                 1126 C |
+*INLWORDMODE :                    0 - | *INMAXMODE :                      0 - |
+*INSRCMODE :                      0 - | *INSUPMODE :                      0 - |
+*LISTON :                         1 - |  M1 :                          1420 C |
+*MACEXP :                         1 - | *MOMCPU :                     68010 - |
+*MOMCPUNAME :                 68010 - |  MSGEND :                      146A C |
+ MSGOVERFLOW :                 114A C |  MSGSTART :                    1432 C |
+ MSGTIMEOUT :                  1164 C | *NESTMAX :                      100 - |
+ OR3 :                         141C C | *PACKING :                        0 - |
+*PADDING :                        1 - |  PRINTSTATBUF :                10AE C |
+ PSB2 :                        10B6 C |  PSB3 :                        10C0 C |
+ PSB4 :                        10D0 C |  PSBNOCOUNT :                  10DC C |
+*RELAXED :                        0 - |  SAV2 :                        110C C |
+ SAV3 :                        110A C |  SAVESTATUS :                  10EE C |
+ SAVOVERFLOW :                 1138 C |  SCCCMD :                    600004 - |
+ SCCDATA :                   600006 - |  START :                       1000 C |
+ STATBUF :                     116E C |  STATBUFCOUNT :                126E C |
+ STROUT :                      13AC C |  STROUT1 :                     13B0 C |
+ STROUTEND :                   13B8 C |  TEMP1 :                       13D4 C |
+*TEMP2 :                       13D6 C | *TEMP3 :                       13D8 C |
+*TEMP4 :                       13DA C |  TEMP5 :                       13DC C |
+*TIME :                     2:38:49 - |  TIMEOUT :                     1154 C |
+*TRUE :                           1 - | *VERSION :                     142F - |
+ WLOK :                        105A C |  WLOK2 :                       1086 C |
+ WLOOP :                       103E C |  WLOOP2 :                      1072 C |
+ WLOOP3 :                      1096 C |  XSTOP :                       10A2 C |
+ XSTOP2 :                      10AA C |
+
+     75 symbols
+     32 unused symbols
+
+ AS V1.42 Beta [Bld 81] - source file sense.asm68 - page 7 - 12/25/2011 2:38:49
+
+
+  codepages:
+  ----------
+
+STANDARD (0 changed characters)
+
+
+0.50 seconds assembly time
+
+    266 lines source file
+      3 passes
+      0 errors
+      0 warnings

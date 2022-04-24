@@ -1,0 +1,15 @@
+eagletests.old/
+dep/*.d
+obj/*.o
+obj/musashi/*.o
+dep/musashi/*.d
+sim.history
+pdf/
+*~
+*.bak
+*.save
+*.o
+*.img
+sendsrec
+*.cbp
+*.layout

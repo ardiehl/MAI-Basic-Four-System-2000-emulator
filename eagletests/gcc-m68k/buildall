@@ -1,0 +1,126 @@
+#!/bin/bash
+# Armin Diehl <ad@ardiehl.de> 27 Dec 2020
+
+# build binutils, gcc and newlib for compiling test programs
+# by default it will be installed in ~/gcc68k
+# you could add ~/gcc68k/bin to your path as well 
+
+BASEURL=ftp://sourceware.org/pub
+mkdir -p src
+SRCDIR=`readlink -f src`
+
+CROSSDIR=$HOME/gcc68k
+TARGET=m68k-elf
+BUILDDIRBASE=build
+
+COMMONCONF="--disable-nls -disable-multilib --prefix=$CROSSDIR --target=$TARGET"
+MAKEOPT="-j 8"
+MAKE="time make -s $MAKEOPT"
+
+[ -d $CROSSDIR ] || mkdir $CROSSDIR
+
+function needbinutils {
+	if [ ! -f $CROSSDIR/bin/$TARGET-as ]; then
+  		echo "binutils missing ($CROSSDIR/bin/m68k-coff-as not found)"
+  		exit 1
+	fi
+}
+
+mkdir -p $BUILDDIRBASE
+if [ ! -d $BUILDDIRBASE ]; then
+	echo "unable to create directory $BUILDDIRBASE"
+	exit 1
+fi
+
+PATH=$PATH:$CROSSDIR/bin; export PATH
+
+# setup "binutils" $BVER $URL 
+function setup {
+	[ "$1." == "binutils." ] || needbinutils
+	BUILDDIR="$BUILDDIRBASE/$1-$2"
+	EXT2="${3##*.}"
+	EXT="tar.$EXT2"
+	NAME="$1-$2"
+	FILENAME="$NAME.$EXT"
+	echo "Building $1 ($FILENAME) in $BUILDDIR"
+	
+	if [ ! -x $BUILDDIR/configure ]; then
+		if [ ! -f $SRCDIR/$FILENAME ]; then
+			echo "$SRCDIR/$FILENAME not found, downloading from $3"
+			wget -nv $3 || exit 1
+			mv -f $FILENAME $SRCDIR || exit 1
+		fi
+		echo -n "unpacking $FILENAME "
+		FILENAME_F=`readlink -f $SRCDIR/$FILENAME`
+		pushd $BUILDDIRBASE 2>&1>/dev/null || exit 1
+		case $EXT2 in
+			bz2)
+				bzip2 -c -d $FILENAME_F | tar x || exit 1
+				;;
+			xz)	xz -c -d $FILENAME_F | tar x || exit 1
+				;;
+			gz)	tar x --gunzip < $FILENAME_F || exit 1
+				;;
+			*)	echo "dont now how to handle \"$4\""
+				exit 1
+				;;
+		esac
+
+		echo "- done"
+		popd 2>&1>/dev/null
+	fi
+	mkdir -p $BUILDDIR/build
+	B=`readlink -f $BUILDDIR`
+	#cd $BUILDDIR/build
+	pushd $BUILDDIR/build
+	echo "Builddir: $BUILDDIR"
+	# we already have the target, do we need to configure ?
+	if [ ! -f Makefile ]; then
+		echo "$B/configure"
+		pwd
+		$B/configure $COMMONCONF $CONF CFLAGS_FOR_TARGET="-Os $4" || exit 1
+	fi
+	echo "make $1"
+	$MAKE $MAKEOPT && $MAKE $MAKEOPT install
+	echo -e "done with $1\n\n\n"
+	popd 2>&1>/dev/null
+}
+
+##############################################################################
+
+[ -d build ] || mkdir build
+[ -d src ] || mkdir src
+
+# 2.35 works, 2.35.1 does not work
+BVER=2.35
+BNAME=binutils-$BVER
+BURL=$BASEURL/binutils/releases/$BNAME.tar.xz
+
+
+CONF=""
+setup "binutils" $BVER $BURL || exit 1
+
+# host: fedora 33, gcc 10.2.1
+#  6.5.0 works, text size 96562 
+#  8.4.0 works, text size 96038
+# 10.2.0 works, text size 94768
+GVER=10.2.0
+#GVER=8.4.0
+#GVER=6.5.0
+#GVER=6.1.0
+#GVER=5.1.0	does not comnpile
+GNAME=gcc-$GVER
+GURL=$BASEURL/gcc/releases/$GNAME/$GNAME.tar.gz
+TCFLAGS="-mcpu=68010 -m68010 -mtune=68010 -mno-bitfield"
+
+CONF="--disable-libssp --with-arch=m68k --with-cpu=m68010 --with-newlib --enable-languages=c"
+setup "gcc" $GVER $GURL $TCFLAGS || exit 1
+
+TCFLAGS="-DPREFER_SIZE_OVER_SPEED=1"
+CONF="$CONF --enable-newlib-reent-small --disable-newlib-fvwrite-in-streamio --disable-newlib-fseek-optimization --disable-newlib-wide-orient --enable-newlib-nano-malloc --disable-newlib-unbuf-stream-opt --disable-newlib-multithread --enable-lite-exit --enable-newlib-global-atexit --disable-newlib-io-float --enable-newlib-nano-formatted-io"
+NVER="4.1.0"
+NNAME="newlib-$NVER"
+NURL=$BASEURL/newlib/$NNAME.tar.gz
+
+setup "newlib" $NVER $NURL $TCFLAGS || exit 1
+

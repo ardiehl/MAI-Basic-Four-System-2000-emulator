@@ -1,0 +1,2 @@
+#!/bin/sh
+./eagleemu "msg all -" "msg -notimp" "bus -" "dev cs dir cs/boot2" g

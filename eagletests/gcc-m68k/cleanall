@@ -1,0 +1,16 @@
+#!/bin/sh
+
+if [ -d build ]; then
+	cd build
+	for i in *; do
+		if [ "$i." != "*." ]; then
+			echo -n "cleaning $i "
+			rm -rf $i
+			echo " done"
+		fi
+	done
+	cd ..
+	rmdir build
+else
+	echo "nothing to clean"
+fi

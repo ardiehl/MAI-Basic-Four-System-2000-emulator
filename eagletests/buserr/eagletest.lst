@@ -1,0 +1,231 @@
+ AS V1.42 Beta [Bld 81] - source file eagletest.asm68 - page 1 - 12/11/2011 18:22:05
+
+
+       1/       0 :                     ;-----------------------------------------------------------
+       2/       0 :                     ; Program    : eagletest
+       3/       0 :                     ; Written by : Armin Diehl
+       4/       0 :                     ; Date       :
+       5/       0 :                     ; Description: Test for the mai2000 emulator
+       6/       0 :                     ;-----------------------------------------------------------
+       7/    1000 :                     	ORG	$1000
+       8/    1000 : =$600006            sccdata		equ	$600006
+       9/    1000 : =$600004            scccmd		equ	$600004
+      10/    1000 : =$8                 buserrvec	equ	8
+      11/    1000 :                     
+      12/    1000 :                     ; install handler for buserr
+      13/    1000 :                     ; fill stack with ff
+      14/    1000 :                     ; access invalid memory (read)
+      15/    1000 :                     ; dump stack in bus handler
+      16/    1000 :                     ; halt
+      17/    1000 :                     
+      18/    1000 :                     START:				
+      19/    1000 : 2E7C 0000 3000      	move.l	#$3000,sp	; stack in unused area
+      20/    1006 : 41F8 1130           	lea	MsgStart,a0
+      21/    100A : 6100 00AE           	bsr	StrOut
+      22/    100E :                     	
+      23/    100E : 207C 0000 0008      	move.l	#buserrvec,a0	; address of bus error vector in a0
+      24/    1014 : 43F8 104C           	lea	buserr,a1	; address of error routine
+      25/    1018 : 20C9                	move.l	a1,(a0)+	; save bus error vecor address
+      26/    101A : 43F8 1054           	lea	addrerr,a1	
+      27/    101E : 20C9                	move.l	a1,(a0)+	; save address error vector
+      28/    1020 :                     	
+      29/    1020 : 207C 0000 3000      	move.l	#$3000,a0
+      30/    1026 : 203C FFFF FFFF      	move.l	#$ffffffff,d0
+      31/    102C : 123C 00FF           	move.b	#$ff,d1
+      32/    1030 : 2080                sinit:	move.l	d0,(a0)		; init stack to ff
+      33/    1032 : 91FC 0000 0004      	sub.l	#4,a0
+      34/    1038 : 5301                	subq.b	#1,d1
+      35/    103A : 66F4                	bne.s	sinit
+      36/    103C :                     	; access unknown mem area
+      37/    103C : 207C 00CD 0000      	move.l	#$CD0000,a0	; wd1, not present
+      38/    1042 :                     ;	move.b	d0,(a0)		; bus write error
+      39/    1042 : 1010                	move.b	(a0),d0		; bus read error
+      40/    1044 :                     	
+      41/    1044 : 41F8 1176           	lea	noErr,a0
+      42/    1048 : 6170                	bsr	StrOut
+      43/    104A :                     xstop:
+      44/    104A : 60FE                	bra.s	xstop		; halt system
+      45/    104C :                     ;	MOVE.B	#9,D0
+      46/    104C :                     ;	TRAP	#15		; halt simulator
+      47/    104C :                     
+      48/    104C : 41F8 114E           buserr:	lea	MsgBusErr,a0
+      49/    1050 : 6168                	bsr	StrOut
+      50/    1052 : 6006                	bra	showStack
+      51/    1054 :                     	
+      52/    1054 :                     addrerr:
+      53/    1054 : 41F8 1160           	lea	MsgAddrErr,a0
+      54/    1058 : 6160                	bsr	StrOut
+      55/    105A :                     	
+      56/    105A :                     showStack:
+      57/    105A : 41F8 1170           	lea	MsgSP,a0
+      58/    105E : 615A                	bsr	StrOut
+      59/    1060 : 200F                	move.l	sp,d0
+      60/    1062 : 6100 0088           	bsr	HexOutL
+ AS V1.42 Beta [Bld 81] - source file eagletest.asm68 - page 2 - 12/11/2011 18:22:05
+
+
+      61/    1066 : 615C                	bsr	crlf
+      62/    1068 : 143C 001E           	move.b	#30,d2		; show 30 words
+      63/    106C :                     showStackLoop:
+      64/    106C : 200F                	move.l	a7,d0
+      65/    106E : 617C                	bsr	HexOutL
+      66/    1070 : 123C 003A           	move.b	#':',d1
+      67/    1074 : 6130                	bsr	CharOut
+      68/    1076 : 4C9F 0001           	movem.w (a7)+,d0	; pop from stack
+      69/    107A : 6168                	bsr	HexOutW		; and show hex
+      70/    107C : 123C 0020           	move.b	#' ',d1
+      71/    1080 : 6124                	bsr	CharOut		; and one space
+      72/    1082 : 5302                	subq.b	#1,d2
+      73/    1084 : 66E6                	bne.s	showStackLoop
+      74/    1086 : 613C                	bsr	crlf
+      75/    1088 : 60C0                	bra	xstop
+      76/    108A :                     
+      77/    108A :                     
+      78/    108A :                     hexTest:
+      79/    108A : 103C 00F1           	move.b	#$f1,d0
+      80/    108E : 614C                	bsr	HexOutB
+      81/    1090 : 6132                	bsr	crlf
+      82/    1092 : 303C ABCD           	move.w	#$abcd,d0
+      83/    1096 : 614C                	bsr	HexOutW
+      84/    1098 : 612A                	bsr	crlf
+      85/    109A : 203C 1234 5678      	move.l	#$12345678,d0
+      86/    10A0 : 614A                	bsr	HexOutL
+      87/    10A2 : 6120                	bsr	crlf
+      88/    10A4 : 4E75                	rts
+      89/    10A6 :                     	
+      90/    10A6 :                     CharOut:
+      91/    10A6 :                     ;	move.b	#6,d0		; char out from d1
+      92/    10A6 :                     ;	trap	#15		; for simulator
+      93/    10A6 :                     ;	rts
+      94/    10A6 :                     
+      95/    10A6 : 1E39 0060 0004      	move.b	scccmd,d7	; scc status register, bit 2=1=tx buffer emoty
+      96/    10AC : CE3C 0004           	and.b	#$04,d7
+      97/    10B0 : 67F4                	beq	CharOut		; wait for scc tx empty
+      98/    10B2 : 13C1 0060 0006      	move.b	d1,sccdata
+      99/    10B8 : 4E75                	rts
+     100/    10BA :                     
+     101/    10BA : 1218                StrOut:	move.b	(a0)+,d1		;a0: string
+     102/    10BC : 6704                	beq	StrOutEnd
+     103/    10BE : 61E6                	bsr	CharOut
+     104/    10C0 : 60F8                	bra	StrOut
+     105/    10C2 : 4E75                StrOutEnd:	rts
+     106/    10C4 :                     
+     107/    10C4 : 123C 000D           crlf:	move.b	#13,d1
+     108/    10C8 : 61DC                	bsr	CharOut
+     109/    10CA : 123C 000A           	move.b	#10,d1
+     110/    10CE : 61D6                	bsr	CharOut
+     111/    10D0 : 4E75                	rts
+     112/    10D2 :                     
+     113/    10D2 : 0000                temp1:	dc.w	$0000
+     114/    10D4 : 0000                temp2:	dc.w	$0000
+     115/    10D6 : 0000                temp3:	dc.w	$0000
+     116/    10D8 : 0000                temp4:	dc.w	$0000
+     117/    10DA : 0000                temp5:	dc.w	$0000
+     118/    10DC :                     
+     119/    10DC :                     ;Generalized routine to write
+     120/    10DC :                     ;a word, byte or long word (in d0).
+ AS V1.42 Beta [Bld 81] - source file eagletest.asm68 - page 3 - 12/11/2011 18:22:05
+
+
+     121/    10DC :                     ;
+     122/    10DC :                     HexOutB:
+     123/    10DC : 31FC 0001 10D2      	move.w  #$1,temp1		;t1 is the number of bytes
+     124/    10E2 : 600E                	bra     HexOut
+     125/    10E4 :                     HexOutW:
+     126/    10E4 : 31FC 0003 10D2      	move.w  #$3,temp1
+     127/    10EA : 6006                	bra     HexOut
+     128/    10EC :                     HexOutL:
+     129/    10EC : 31FC 0007 10D2      	move.w  #$7,temp1
+     130/    10F2 : 48E7 6082           HexOut:	movem.l d1-d2/a0/a6,-(a7)	;save registers d1,d2,a0,a6
+     131/    10F6 : 3438 10D2           	move.w  temp1,d2		;set count
+     132/    10FA : 11FC 0000 10DB      	move.b  #$00,temp5+1		;set a null at end
+     133/    1100 : 4DF8 10DB           	lea     temp5+1,a6		;use temps as a stack
+     134/    1104 : 1200                alp:	move.b  d0,d1			;make each hex digit a
+     135/    1106 : C23C 000F           	and.b   #$0f,d1			;writable ascii byte
+     136/    110A : B23C 000A           	cmp.b   #$0a,d1			;check for abcdef
+     137/    110E : 6D0A                	blt     or3
+     138/    1110 : 823C 0040           	or.b    #$40,d1
+     139/    1114 : 923C 0009           	sub.b   #$09,d1
+     140/    1118 : 6004                	bra     m1
+     141/    111A : 823C 0030           or3:	or.b    #$30,d1			;set high-order bits
+     142/    111E : 1D01                m1:	move.b  d1,-(a6)		;put on stack
+     143/    1120 : E888                	lsr.l   #$4,d0			;get next hex digit
+     144/    1122 : 51CA FFE0           	dbf     d2,alp
+     145/    1126 : 304E                	movea.w a6,a0			;write the stack with StrOut
+     146/    1128 : 6190                	bsr     StrOut
+     147/    112A : 4CDF 4106           	movem.l (a7)+,a6/a0/d2/d1	;restore registers d1,d2,a0,a6
+     148/    112E : 4E75                	rts
+     149/    1130 :                     
+     150/    1130 :                     MsgStart:
+     151/    1130 : 4275 732D 6572 726F 	dc.b	"Bus-error test for MAI2000",13,10,0
+                    7220 7465 7374 2066 
+                    6F72 204D 4149 3230 
+                    3030 0D0A 0000      
+     152/    114E :                     MsgBusErr:
+     153/    114E : 4275 732D 4572 726F 	dc.b	"Bus-Error(read)",13,10,0
+                    7228 7265 6164 290D 
+                    0A00                
+     154/    1160 :                     MsgAddrErr:
+     155/    1160 : 4164 6472 6573 732D 	dc.b	"Address-Error",13,10,0
+                    4572 726F 720D 0A00 
+     156/    1170 : 5350 3A20 0000      MsgSP:	dc.b	"SP: ",0
+     157/    1176 : 6E6F 2061 6363 6573 noErr:	dc.b	"no access error!",13,10,0
+                    7320 6572 726F 7221 
+                    0D0A 0000           
+     158/    118A :                     
+     159/    118A :                     	END START
+ AS V1.42 Beta [Bld 81] - source file eagletest.asm68 - page 4 - 12/11/2011 18:22:05
+
+
+  symbol table (* = unused):
+  ------------------------
+
+ ADDRERR :                     1054 C |  ALP :                         1104 C |
+*ARCHITECTURE :  i386-unknown-linux - | *BIGENDIAN :                      0 - |
+*BRANCHEXT :                      0 - |  BUSERR :                      104C C |
+ BUSERRVEC :                      8 - | *CASESENSITIVE :                  0 - |
+ CHAROUT :                     10A6 C | *CONSTPI :        3.141592653589793 - |
+ CRLF :                        10C4 C | *DATE :                  12/11/2011 - |
+*FALSE :                          0 - | *FULLPMMU :                       1 - |
+*HAS64 :                          1 - | *HASDSP :                         0 - |
+*HASFPU :                         0 - | *HASPMMU :                        0 - |
+ HEXOUT :                      10F2 C |  HEXOUTB :                     10DC C |
+ HEXOUTL :                     10EC C |  HEXOUTW :                     10E4 C |
+*HEXTEST :                     108A C | *INEXTMODE :                      0 - |
+*INLWORDMODE :                    0 - | *INMAXMODE :                      0 - |
+*INSRCMODE :                      0 - | *INSUPMODE :                      0 - |
+*LISTON :                         1 - |  M1 :                          111E C |
+*MACEXP :                         1 - | *MOMCPU :                     68010 - |
+*MOMCPUNAME :                 68010 - |  MSGADDRERR :                  1160 C |
+ MSGBUSERR :                   114E C |  MSGSP :                       1170 C |
+ MSGSTART :                    1130 C | *NESTMAX :                      100 - |
+ NOERR :                       1176 C |  OR3 :                         111A C |
+*PACKING :                        0 - | *PADDING :                        1 - |
+*RELAXED :                        0 - |  SCCCMD :                    600004 - |
+ SCCDATA :                   600006 - |  SHOWSTACK :                   105A C |
+ SHOWSTACKLOOP :               106C C |  SINIT :                       1030 C |
+ START :                       1000 C |  STROUT :                      10BA C |
+ STROUTEND :                   10C2 C |  TEMP1 :                       10D2 C |
+*TEMP2 :                       10D4 C | *TEMP3 :                       10D6 C |
+*TEMP4 :                       10D8 C |  TEMP5 :                       10DA C |
+*TIME :                    18:22:04 - | *TRUE :                           1 - |
+*VERSION :                     142F - |  XSTOP :                       104A C |
+
+     60 symbols
+     32 unused symbols
+
+ AS V1.42 Beta [Bld 81] - source file eagletest.asm68 - page 5 - 12/11/2011 18:22:05
+
+
+  codepages:
+  ----------
+
+STANDARD (0 changed characters)
+
+
+0.71 seconds assembly time
+
+    161 lines source file
+      3 passes
+      0 errors
+      0 warnings

@@ -1,0 +1,857 @@
+   1               	#NO_APP
+   2               		.file	"util.c"
+   3               		.text
+   4               	.Ltext0:
+   5               		.cfi_sections	.debug_frame
+   6               		.align	2
+   7               		.globl	getch
+   9               	getch:
+  10               	.LFB0:
+  11               		.file 1 "util.c"
+   1:util.c        **** /***************************************************************************
+   2:util.c        ****  *            util.c
+   3:util.c        ****  *
+   4:util.c        ****  *  Tue November 22 21:23:11 2011
+   5:util.c        ****  *  Copyright  2011  Unknown
+   6:util.c        ****  *  <user@host>
+   7:util.c        ****  ****************************************************************************/
+   8:util.c        **** /*
+   9:util.c        ****  * util.c
+  10:util.c        ****  *
+  11:util.c        ****  * Copyright (C) 2011 - Unknown
+  12:util.c        ****  *
+  13:util.c        ****  * This program is free software; you can redistribute it and/or modify
+  14:util.c        ****  * it under the terms of the GNU General Public License as published by
+  15:util.c        ****  * the Free Software Foundation; either version 2 of the License, or
+  16:util.c        ****  * (at your option) any later version.
+  17:util.c        ****  *
+  18:util.c        ****  * This program is distributed in the hope that it will be useful,
+  19:util.c        ****  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  20:util.c        ****  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  21:util.c        ****  * GNU General Public License for more details.
+  22:util.c        ****  *
+  23:util.c        ****  * You should have received a copy of the GNU General Public License
+  24:util.c        ****  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+  25:util.c        ****  */
+  26:util.c        **** 
+  27:util.c        **** 
+  28:util.c        **** #include <stdio.h>
+  29:util.c        **** #include <stdlib.h>
+  30:util.c        **** #ifndef eagle
+  31:util.c        **** #include <sys/time.h>
+  32:util.c        **** #include <sys/types.h>
+  33:util.c        **** #include <sys/stat.h>
+  34:util.c        **** #include <termios.h>
+  35:util.c        **** #include <unistd.h>
+  36:util.c        **** #endif
+  37:util.c        **** 
+  38:util.c        **** /*#include <stdlib.h>*/
+  39:util.c        **** #include <string.h>
+  40:util.c        **** #include <ctype.h>
+  41:util.c        **** #include "util.h"
+  42:util.c        **** 
+  43:util.c        **** #ifdef eagle
+  44:util.c        **** 
+  45:util.c        **** #define SCC_A_CMD  0x600004
+  46:util.c        **** #define SCC_A_DATA 0x600006
+  47:util.c        **** 
+  48:util.c        **** char getch(void)
+  49:util.c        **** {
+  12               		.loc 1 49 0
+  13               		.cfi_startproc
+  14 0000 4E56 FFF8 		link.w %fp,#-8
+  15               		.cfi_offset 14, -8
+  16               		.cfi_def_cfa 14, 8
+  50:util.c        ****   volatile char * cmd = (char *)SCC_A_CMD;
+  17               		.loc 1 50 0
+  18 0004 2D7C 0060 		move.l #6291460,-4(%fp)
+  18      0004 FFFC 
+  51:util.c        ****   volatile char * data = (char *)SCC_A_DATA;
+  19               		.loc 1 51 0
+  20 000c 2D7C 0060 		move.l #6291462,-8(%fp)
+  20      0006 FFF8 
+  52:util.c        **** 
+  53:util.c        ****   // wait for char available
+  54:util.c        ****   while (!(*cmd & 0x01)) {};
+  21               		.loc 1 54 0
+  22 0014 4E71      		nop
+  23               	.L2:
+  24               		.loc 1 54 0 is_stmt 0 discriminator 1
+  25 0016 206E FFFC 		move.l -4(%fp),%a0
+  26 001a 1010      		move.b (%a0),%d0
+  27 001c 4880      		ext.w %d0
+  28 001e 48C0      		ext.l %d0
+  29 0020 7201      		moveq #1,%d1
+  30 0022 C081      		and.l %d1,%d0
+  31 0024 4A80      		tst.l %d0
+  32 0026 67EE      		jeq .L2
+  55:util.c        ****   return(*data);
+  33               		.loc 1 55 0 is_stmt 1
+  34 0028 206E FFF8 		move.l -8(%fp),%a0
+  35 002c 1010      		move.b (%a0),%d0
+  56:util.c        **** }
+  36               		.loc 1 56 0
+  37 002e 4E5E      		unlk %fp
+  38 0030 4E75      		rts
+  39               		.cfi_endproc
+  40               	.LFE0:
+  42               		.align	2
+  43               		.globl	kbhit
+  45               	kbhit:
+  46               	.LFB1:
+  57:util.c        **** 
+  58:util.c        **** 
+  59:util.c        **** 
+  60:util.c        **** int kbhit(void)
+  61:util.c        **** {
+  47               		.loc 1 61 0
+  48               		.cfi_startproc
+  49 0032 4E56 FFFC 		link.w %fp,#-4
+  50               		.cfi_offset 14, -8
+  51               		.cfi_def_cfa 14, 8
+  62:util.c        ****     volatile char * cmd = (char *)SCC_A_CMD;
+  52               		.loc 1 62 0
+  53 0036 2D7C 0060 		move.l #6291460,-4(%fp)
+  53      0004 FFFC 
+  63:util.c        ****     if (*cmd & 0x01) return 1;
+  54               		.loc 1 63 0
+  55 003e 206E FFFC 		move.l -4(%fp),%a0
+  56 0042 1010      		move.b (%a0),%d0
+  57 0044 4880      		ext.w %d0
+  58 0046 48C0      		ext.l %d0
+  59 0048 7201      		moveq #1,%d1
+  60 004a C081      		and.l %d1,%d0
+  61 004c 4A80      		tst.l %d0
+  62 004e 6704      		jeq .L5
+  63               		.loc 1 63 0 is_stmt 0 discriminator 1
+  64 0050 7001      		moveq #1,%d0
+  65 0052 6002      		jra .L6
+  66               	.L5:
+  64:util.c        ****     else return 0;
+  67               		.loc 1 64 0 is_stmt 1
+  68 0054 7000      		moveq #0,%d0
+  69               	.L6:
+  65:util.c        **** }
+  70               		.loc 1 65 0
+  71 0056 4E5E      		unlk %fp
+  72 0058 4E75      		rts
+  73               		.cfi_endproc
+  74               	.LFE1:
+  76               		.align	2
+  77               		.globl	kb_raw
+  79               	kb_raw:
+  80               	.LFB2:
+  66:util.c        **** 
+  67:util.c        **** void kb_raw(void) {}
+  81               		.loc 1 67 0
+  82               		.cfi_startproc
+  83 005a 4E56 0000 		link.w %fp,#0
+  84               		.cfi_offset 14, -8
+  85               		.cfi_def_cfa 14, 8
+  86               		.loc 1 67 0
+  87 005e 4E71      		nop
+  88 0060 4E5E      		unlk %fp
+  89 0062 4E75      		rts
+  90               		.cfi_endproc
+  91               	.LFE2:
+  93               		.align	2
+  94               		.globl	kb_normal
+  96               	kb_normal:
+  97               	.LFB3:
+  68:util.c        **** void kb_normal(void) {}
+  98               		.loc 1 68 0
+  99               		.cfi_startproc
+ 100 0064 4E56 0000 		link.w %fp,#0
+ 101               		.cfi_offset 14, -8
+ 102               		.cfi_def_cfa 14, 8
+ 103               		.loc 1 68 0
+ 104 0068 4E71      		nop
+ 105 006a 4E5E      		unlk %fp
+ 106 006c 4E75      		rts
+ 107               		.cfi_endproc
+ 108               	.LFE3:
+ 110               		.section	.rodata
+ 111               	.LC0:
+ 112 0000 2563 2025 		.string	"%c %c"
+ 112      6300 
+ 113               	.LC1:
+ 114 0006 0D00      		.string	"\r"
+ 115               		.text
+ 116               		.align	2
+ 117               		.globl	inputString
+ 119               	inputString:
+ 120               	.LFB4:
+  69:util.c        **** 
+  70:util.c        **** #else
+  71:util.c        **** 
+  72:util.c        **** 
+  73:util.c        **** int kbhit(void)
+  74:util.c        **** {
+  75:util.c        ****     struct timeval tv;
+  76:util.c        ****     fd_set fds;
+  77:util.c        ****     tv.tv_sec = 0;
+  78:util.c        ****     tv.tv_usec = 0;
+  79:util.c        ****     FD_ZERO(&fds);
+  80:util.c        ****     FD_SET(STDIN_FILENO, &fds);
+  81:util.c        ****     select(STDIN_FILENO+1, &fds, NULL, NULL, &tv);
+  82:util.c        ****     return FD_ISSET(STDIN_FILENO, &fds);
+  83:util.c        **** }
+  84:util.c        **** 
+  85:util.c        **** void kb_raw(void)
+  86:util.c        **** {
+  87:util.c        ****     struct termios ttystate;
+  88:util.c        **** 
+  89:util.c        ****     tcgetattr(STDIN_FILENO, &ttystate);
+  90:util.c        **** 	ttystate.c_lflag &= ~ICANON;
+  91:util.c        **** 	ttystate.c_lflag &= ~ECHO;
+  92:util.c        **** 	ttystate.c_lflag &= ~ISIG;
+  93:util.c        **** 	ttystate.c_cc[VMIN] = 1; /* minimum of number input read */
+  94:util.c        ****     tcsetattr(STDIN_FILENO, TCSANOW, &ttystate);
+  95:util.c        **** }
+  96:util.c        **** 
+  97:util.c        **** 
+  98:util.c        **** void kb_normal(void)
+  99:util.c        **** {
+ 100:util.c        **** 	struct termios ttystate;
+ 101:util.c        **** 
+ 102:util.c        **** 	tcgetattr(STDIN_FILENO, &ttystate);
+ 103:util.c        **** 	ttystate.c_lflag |= ICANON;
+ 104:util.c        **** 	ttystate.c_lflag |= ECHO;
+ 105:util.c        **** 	ttystate.c_lflag |= ISIG;
+ 106:util.c        **** 	tcsetattr(STDIN_FILENO, TCSANOW, &ttystate);
+ 107:util.c        **** }
+ 108:util.c        **** 
+ 109:util.c        **** 
+ 110:util.c        **** char getch(void)
+ 111:util.c        **** {
+ 112:util.c        **** 	kb_raw();
+ 113:util.c        **** 	char c = fgetc(stdin);
+ 114:util.c        **** 	if (c == 0x0a) c = 0x0d;
+ 115:util.c        **** 	kb_normal();
+ 116:util.c        **** 	return c;
+ 117:util.c        **** }
+ 118:util.c        **** #endif
+ 119:util.c        **** 
+ 120:util.c        **** /* Input string from console, input terminated by
+ 121:util.c        ****  * any char in exitChars */
+ 122:util.c        **** char inputString (char * s, int maxLen, const char * exitChars)
+ 123:util.c        **** {
+ 121               		.loc 1 123 0
+ 122               		.cfi_startproc
+ 123 006e 4E56 FFF8 		link.w %fp,#-8
+ 124               		.cfi_offset 14, -8
+ 125               		.cfi_def_cfa 14, 8
+ 124:util.c        **** 	char c;
+ 125:util.c        **** 	int i;
+ 126:util.c        **** 	*s = 0;
+ 126               		.loc 1 126 0
+ 127 0072 206E 0008 		move.l 8(%fp),%a0
+ 128 0076 4210      		clr.b (%a0)
+ 129               	.L19:
+ 127:util.c        **** 	
+ 128:util.c        **** 	do {
+ 129:util.c        ****       c = getch();
+ 130               		.loc 1 129 0
+ 131 0078 4EBA FF86 		jsr getch
+ 132 007c 1D40 FFFF 		move.b %d0,-1(%fp)
+ 130:util.c        **** 	  i = strlen(s);
+ 133               		.loc 1 130 0
+ 134 0080 2F2E 0008 		move.l 8(%fp),-(%sp)
+ 135 0084 4EB9 0000 		jsr strlen
+ 135      0000 
+ 136 008a 588F      		addq.l #4,%sp
+ 137 008c 2D40 FFFA 		move.l %d0,-6(%fp)
+ 131:util.c        **** 
+ 132:util.c        **** 	  if ((c == KEY_BS) || (c == KEY_DEL)) {
+ 138               		.loc 1 132 0
+ 139 0090 0C2E 0008 		cmp.b #8,-1(%fp)
+ 139      FFFF 
+ 140 0096 6708      		jeq .L10
+ 141               		.loc 1 132 0 is_stmt 0 discriminator 1
+ 142 0098 0C2E 007F 		cmp.b #127,-1(%fp)
+ 142      FFFF 
+ 143 009e 6634      		jne .L11
+ 144               	.L10:
+ 133:util.c        **** 		  if (i > 0) { 
+ 145               		.loc 1 133 0 is_stmt 1
+ 146 00a0 4AAE FFFA 		tst.l -6(%fp)
+ 147 00a4 6F00 016C 		jle .L13
+ 134:util.c        **** 			  i--; printf("%c %c",8,8);
+ 148               		.loc 1 134 0
+ 149 00a8 53AE FFFA 		subq.l #1,-6(%fp)
+ 150 00ac 4878 0008 		pea 8.w
+ 151 00b0 4878 0008 		pea 8.w
+ 152 00b4 4879 0000 		pea .LC0
+ 152      0000 
+ 153 00ba 4EB9 0000 		jsr printf
+ 153      0000 
+ 154 00c0 4FEF 000C 		lea (12,%sp),%sp
+ 135:util.c        **** 			  s[i]=0;
+ 155               		.loc 1 135 0
+ 156 00c4 202E FFFA 		move.l -6(%fp),%d0
+ 157 00c8 206E 0008 		move.l 8(%fp),%a0
+ 158 00cc D1C0      		add.l %d0,%a0
+ 159 00ce 4210      		clr.b (%a0)
+ 133:util.c        **** 		  if (i > 0) { 
+ 160               		.loc 1 133 0
+ 161 00d0 6000 0140 		jra .L13
+ 162               	.L11:
+ 136:util.c        **** 		  }
+ 137:util.c        **** 	  } else
+ 138:util.c        **** 	  if (!(strchr(exitChars,c)) & (i < maxLen)) {
+ 163               		.loc 1 138 0
+ 164 00d4 102E FFFF 		move.b -1(%fp),%d0
+ 165 00d8 4880      		ext.w %d0
+ 166 00da 3040      		move.w %d0,%a0
+ 167 00dc 2F08      		move.l %a0,-(%sp)
+ 168 00de 2F2E 0010 		move.l 16(%fp),-(%sp)
+ 169 00e2 4EB9 0000 		jsr strchr
+ 169      0000 
+ 170 00e8 508F      		addq.l #8,%sp
+ 171 00ea 4A80      		tst.l %d0
+ 172 00ec 57C1      		seq %d1
+ 173 00ee 4401      		neg.b %d1
+ 174 00f0 202E FFFA 		move.l -6(%fp),%d0
+ 175 00f4 B0AE 000C 		cmp.l 12(%fp),%d0
+ 176 00f8 5DC0      		slt %d0
+ 177 00fa 4400      		neg.b %d0
+ 178 00fc C001      		and.b %d1,%d0
+ 179 00fe 4A00      		tst.b %d0
+ 180 0100 6700 0110 		jeq .L13
+ 139:util.c        **** 		  if (c >= ' ') {
+ 181               		.loc 1 139 0
+ 182 0104 0C2E 001F 		cmp.b #31,-1(%fp)
+ 182      FFFF 
+ 183 010a 6F00 0106 		jle .L13
+ 140:util.c        **** 		      s[i] = c; s[++i] = 0;
+ 184               		.loc 1 140 0
+ 185 010e 202E FFFA 		move.l -6(%fp),%d0
+ 186 0112 206E 0008 		move.l 8(%fp),%a0
+ 187 0116 D1C0      		add.l %d0,%a0
+ 188 0118 10AE FFFF 		move.b -1(%fp),(%a0)
+ 189 011c 52AE FFFA 		addq.l #1,-6(%fp)
+ 190 0120 202E FFFA 		move.l -6(%fp),%d0
+ 191 0124 206E 0008 		move.l 8(%fp),%a0
+ 192 0128 D1C0      		add.l %d0,%a0
+ 193 012a 4210      		clr.b (%a0)
+ 141:util.c        **** 		      putchar(c);
+ 194               		.loc 1 141 0
+ 195 012c 2079 0000 		move.l _impure_ptr,%a0
+ 195      0000 
+ 196 0132 2068 0008 		move.l 8(%a0),%a0
+ 197 0136 2028 0008 		move.l 8(%a0),%d0
+ 198 013a 5380      		subq.l #1,%d0
+ 199 013c 2140 0008 		move.l %d0,8(%a0)
+ 200 0140 2028 0008 		move.l 8(%a0),%d0
+ 201 0144 4A80      		tst.l %d0
+ 202 0146 6C00 00A8 		jge .L14
+ 203               		.loc 1 141 0 is_stmt 0 discriminator 1
+ 204 014a 2079 0000 		move.l _impure_ptr,%a0
+ 204      0000 
+ 205 0150 2068 0008 		move.l 8(%a0),%a0
+ 206 0154 2228 0008 		move.l 8(%a0),%d1
+ 207 0158 2079 0000 		move.l _impure_ptr,%a0
+ 207      0000 
+ 208 015e 2068 0008 		move.l 8(%a0),%a0
+ 209 0162 2028 0018 		move.l 24(%a0),%d0
+ 210 0166 B081      		cmp.l %d1,%d0
+ 211 0168 6E5C      		jgt .L15
+ 212               		.loc 1 141 0 discriminator 3
+ 213 016a 2079 0000 		move.l _impure_ptr,%a0
+ 213      0000 
+ 214 0170 2068 0008 		move.l 8(%a0),%a0
+ 215 0174 2050      		move.l (%a0),%a0
+ 216 0176 102E FFFF 		move.b -1(%fp),%d0
+ 217 017a 1080      		move.b %d0,(%a0)
+ 218 017c 2079 0000 		move.l _impure_ptr,%a0
+ 218      0000 
+ 219 0182 2068 0008 		move.l 8(%a0),%a0
+ 220 0186 2050      		move.l (%a0),%a0
+ 221 0188 1010      		move.b (%a0),%d0
+ 222 018a 0C00 000A 		cmp.b #10,%d0
+ 223 018e 6712      		jeq .L16
+ 224               		.loc 1 141 0 discriminator 5
+ 225 0190 2079 0000 		move.l _impure_ptr,%a0
+ 225      0000 
+ 226 0196 2068 0008 		move.l 8(%a0),%a0
+ 227 019a 2010      		move.l (%a0),%d0
+ 228 019c 5280      		addq.l #1,%d0
+ 229 019e 2080      		move.l %d0,(%a0)
+ 230 01a0 6070      		jra .L13
+ 231               	.L16:
+ 232               		.loc 1 141 0 discriminator 6
+ 233 01a2 2079 0000 		move.l _impure_ptr,%a0
+ 233      0000 
+ 234 01a8 2228 0008 		move.l 8(%a0),%d1
+ 235 01ac 2039 0000 		move.l _impure_ptr,%d0
+ 235      0000 
+ 236 01b2 2F01      		move.l %d1,-(%sp)
+ 237 01b4 4878 000A 		pea 10.w
+ 238 01b8 2F00      		move.l %d0,-(%sp)
+ 239 01ba 4EB9 0000 		jsr __swbuf_r
+ 239      0000 
+ 240 01c0 4FEF 000C 		lea (12,%sp),%sp
+ 241 01c4 604C      		jra .L13
+ 242               	.L15:
+ 243               		.loc 1 141 0 discriminator 4
+ 244 01c6 2079 0000 		move.l _impure_ptr,%a0
+ 244      0000 
+ 245 01cc 2228 0008 		move.l 8(%a0),%d1
+ 246 01d0 102E FFFF 		move.b -1(%fp),%d0
+ 247 01d4 4880      		ext.w %d0
+ 248 01d6 3040      		move.w %d0,%a0
+ 249 01d8 2039 0000 		move.l _impure_ptr,%d0
+ 249      0000 
+ 250 01de 2F01      		move.l %d1,-(%sp)
+ 251 01e0 2F08      		move.l %a0,-(%sp)
+ 252 01e2 2F00      		move.l %d0,-(%sp)
+ 253 01e4 4EB9 0000 		jsr __swbuf_r
+ 253      0000 
+ 254 01ea 4FEF 000C 		lea (12,%sp),%sp
+ 255 01ee 6022      		jra .L13
+ 256               	.L14:
+ 257               		.loc 1 141 0 discriminator 2
+ 258 01f0 2079 0000 		move.l _impure_ptr,%a0
+ 258      0000 
+ 259 01f6 2068 0008 		move.l 8(%a0),%a0
+ 260 01fa 2050      		move.l (%a0),%a0
+ 261 01fc 102E FFFF 		move.b -1(%fp),%d0
+ 262 0200 1080      		move.b %d0,(%a0)
+ 263 0202 2079 0000 		move.l _impure_ptr,%a0
+ 263      0000 
+ 264 0208 2068 0008 		move.l 8(%a0),%a0
+ 265 020c 2010      		move.l (%a0),%d0
+ 266 020e 5280      		addq.l #1,%d0
+ 267 0210 2080      		move.l %d0,(%a0)
+ 268               	.L13:
+ 142:util.c        **** 		  }
+ 143:util.c        **** 	  }
+ 144:util.c        **** 	} while (!(strchr(exitChars,c)));
+ 269               		.loc 1 144 0 is_stmt 1
+ 270 0212 102E FFFF 		move.b -1(%fp),%d0
+ 271 0216 4880      		ext.w %d0
+ 272 0218 3040      		move.w %d0,%a0
+ 273 021a 2F08      		move.l %a0,-(%sp)
+ 274 021c 2F2E 0010 		move.l 16(%fp),-(%sp)
+ 275 0220 4EB9 0000 		jsr strchr
+ 275      0000 
+ 276 0226 508F      		addq.l #8,%sp
+ 277 0228 4A80      		tst.l %d0
+ 278 022a 6700 FE4C 		jeq .L19
+ 145:util.c        **** 	switch (c) {
+ 279               		.loc 1 145 0
+ 280 022e 102E FFFF 		move.b -1(%fp),%d0
+ 281 0232 4880      		ext.w %d0
+ 282 0234 3040      		move.w %d0,%a0
+ 283 0236 700D      		moveq #13,%d0
+ 284 0238 B088      		cmp.l %a0,%d0
+ 285 023a 6700 00E8 		jeq .L21
+ 286 023e 7020      		moveq #32,%d0
+ 287 0240 B088      		cmp.l %a0,%d0
+ 288 0242 6600 00F0 		jne .L20
+ 146:util.c        **** 		case ' ': { putchar(' '); break; }
+ 289               		.loc 1 146 0
+ 290 0246 2079 0000 		move.l _impure_ptr,%a0
+ 290      0000 
+ 291 024c 2068 0008 		move.l 8(%a0),%a0
+ 292 0250 2028 0008 		move.l 8(%a0),%d0
+ 293 0254 5380      		subq.l #1,%d0
+ 294 0256 2140 0008 		move.l %d0,8(%a0)
+ 295 025a 2028 0008 		move.l 8(%a0),%d0
+ 296 025e 4A80      		tst.l %d0
+ 297 0260 6C00 00A0 		jge .L23
+ 298               		.loc 1 146 0 is_stmt 0 discriminator 1
+ 299 0264 2079 0000 		move.l _impure_ptr,%a0
+ 299      0000 
+ 300 026a 2068 0008 		move.l 8(%a0),%a0
+ 301 026e 2228 0008 		move.l 8(%a0),%d1
+ 302 0272 2079 0000 		move.l _impure_ptr,%a0
+ 302      0000 
+ 303 0278 2068 0008 		move.l 8(%a0),%a0
+ 304 027c 2028 0018 		move.l 24(%a0),%d0
+ 305 0280 B081      		cmp.l %d1,%d0
+ 306 0282 6E5A      		jgt .L24
+ 307               		.loc 1 146 0 discriminator 3
+ 308 0284 2079 0000 		move.l _impure_ptr,%a0
+ 308      0000 
+ 309 028a 2068 0008 		move.l 8(%a0),%a0
+ 310 028e 2050      		move.l (%a0),%a0
+ 311 0290 10BC 0020 		move.b #32,(%a0)
+ 312 0294 2079 0000 		move.l _impure_ptr,%a0
+ 312      0000 
+ 313 029a 2068 0008 		move.l 8(%a0),%a0
+ 314 029e 2050      		move.l (%a0),%a0
+ 315 02a0 1010      		move.b (%a0),%d0
+ 316 02a2 0C00 000A 		cmp.b #10,%d0
+ 317 02a6 6712      		jeq .L25
+ 318               		.loc 1 146 0 discriminator 5
+ 319 02a8 2079 0000 		move.l _impure_ptr,%a0
+ 319      0000 
+ 320 02ae 2068 0008 		move.l 8(%a0),%a0
+ 321 02b2 2010      		move.l (%a0),%d0
+ 322 02b4 5280      		addq.l #1,%d0
+ 323 02b6 2080      		move.l %d0,(%a0)
+ 324 02b8 607A      		jra .L20
+ 325               	.L25:
+ 326               		.loc 1 146 0 discriminator 6
+ 327 02ba 2079 0000 		move.l _impure_ptr,%a0
+ 327      0000 
+ 328 02c0 2228 0008 		move.l 8(%a0),%d1
+ 329 02c4 2039 0000 		move.l _impure_ptr,%d0
+ 329      0000 
+ 330 02ca 2F01      		move.l %d1,-(%sp)
+ 331 02cc 4878 000A 		pea 10.w
+ 332 02d0 2F00      		move.l %d0,-(%sp)
+ 333 02d2 4EB9 0000 		jsr __swbuf_r
+ 333      0000 
+ 334 02d8 4FEF 000C 		lea (12,%sp),%sp
+ 335 02dc 6056      		jra .L20
+ 336               	.L24:
+ 337               		.loc 1 146 0 discriminator 4
+ 338 02de 2079 0000 		move.l _impure_ptr,%a0
+ 338      0000 
+ 339 02e4 2228 0008 		move.l 8(%a0),%d1
+ 340 02e8 2039 0000 		move.l _impure_ptr,%d0
+ 340      0000 
+ 341 02ee 2F01      		move.l %d1,-(%sp)
+ 342 02f0 4878 0020 		pea 32.w
+ 343 02f4 2F00      		move.l %d0,-(%sp)
+ 344 02f6 4EB9 0000 		jsr __swbuf_r
+ 344      0000 
+ 345 02fc 4FEF 000C 		lea (12,%sp),%sp
+ 346 0300 6032      		jra .L20
+ 347               	.L23:
+ 348               		.loc 1 146 0 discriminator 2
+ 349 0302 2079 0000 		move.l _impure_ptr,%a0
+ 349      0000 
+ 350 0308 2068 0008 		move.l 8(%a0),%a0
+ 351 030c 2050      		move.l (%a0),%a0
+ 352 030e 10BC 0020 		move.b #32,(%a0)
+ 353 0312 2079 0000 		move.l _impure_ptr,%a0
+ 353      0000 
+ 354 0318 2068 0008 		move.l 8(%a0),%a0
+ 355 031c 2010      		move.l (%a0),%d0
+ 356 031e 5280      		addq.l #1,%d0
+ 357 0320 2080      		move.l %d0,(%a0)
+ 358 0322 6010      		jra .L20
+ 359               	.L21:
+ 147:util.c        **** 		case 13 : { printf("\r\n"); break; }
+ 360               		.loc 1 147 0 is_stmt 1
+ 361 0324 4879 0000 		pea .LC1
+ 361      0000 
+ 362 032a 4EB9 0000 		jsr puts
+ 362      0000 
+ 363 0330 588F      		addq.l #4,%sp
+ 364 0332 4E71      		nop
+ 365               	.L20:
+ 148:util.c        **** 	}
+ 149:util.c        ****     return c;
+ 366               		.loc 1 149 0
+ 367 0334 102E FFFF 		move.b -1(%fp),%d0
+ 150:util.c        **** }
+ 368               		.loc 1 150 0
+ 369 0338 4E5E      		unlk %fp
+ 370 033a 4E75      		rts
+ 371               		.cfi_endproc
+ 372               	.LFE4:
+ 374               		.section	.rodata
+ 375               	.LC2:
+ 376 0008 0D0A 00   		.string	"\r\n"
+ 377               		.text
+ 378               		.align	2
+ 379               		.globl	readString
+ 381               	readString:
+ 382               	.LFB5:
+ 151:util.c        **** 
+ 152:util.c        **** #define MAXLEN 64
+ 153:util.c        **** char * readString (char * prompt) {
+ 383               		.loc 1 153 0
+ 384               		.cfi_startproc
+ 385 033c 4E56 FFFC 		link.w %fp,#-4
+ 386               		.cfi_offset 14, -8
+ 387               		.cfi_def_cfa 14, 8
+ 154:util.c        **** 	char * s = malloc(MAXLEN+1);
+ 388               		.loc 1 154 0
+ 389 0340 4878 0041 		pea 65.w
+ 390 0344 4EB9 0000 		jsr malloc
+ 390      0000 
+ 391 034a 588F      		addq.l #4,%sp
+ 392 034c 2D40 FFFC 		move.l %d0,-4(%fp)
+ 155:util.c        **** 	if (s) {
+ 393               		.loc 1 155 0
+ 394 0350 4AAE FFFC 		tst.l -4(%fp)
+ 395 0354 6722      		jeq .L31
+ 156:util.c        **** 		printf(prompt);
+ 396               		.loc 1 156 0
+ 397 0356 2F2E 0008 		move.l 8(%fp),-(%sp)
+ 398 035a 4EB9 0000 		jsr printf
+ 398      0000 
+ 399 0360 588F      		addq.l #4,%sp
+ 157:util.c        **** 		inputString (s,MAXLEN,"\r\n");
+ 400               		.loc 1 157 0
+ 401 0362 4879 0000 		pea .LC2
+ 401      0000 
+ 402 0368 4878 0040 		pea 64.w
+ 403 036c 2F2E FFFC 		move.l -4(%fp),-(%sp)
+ 404 0370 4EBA FCFC 		jsr inputString
+ 405 0374 4FEF 000C 		lea (12,%sp),%sp
+ 406               	.L31:
+ 158:util.c        **** 	}
+ 159:util.c        **** 	return s;
+ 407               		.loc 1 159 0
+ 408 0378 202E FFFC 		move.l -4(%fp),%d0
+ 160:util.c        **** }
+ 409               		.loc 1 160 0
+ 410 037c 4E5E      		unlk %fp
+ 411 037e 4E75      		rts
+ 412               		.cfi_endproc
+ 413               	.LFE5:
+ 415               		.globl	__mulsi3
+ 416               		.align	2
+ 417               		.globl	xtoui
+ 419               	xtoui:
+ 420               	.LFB6:
+ 161:util.c        **** 
+ 162:util.c        **** /* returns 1 on succsess */
+ 163:util.c        **** int xtoui(const char* xs, unsigned int* result)
+ 164:util.c        **** {
+ 421               		.loc 1 164 0
+ 422               		.cfi_startproc
+ 423 0380 4E56 FFF0 		link.w %fp,#-16
+ 424               		.cfi_offset 14, -8
+ 425               		.cfi_def_cfa 14, 8
+ 426 0384 2F02      		move.l %d2,-(%sp)
+ 427               		.cfi_offset 2, -28
+ 165:util.c        ****  size_t szlen = strlen(xs);
+ 428               		.loc 1 165 0
+ 429 0386 2F2E 0008 		move.l 8(%fp),-(%sp)
+ 430 038a 4EB9 0000 		jsr strlen
+ 430      0000 
+ 431 0390 588F      		addq.l #4,%sp
+ 432 0392 2D40 FFF0 		move.l %d0,-16(%fp)
+ 166:util.c        ****  int i, xv, fact;
+ 167:util.c        **** 
+ 168:util.c        ****  if (szlen > 0)
+ 433               		.loc 1 168 0
+ 434 0396 4AAE FFF0 		tst.l -16(%fp)
+ 435 039a 6700 0104 		jeq .L34
+ 169:util.c        ****  {
+ 170:util.c        ****   if (szlen>8) return 0; /* limut to 32 bit */
+ 436               		.loc 1 170 0
+ 437 039e 7008      		moveq #8,%d0
+ 438 03a0 B0AE FFF0 		cmp.l -16(%fp),%d0
+ 439 03a4 6406      		jcc .L35
+ 440               		.loc 1 170 0 is_stmt 0 discriminator 1
+ 441 03a6 7000      		moveq #0,%d0
+ 442 03a8 6000 00FC 		jra .L36
+ 443               	.L35:
+ 171:util.c        **** 
+ 172:util.c        ****   *result = 0;
+ 444               		.loc 1 172 0 is_stmt 1
+ 445 03ac 206E 000C 		move.l 12(%fp),%a0
+ 446 03b0 4290      		clr.l (%a0)
+ 173:util.c        ****   fact = 1;
+ 447               		.loc 1 173 0
+ 448 03b2 7201      		moveq #1,%d1
+ 449 03b4 2D41 FFF4 		move.l %d1,-12(%fp)
+ 174:util.c        **** 
+ 175:util.c        ****   for(i=szlen-1; i>=0 ;i--)
+ 450               		.loc 1 175 0
+ 451 03b8 202E FFF0 		move.l -16(%fp),%d0
+ 452 03bc 5380      		subq.l #1,%d0
+ 453 03be 2D40 FFFC 		move.l %d0,-4(%fp)
+ 454 03c2 6000 00D2 		jra .L37
+ 455               	.L43:
+ 176:util.c        ****   {
+ 177:util.c        ****    if (isxdigit(*(xs+i)))
+ 456               		.loc 1 177 0
+ 457 03c6 2239 0000 		move.l __ctype_ptr__,%d1
+ 457      0000 
+ 458 03cc 202E FFFC 		move.l -4(%fp),%d0
+ 459 03d0 206E 0008 		move.l 8(%fp),%a0
+ 460 03d4 D1C0      		add.l %d0,%a0
+ 461 03d6 1010      		move.b (%a0),%d0
+ 462 03d8 4880      		ext.w %d0
+ 463 03da 3040      		move.w %d0,%a0
+ 464 03dc 2008      		move.l %a0,%d0
+ 465 03de 5280      		addq.l #1,%d0
+ 466 03e0 2041      		move.l %d1,%a0
+ 467 03e2 D1C0      		add.l %d0,%a0
+ 468 03e4 1010      		move.b (%a0),%d0
+ 469 03e6 4880      		ext.w %d0
+ 470 03e8 48C0      		ext.l %d0
+ 471 03ea 7244      		moveq #68,%d1
+ 472 03ec C081      		and.l %d1,%d0
+ 473 03ee 4A80      		tst.l %d0
+ 474 03f0 6700 009C 		jeq .L38
+ 178:util.c        ****    {
+ 179:util.c        ****     if (*(xs+i)>='a') xv = ( *(xs+i) - 'a') + 10;
+ 475               		.loc 1 179 0
+ 476 03f4 202E FFFC 		move.l -4(%fp),%d0
+ 477 03f8 206E 0008 		move.l 8(%fp),%a0
+ 478 03fc D1C0      		add.l %d0,%a0
+ 479 03fe 1010      		move.b (%a0),%d0
+ 480 0400 0C00 0060 		cmp.b #96,%d0
+ 481 0404 6F1A      		jle .L39
+ 482               		.loc 1 179 0 is_stmt 0 discriminator 1
+ 483 0406 202E FFFC 		move.l -4(%fp),%d0
+ 484 040a 206E 0008 		move.l 8(%fp),%a0
+ 485 040e D1C0      		add.l %d0,%a0
+ 486 0410 1010      		move.b (%a0),%d0
+ 487 0412 4880      		ext.w %d0
+ 488 0414 48C0      		ext.l %d0
+ 489 0416 72A9      		moveq #-87,%d1
+ 490 0418 D280      		add.l %d0,%d1
+ 491 041a 2D41 FFF8 		move.l %d1,-8(%fp)
+ 492 041e 6044      		jra .L40
+ 493               	.L39:
+ 180:util.c        ****     else if ( *(xs+i) >= 'A') xv = (*(xs+i) - 'A') + 10;
+ 494               		.loc 1 180 0 is_stmt 1
+ 495 0420 202E FFFC 		move.l -4(%fp),%d0
+ 496 0424 206E 0008 		move.l 8(%fp),%a0
+ 497 0428 D1C0      		add.l %d0,%a0
+ 498 042a 1010      		move.b (%a0),%d0
+ 499 042c 0C00 0040 		cmp.b #64,%d0
+ 500 0430 6F1A      		jle .L41
+ 501               		.loc 1 180 0 is_stmt 0 discriminator 1
+ 502 0432 202E FFFC 		move.l -4(%fp),%d0
+ 503 0436 206E 0008 		move.l 8(%fp),%a0
+ 504 043a D1C0      		add.l %d0,%a0
+ 505 043c 1010      		move.b (%a0),%d0
+ 506 043e 4880      		ext.w %d0
+ 507 0440 48C0      		ext.l %d0
+ 508 0442 72C9      		moveq #-55,%d1
+ 509 0444 D280      		add.l %d0,%d1
+ 510 0446 2D41 FFF8 		move.l %d1,-8(%fp)
+ 511 044a 6018      		jra .L40
+ 512               	.L41:
+ 181:util.c        ****     else xv = *(xs+i) - '0';
+ 513               		.loc 1 181 0 is_stmt 1
+ 514 044c 202E FFFC 		move.l -4(%fp),%d0
+ 515 0450 206E 0008 		move.l 8(%fp),%a0
+ 516 0454 D1C0      		add.l %d0,%a0
+ 517 0456 1010      		move.b (%a0),%d0
+ 518 0458 4880      		ext.w %d0
+ 519 045a 48C0      		ext.l %d0
+ 520 045c 72D0      		moveq #-48,%d1
+ 521 045e D280      		add.l %d0,%d1
+ 522 0460 2D41 FFF8 		move.l %d1,-8(%fp)
+ 523               	.L40:
+ 182:util.c        ****     *result += (xv * fact);
+ 524               		.loc 1 182 0
+ 525 0464 206E 000C 		move.l 12(%fp),%a0
+ 526 0468 2410      		move.l (%a0),%d2
+ 527 046a 2F2E FFF4 		move.l -12(%fp),-(%sp)
+ 528 046e 2F2E FFF8 		move.l -8(%fp),-(%sp)
+ 529 0472 4EB9 0000 		jsr __mulsi3
+ 529      0000 
+ 530 0478 508F      		addq.l #8,%sp
+ 531 047a D082      		add.l %d2,%d0
+ 532 047c 206E 000C 		move.l 12(%fp),%a0
+ 533 0480 2080      		move.l %d0,(%a0)
+ 183:util.c        ****     fact *= 16;
+ 534               		.loc 1 183 0
+ 535 0482 202E FFF4 		move.l -12(%fp),%d0
+ 536 0486 E988      		lsl.l #4,%d0
+ 537 0488 2D40 FFF4 		move.l %d0,-12(%fp)
+ 538 048c 6004      		jra .L45
+ 539               	.L38:
+ 184:util.c        ****    } else return 0;
+ 540               		.loc 1 184 0
+ 541 048e 7000      		moveq #0,%d0
+ 542 0490 6014      		jra .L36
+ 543               	.L45:
+ 175:util.c        ****   {
+ 544               		.loc 1 175 0 discriminator 2
+ 545 0492 53AE FFFC 		subq.l #1,-4(%fp)
+ 546               	.L37:
+ 175:util.c        ****   {
+ 547               		.loc 1 175 0 is_stmt 0 discriminator 1
+ 548 0496 4AAE FFFC 		tst.l -4(%fp)
+ 549 049a 6C00 FF2A 		jge .L43
+ 550 049e 6004      		jra .L46
+ 551               	.L34:
+ 185:util.c        ****   }
+ 186:util.c        ****  } else return 0;
+ 552               		.loc 1 186 0 is_stmt 1
+ 553 04a0 7000      		moveq #0,%d0
+ 554 04a2 6002      		jra .L36
+ 555               	.L46:
+ 187:util.c        ****  return 1;
+ 556               		.loc 1 187 0
+ 557 04a4 7001      		moveq #1,%d0
+ 558               	.L36:
+ 188:util.c        **** }
+ 559               		.loc 1 188 0
+ 560 04a6 242E FFEC 		move.l -20(%fp),%d2
+ 561 04aa 4E5E      		unlk %fp
+ 562 04ac 4E75      		rts
+ 563               		.cfi_endproc
+ 564               	.LFE6:
+ 566               		.align	2
+ 567               		.globl	hexNibble
+ 569               	hexNibble:
+ 570               	.LFB7:
+ 189:util.c        **** 
+ 190:util.c        **** 
+ 191:util.c        **** /* returns hex digit for lower 4 bits */
+ 192:util.c        **** char hexNibble (unsigned int i)
+ 193:util.c        **** {
+ 571               		.loc 1 193 0
+ 572               		.cfi_startproc
+ 573 04ae 4E56 FFF0 		link.w %fp,#-16
+ 574               		.cfi_offset 14, -8
+ 575               		.cfi_def_cfa 14, 8
+ 194:util.c        **** 	char digits[16] = "0123456789abcdef";
+ 576               		.loc 1 194 0
+ 577 04b2 41EE FFF0 		lea (-16,%fp),%a0
+ 578 04b6 20BC 3031 		move.l #808530483,(%a0)
+ 578      3233 
+ 579 04bc 5888      		addq.l #4,%a0
+ 580 04be 20BC 3435 		move.l #875902519,(%a0)
+ 580      3637 
+ 581 04c4 5888      		addq.l #4,%a0
+ 582 04c6 20BC 3839 		move.l #943284578,(%a0)
+ 582      6162 
+ 583 04cc 5888      		addq.l #4,%a0
+ 584 04ce 20BC 6364 		move.l #1667523942,(%a0)
+ 584      6566 
+ 585 04d4 5888      		addq.l #4,%a0
+ 195:util.c        **** 	return digits[i & 0x0f];
+ 586               		.loc 1 195 0
+ 587 04d6 700F      		moveq #15,%d0
+ 588 04d8 C0AE 0008 		and.l 8(%fp),%d0
+ 589 04dc 1036 08F0 		move.b -16(%fp,%d0.l),%d0
+ 196:util.c        **** }
+ 590               		.loc 1 196 0
+ 591 04e0 4E5E      		unlk %fp
+ 592 04e2 4E75      		rts
+ 593               		.cfi_endproc
+ 594               	.LFE7:
+ 596               	.Letext0:
+ 597               		.file 2 "/home/ad/gcc68k/lib/gcc/m68k-elf/5.1.0/include/stddef.h"
+ 598               		.file 3 "/home/ad/gcc68k/m68k-elf/include/sys/lock.h"
+ 599               		.file 4 "/home/ad/gcc68k/m68k-elf/include/sys/_types.h"
+ 600               		.file 5 "/home/ad/gcc68k/m68k-elf/include/sys/reent.h"
+ 601               		.file 6 "/home/ad/gcc68k/m68k-elf/include/ctype.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 util.c
+     /tmp/cchWEPgA.s:9      .text:0000000000000000 getch
+     /tmp/cchWEPgA.s:45     .text:0000000000000032 kbhit
+     /tmp/cchWEPgA.s:79     .text:000000000000005a kb_raw
+     /tmp/cchWEPgA.s:96     .text:0000000000000064 kb_normal
+     /tmp/cchWEPgA.s:119    .text:000000000000006e inputString
+     /tmp/cchWEPgA.s:381    .text:000000000000033c readString
+     /tmp/cchWEPgA.s:419    .text:0000000000000380 xtoui
+     /tmp/cchWEPgA.s:569    .text:00000000000004ae hexNibble
+
+UNDEFINED SYMBOLS
+strlen
+printf
+strchr
+_impure_ptr
+__swbuf_r
+puts
+malloc
+__mulsi3
+__ctype_ptr__

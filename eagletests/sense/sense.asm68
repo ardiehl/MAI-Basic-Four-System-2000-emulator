@@ -1,0 +1,265 @@
+;-----------------------------------------------------------
+; Program    : sense
+; Written by : Armin Diehl
+; Date       : Dec 24, 2011
+; Description: Sense Test for the mai2000 emulator (wd)
+;-----------------------------------------------------------
+; only works when console is connected to scc port 0
+	ORG	$1000
+sccdata		equ	$600006
+scccmd		equ	$600004
+
+; result on real hw:
+;Sense status codes test for MAI2000, A.Diehl 12/2011
+;55*00 02*40 C0 C2 	after reset controller, command block byte 0 written
+;03*C0 C2 		1 command block
+;03*C0 C2 		2
+;03*C0 C2 		3
+;03*C0 C2 		4
+;03*C0 C2 		5
+;12*C0 02*40 48 	command block completely written, command processing until result available, result byte 0 was read
+;06*40 48 		result byte 1
+;05*40 48 		2
+;05*40 48 		3
+;06*40 02*C0 CC 	CC=Complete, read status byte
+;04*C0 02*E0 E8 	Message Phase, read Message Byte (always 0)
+;Timeout 03*E0 FF*00 	00: controller deselected = Bus Free Phase
+;End of program
+
+; a1 addess of status buffer
+; a2 cmd address
+; a6 controller address
+; d0 status register
+; d1 cmd byte
+; d2 last cmd index
+; d3 last status
+; d4 cmd load counter
+; d5 timeout counter
+; d6 temp
+
+START:				
+	move.l	#$3000,sp	; stack in unused area
+	
+	move.l	#$cc0000,a6	; controller address
+	move.b	#$03,(7,a6)	; assert controller reset
+	
+	lea	MsgStart,a0
+	bsr	StrOut
+	move.b	#$0,(7,a6)	; end reset controller
+	move.b	#1,($a,a6)	; select controller
+	lea	cmd,a2
+	move.l	#5,d4		; counter
+	move.b	#$ff,d3
+	move.l	#$fff,d5
+	bsr	initStatBuf
+wloop:	move.b	(9,a6),d0	; read status
+	bsr	saveStatus
+	cmp.b	0,d0
+	beq	wloop		; wait for status <> 0
+	btst	#1,d0		; test output reg empty (1)
+	bne	wlok		; jmp if bit is 1
+	dbra	d5,wloop
+	bra	timeout
+wlok:
+	bsr	printStatBuf
+	move.b	(a2)+,d1	; load cmd byte
+	move.b	d1,(8,A6)	; to controller
+	dbra	d4,wloop
+	
+; all commands transferred, wait for input register full, we should get 4 bytes result
+; plus status plus message byte
+	move.l	#6,d4
+	move.l	#$ffff,d5
+wloop2:	move.b	(9,a6),d0	; read status
+	bsr	saveStatus
+;	cmp.b	#$48,d0
+	btst	#3,d0		; input data register full
+	bne	wlok2		; wait for status, bra if bit is 1
+	dbra	d5,wloop2
+	bra	timeout
+wlok2:	bsr	printStatBuf
+	move.b	($b,a6),d0	; read input register
+	dbra	d4,wloop2
+	
+	; just to see what's next
+	move.l	#$ffff,d4
+wloop3:	move.b	(9,a6),d0	; read status
+	bsr	saveStatus
+	dbra	d4,wloop3
+	bsr	printStatBuf
+
+xstop:
+	lea	MsgEnd,a0
+	bsr	strOut
+xstop2:
+	trap	#$f		; activate rom debugger
+	bra	xstop2
+
+printStatBuf:
+	lea	statBuf,a1
+	lea	statBufCount,a5
+psb2:	tst.b	d2		; index
+	bne	psb3		; not empty
+	bsr	crlf		; if empty, out crlf and return
+	bra	initStatBuf
+psb3	move.b	(a5)+,d0	; load count
+	cmp.b	#0,d0
+	beq	psbNoCount
+	cmp.b	#$ff,d0
+	beq	psb4		; dont increment ff to 00
+	addq	#1,d0
+psb4:	bsr	hexOutB		; print count
+	move.b	#'*',d1
+	bsr	charOut
+psbNoCount:
+	move.b	(a1)+,d0	; load from statbuf and increment a1
+	subq.b	#1,d2		; dec index
+	bsr	hexOutB		; print status byte
+	move.b	#32,d1		; and
+	bsr	CharOut		; one space
+	bra	psb2		; next status
+
+saveStatus:
+	cmp.b	d0,d3		; curr <> last Staus ?
+	bne	sav2		; yes, bra
+	lea	statBufCount,a1
+	add.l	d2,a1
+	sub.l	#1,a1		; index is already at next byte, will fail with FF
+	move.b	(a1),d6
+	cmp.b	#$ff,d6
+	beq	sav3		; stay at FF
+	addq.b	#1,d6
+	move.b	d6,(a1)
+sav3:	rts
+sav2:	move.b	d0,d3		; last status in d3
+	lea	statBuf,a1	; get addr of statbuf
+	add.l	d2,a1		; and add the index
+	move.b	d0,(a1)		; save status
+	addq.b	#1,d2		; index +1
+	beq	savOverflow	; overflow if index is zero after add
+	lea	statBufCount,a1
+	add.l	d2,a1
+	move.b	#0,(a1)		; clear count
+	rts
+
+initStatBuf:
+	move.b	#$ff,d3		; last status
+	move.b	#0,d2		; index=0
+	lea	statBufCount,a1
+	move.b	#0,(a1)		; init first counter
+	rts
+
+savOverflow:
+	lea	msgOverflow,a0
+	bsr	StrOut
+	subq.b	#1,d2		; index -1
+	bsr	printStatBuf
+	bra	xStop
+
+msgOverflow:
+		dc.b	"Overflow ",0
+
+Timeout:
+	lea	msgTimeout,a0
+	bsr	StrOut
+	bsr	printStatBuf
+	bra	xStop
+
+
+msgTimeout:
+		dc.b	"Timeout ",0
+
+statBuf:	ds.b	255
+statBufCount:	ds.b	255
+
+
+cmd:	dc.b	3,0,0,0,4,0
+
+
+hexTest:
+	move.b	#$f1,d0
+	bsr	HexOutB
+	bsr	crlf
+	move.w	#$abcd,d0
+	bsr	HexOutW
+	bsr	crlf
+	move.l	#$12345678,d0
+	bsr	HexOutL
+	bsr	crlf
+	rts
+	
+CharOut:
+	movem.w d7,-(a7)	;save d7
+CharOut2:
+	move.b	scccmd,d7	; scc status register, bit 2=1=tx buffer emoty
+	and.b	#$04,d7
+	beq	CharOut2	; wait for scc tx empty
+	move.b	d1,sccdata
+	movem.w (a7)+,d7	;restore d7
+	rts
+
+StrOut:	movem.w d1,-(a7)
+StrOut1:
+	move.b	(a0)+,d1		;a0: string
+	beq	StrOutEnd
+	bsr	CharOut
+	bra	StrOut1
+StrOutEnd:
+	movem.w	(a7)+,d1
+	rts
+
+crlf:	movem.w d1,-(a7)
+	move.b	#13,d1
+	bsr	CharOut
+	move.b	#10,d1
+	bsr	CharOut
+	movem.w (a7)+,d1	;restore d1
+	rts
+
+temp1:	dc.w	$0000
+temp2:	dc.w	$0000
+temp3:	dc.w	$0000
+temp4:	dc.w	$0000
+temp5:	dc.w	$0000
+
+
+;hex routines taken from:
+;VUBug  written by Edward M. Carter, Russell G. Brown at Vanderbilt University
+
+;Generalized routine to write
+;a word, byte or long word (in d0).
+;
+HexOutB:
+	move.w  #$1,temp1		;t1 is the number of bytes
+	bra     HexOut
+HexOutW:
+	move.w  #$3,temp1
+	bra     HexOut
+HexOutL:
+	move.w  #$7,temp1
+HexOut:	movem.l d1-d2/a0/a6,-(a7)	;save registers d1,d2,a0,a6
+	move.w  temp1,d2		;set count
+	move.b  #$00,temp5+1		;set a null at end
+	lea     temp5+1,a6		;use temps as a stack
+alp:	move.b  d0,d1			;make each hex digit a
+	and.b   #$0f,d1			;writable ascii byte
+	cmp.b   #$0a,d1			;check for abcdef
+	blt     or3
+	or.b    #$40,d1
+	sub.b   #$09,d1
+	bra     m1
+or3:	or.b    #$30,d1			;set high-order bits
+m1:	move.b  d1,-(a6)		;put on stack
+	lsr.l   #$4,d0			;get next hex digit
+	dbf     d2,alp
+	movea.w a6,a0			;write the stack with StrOut
+	bsr     StrOut
+	movem.l (a7)+,a6/a0/d2/d1	;restore registers d1,d2,a0,a6
+	rts
+
+MsgStart:
+	dc.b	"Sense status codes test for MAI2000, A.Diehl 12/2011",13,10,0
+MsgEnd:	dc.b	"End of program",13,10,0
+
+	END START
+
