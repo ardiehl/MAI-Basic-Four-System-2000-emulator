@@ -1,5 +1,5 @@
 #ifndef MEMINTF__H
-#define MEMINTF__HEADER
+#define MEMINTF__H
 
 #include "m68000.h"
 

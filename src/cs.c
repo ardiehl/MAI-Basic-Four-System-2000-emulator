@@ -13,7 +13,7 @@
  * tape, i have no documentation about the tape interface at all.
  * Booting the diagnostics from tape works
  * Passes all mcs tests except bus error test:
- * 
+ *
  * Magtape Cartridge Streamer Logic Test  Rev C2           18:01:23  03/31/88
  * <mcs>run
  * Test 1  -->  Status register addressing
@@ -38,16 +38,16 @@
  * On-The-Fly Tests Skipped Due To Controller Firmware Revision. . .
  * Test 19 -->  Bozo parameters
  * Test 20 -->  Bus-master parity error
- * 
+ *
  * Parity Error Expected But Not Received                              0006818  14
- *     Address Of Bad Parity    
- *     060076                   
- * <SP> - Continue, <ESC> - Abort, <.> - No Pause 
- * 
- * 
+ *     Address Of Bad Parity
+ *     060076
+ * <SP> - Continue, <ESC> - Abort, <.> - No Pause
+ *
+ *
  * End Of Pass 1   Total Test Errors 1
- * 
- * 
+ *
+ *
  * General function
  * There will be IO parameter blocks generated in memory, the address of this
  * block will be set by writing to the status register. Writing to the go
@@ -160,7 +160,7 @@ int tape_at_eod(int fileno) {
 
     return 1;
 }
-    
+
 
 int tape_open_fileR(int fileNo) {
     char filename[FILENAME_MAX+1];
@@ -173,7 +173,7 @@ int tape_open_fileR(int fileNo) {
     cs.fileIsOpen = 1;
     cs.fileBlockNo = 0;
     strcpy(cs.currFilename,filename);
-    
+
     stat(filename,&statbuf);
     cs.fileRemainingBlocks = statbuf.st_size / CS_BLOCKSIZE;
     return 1;
@@ -239,7 +239,7 @@ void tape_write(cs_iopb_t * iopb) {
     unsigned int address = iopb->bufferPtr << 1;
     int blocksToWrite = (iopb->bufferLen * 2) / CS_BLOCKSIZE;
 
-        
+
     if(!cs.fileIsOpenForWrite) {
         tape_file_name(cs.fileNo,cs.currFilename);
         if((cs.f = fopen(cs.currFilename, "wb")) == NULL) {
@@ -283,7 +283,7 @@ void tape_write(cs_iopb_t * iopb) {
 
 
 void getIOPB(unsigned int address, cs_iopb_t * iopb) {
-    iopb->nextBlockPtr = sys_read_long(address,IOPB_MF); address+=4; 
+    iopb->nextBlockPtr = sys_read_long(address,IOPB_MF); address+=4;
     iopb->flags_opcode = sys_read_word(address,IOPB_MF); address+=2;
     iopb->bufferPtr = sys_read_long(address,IOPB_MF); address+=4;
     iopb->bufferLen = sys_read_long(address,IOPB_MF); address+=4;
@@ -326,7 +326,7 @@ void cs_cmdName (int cmd, char * name) {
         case CS_CMD_READ      : strcpy(name,"READ"); break;
         case CS_CMD_WRITE     : strcpy(name,"WRITE"); break;
         case CS_CMD_APPEND    : strcpy(name,"APPEND"); break;
-        default : strcpy(name,"unknown");       
+        default : strcpy(name,"unknown");
     }
     flags[0] = 0;
     if (cmd & CS_CMDF_OPTIONAL) strcat(flags,"+opt ");  /* Enb. optional command */
@@ -347,7 +347,7 @@ void cs_processContinue(void) {  /* called each n instructions */
     char name[255];
     int i,skipped;
     char filename[FILENAME_MAX+1];
-    
+
     if (cs.execCount) {
         cs.execCount--;
         if (cs.execCount == 0) {
@@ -407,17 +407,17 @@ void cs_processContinue(void) {  /* called each n instructions */
                                                 iopb.status = CS_STAT_TAPERROR;
                                                 iopb.status1= CS_STAT1_DATAERR;
                                             }
-                                        } else 
+                                        } else
                                             iopb.status = CS_STAT_WRPROT; /* TODO: check if this status is correct */
                                         break;
                 case CS_CMD_STATUS    : iopb.status = CS_STAT_COMPLETE;
                                         break;
                 case CS_CMD_TEST      : iopb.status = CS_STAT_COMPLETE;
                                         break;
-                case CS_CMD_READ      : /*if (iopb.bufferLen & 1) { 
+                case CS_CMD_READ      : /*if (iopb.bufferLen & 1) {
                                             iopb.status = CS_STAT_IPBPERR;
                                         } else*/
-                                        if ((iopb.bufferLen * 2) % CS_BLOCKSIZE) 
+                                        if ((iopb.bufferLen * 2) % CS_BLOCKSIZE)
                                             iopb.status = CS_STAT_IPBPERR;
                                         else
                                         if (cs.fileIsOpen) {
@@ -445,7 +445,7 @@ void cs_processContinue(void) {  /* called each n instructions */
                                         }
                                         iopb.status1 &= ~CS_STAT1_BOM; /* not at beginning of media */
                                         break;
-                case CS_CMD_WRITE     : if ((iopb.bufferLen * 2) % CS_BLOCKSIZE) 
+                case CS_CMD_WRITE     : if ((iopb.bufferLen * 2) % CS_BLOCKSIZE)
                                             iopb.status = CS_STAT_IPBPERR;
                                         else
                                         if (!cs.isReadonly) {
@@ -464,9 +464,9 @@ void cs_processContinue(void) {  /* called each n instructions */
                                         } else
                                             iopb.status = CS_STAT_WRPROT; /* TODO: check if this status is correct */
                                         break;
-                case CS_CMD_APPEND    : if ((iopb.bufferLen * 2) % CS_BLOCKSIZE) 
+                case CS_CMD_APPEND    : if ((iopb.bufferLen * 2) % CS_BLOCKSIZE)
                                             iopb.status = CS_STAT_IPBPERR;
-                                        else 
+                                        else
                                         if (!cs.isReadonly) {
                                             tape_close_file();
                                             tape_count_numBlocks();
@@ -498,7 +498,7 @@ void cs_processContinue(void) {  /* called each n instructions */
                 /* TODO: check with mcsfs */
                 msgout (MSGC_FUNC,MYSELF,MSG_NONE,"setting IOPB to next in chain (curr IOPB: %08x (address:%08x), next: %08x (address:%08x)",cs.IOPB_addr,cs.IOPB_addr<<1,iopb.nextBlockPtr,iopb.nextBlockPtr<<1);
                 cs.IOPB_addr = iopb.nextBlockPtr;
-                /* the controller does not automatically execute the next in chain    
+                /* the controller does not automatically execute the next in chain
                 cs.execCount = 2; */
                 cs.goReg = CS_GOREG_DEFAULT;
 
@@ -549,7 +549,7 @@ unsigned int cs_read_word(unsigned int address, int flags) {
                                 value = cs.statusReg;
                              msgout (MSGC_INFO,MYSELF,MSG_READW,"%08x (statusReg, returning %04x)",address,value);
                              return value;
-        default            : msgout (MSGC_ERR,MYSELF,MSG_READW,"%08x (unknown)",address); 
+        default            : msgout (MSGC_ERR,MYSELF,MSG_READW,"%08x (unknown)",address);
     }
 #endif
 	return 0xffff;
@@ -592,7 +592,7 @@ void cs_write_word(unsigned int address, unsigned int value, int flags) {
                                     cs.IOPB_addr &= 0x3fff;
                                     cs.IOPB_addr |= i;
                                     cs.firstIOPB_addr = cs.IOPB_addr;
-                                    msgout (MSGC_INFO,MYSELF,MSG_NONE," IOPB(H), got %04x, IOPB:%08x IOPB-addr:%08x",value,cs.IOPB_addr,cs.IOPB_addr<<1);   
+                                    msgout (MSGC_INFO,MYSELF,MSG_NONE," IOPB(H), got %04x, IOPB:%08x IOPB-addr:%08x",value,cs.IOPB_addr,cs.IOPB_addr<<1);
                                  } else
                                  if (nextIs == 2) {  /* 8000 */
                                      switch (value) {
@@ -651,8 +651,8 @@ void cs_write_word(unsigned int address, unsigned int value, int flags) {
                              break;
         default            : msgout (MSGC_ERR,MYSELF,MSG_WRITEW,"%04x to %08x (unknown)",value,address);
     }
-#endif    
- 
+#endif
+
 }
 
 
@@ -698,6 +698,27 @@ int  cs_irq_ack(int level) {
 /******************************************************************************
  * Commands
  ******************************************************************************/
+
+void cs_filemask (int numArgs, struct args_t *args) {
+	if (numArgs == 0) {
+		printf("current filemask: %s\n",cs.filemask);
+		return;
+	}
+	char fn[255];
+	if (numArgs == 1 && !args[0].isValue) {
+		strcpy(cs.filemask,&args[0].txt[0]);
+		tape_file_name(0, &fn[0]);
+		printf ("filemask set to \"%s\", first filename would be \"%s\"\n",cs.filemask,fn);
+		return;
+	}
+	if (numArgs == 1 && args[0].isValue) {
+		strcpy(cs.filemask,CS_FILEMASK);
+		printf("filemask set to default \"%s\"\n",cs.filemask);
+		return;
+	}
+	printf("usage: dev fs filemask xxxxx where the default for xxxx is %s, can be set to default with dev fs filemask 0",CS_FILEMASK);
+
+}
 
 void cs_dir (int numArgs, struct args_t *args) {
     char * p;
@@ -805,7 +826,7 @@ void cs_istatus (int numArgs, struct args_t *args) {
 
     unsigned int address = cs.IOPB_addr << 1;
     getIOPB(address,&iopb);
-    
+
     if (numArgs > 0) {
         iopb.status = args[0].value;
         putIOPB(address,&iopb);
@@ -818,7 +839,7 @@ void cs_istatus1 (int numArgs, struct args_t *args) {
 
     unsigned int address = cs.IOPB_addr << 1;
     getIOPB(address,&iopb);
-    
+
     if (numArgs > 0) {
         iopb.status1 = args[0].value;
         putIOPB(address,&iopb);
@@ -846,6 +867,7 @@ void cs_help (int numArgs, struct args_t *args);
 struct cmds_t csCmds[] =
 {
     { "directory",	cs_dir,         0,1,0,"set directory for tape files"},
+    { "filemask" ,  cs_filemask,    0,1,0,"set filemask for tape files, e.g. %sF%05d"},
     { "iopb"     ,  cs_showIOPB,    0,1,1,"show iopb, up to the number of given in last param"},
     { "registers",	cs_showRegs,    0,0,0,"show cs registers"},
     { "setiopb",	cs_setiopb,     0,1,1,"set iopb address"},

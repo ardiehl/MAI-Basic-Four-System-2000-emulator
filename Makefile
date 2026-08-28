@@ -107,7 +107,7 @@
 # note that VER_EXTRA can be overridden on the command line, e.g.:
 # make VER_EXTRA=12345 all
 VER_MAJOR	= 0
-VER_MINOR	= 0
+VER_MINOR	= 2
 VER_EXTRA	?=
 
 # build platform: win32 or linux
@@ -388,7 +388,7 @@ cleandep:
 	-rm $(DEPFILES)
 
 # remove the dependency files and any target or intermediate build files
-clean:	cleandep clean-versioninfo
+clean:	cleandep
 	-rm $(OBJ) $(TARGET) $(GARBAGE)
 
 # remove any dependency or intermediate build files
