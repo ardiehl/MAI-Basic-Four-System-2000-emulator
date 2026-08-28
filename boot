@@ -1,2 +1,3 @@
 #!/bin/sh
-./eagleemu "msg all -" "msg all +notimp +err" "bus -" "mbreak -" g
+./eagleemu "bus -" "dev wd im wd/bossix.dsk" g
+

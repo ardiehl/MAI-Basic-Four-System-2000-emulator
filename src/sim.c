@@ -26,6 +26,7 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "memory.h"		/* raw ram and rom access */
+#include "mmu.h"
 #include "cmb.h"		/* cmb registers */
 #include "fourway.h"	/* 4-way controller */
 #include "wd.h"			/* winchester disk controller */
@@ -65,6 +66,38 @@ INT32 g_breakOnBusError = 0;
 int g_msgBreak = 0;
 INT32 g_msgBreakEnabled = 0;
 unsigned int g_currPC;
+
+/* Write watchpoints. The breakpoints above trigger on the program counter,
+ * which is no use when the question is "who writes this variable". These
+ * trigger on a store to an address range and print the storing instruction.
+ * Every write goes through sys_write_byte and sys_write_word, so DMA from the
+ * disk and tape controllers is caught as well as CPU stores. */
+#define MAXWATCHPOINTS 4
+struct watchpoint_t {
+    unsigned int addr;
+    unsigned int len;
+    unsigned int hits;
+    int          brk;       /* stop the emulation as well as logging */
+};
+struct watchpoint_t watchpoints[MAXWATCHPOINTS];
+int watchHit = 0;
+
+void sys_watch_check (unsigned int address, unsigned int value, int size) {
+    int i;
+    char instruction[128];
+
+    for (i = 0; i < MAXWATCHPOINTS; i++) {
+        if (!watchpoints[i].len) continue;
+        if ((address + size - 1 < watchpoints[i].addr) ||
+            (address >= watchpoints[i].addr + watchpoints[i].len)) continue;
+        watchpoints[i].hits++;
+        m68k_disassemble(&instruction[0], g_currPC, M68K_CPU_TYPE_68010);
+        printf("watch %d: write%d %0*x to %08x (PC:%08x %s)\n",
+                i, size * 8, size * 2, value, address, g_currPC, instruction);
+        fflush(stdout);
+        if (watchpoints[i].brk) watchHit = 1;
+    }
+}
 
 extern m68ki_cpu_core m68k_cpu;
 
@@ -127,6 +160,12 @@ unsigned int sys_read_byte(unsigned int address, int memFlags)
 	else
 	if (ADDR_IS_FD(address))
 		value = fd_read_byte(address,memFlags);
+	else
+	if (ADDR_IS_MMU(address))
+		value = mmu_read_byte(address);
+	else
+	if (ADDR_IS_FW(address))
+		value = fw_read_byte(address,memFlags);
 	else {
 		/* msgout (MSGC_ERR,MSG_NONE,MSG_READB,"unknown memory area %08x",address); */
 		BUSERROR(memFlags,address,MSG_READB);
@@ -178,6 +217,12 @@ unsigned int sys_read_word(unsigned int address, int memFlags)
 	else
 	if (ADDR_IS_FD(address))
 		value = fd_read_word(address,memFlags);
+	else
+	if (ADDR_IS_MMU(address))
+		value = mmu_read_word(address);
+	else
+	if (ADDR_IS_FW(address))
+		value = fw_read_word(address,memFlags);
 	else {
 		/*msgout (MSGC_ERR,MSG_NONE,MSG_READW,"unknown memory area %08x",address);*/
 		BUSERROR(memFlags,address,MSG_READW);
@@ -204,6 +249,7 @@ unsigned int sys_read_long (unsigned int address, int memFlags) {
 /* Write data to RAM or a device */
 void sys_write_byte(unsigned int address, unsigned int value, int memFlags)
 {
+	sys_watch_check(address,value,1);
 	if (ADDR_IS_RAMSPACE(address) || ADDR_IS_ROM(address))
 			mem_write_byte(address,value,memFlags);
 	else
@@ -228,6 +274,12 @@ void sys_write_byte(unsigned int address, unsigned int value, int memFlags)
 	if (ADDR_IS_FD(address))
 		fd_write_byte(address,value,memFlags);
 	else
+	if (ADDR_IS_MMU(address))
+		mmu_write_byte(address,value);
+	else
+	if (ADDR_IS_FW(address))
+		fw_write_byte(address,value,memFlags);
+	else
 		/*msgout (MSGC_ERR,MSG_NONE,MSG_WRITEB,"%02x to unknown memory %08x",value,address);*/
 		BUSERROR(memFlags,address,MSG_WRITEB);
 
@@ -241,6 +293,7 @@ void sys_write_byte(unsigned int address, unsigned int value, int memFlags)
 
 void sys_write_word(unsigned int address, unsigned int value, int memFlags)
 {
+	sys_watch_check(address,value,2);
 	if (ADDR_IS_RAMSPACE(address) || ADDR_IS_ROM(address))
 		mem_write_word(address,value,memFlags);
 	else
@@ -265,6 +318,12 @@ void sys_write_word(unsigned int address, unsigned int value, int memFlags)
 	if (ADDR_IS_FD(address))
 		fd_write_word(address,value,memFlags);
 	else
+	if (ADDR_IS_MMU(address))
+		mmu_write_word(address,value);
+	else
+	if (ADDR_IS_FW(address))
+		fw_write_word(address,value,memFlags);
+	else
 		/*msgout (MSGC_ERR,MSG_NONE,MSG_WRITEW,"%04x to unknown memory %08x",value,address);*/
 		BUSERROR(memFlags,address,MSG_WRITEW);
 
@@ -287,30 +346,55 @@ void sys_write_long(unsigned int address, unsigned int value, int memFlags) {
  * memory routines called from musashi
  *******************************************************************/
 
+/* The MMU sits between the 68010 and everything else, but only in user mode.
+ * In supervisor mode the CPU addresses physical memory directly and uses the
+ * 8XXXXX and AXXXXX windows to load the segment descriptors, see mmu.c.
+ * A management violation is reported to the CPU as a bus error, which is what
+ * the real board does with MMERR-, and which BOSS/IX prints as
+ * "68010 memory management trap".
+ */
+static int cpu_in_user_mode(void) {
+	return (m68k_get_reg(NULL,M68K_REG_SR) & 0x2000) ? 0 : 1;
+}
+
+static int cpu_xlate(unsigned int logical, int isWrite, unsigned int * phys) {
+	if (!cpu_in_user_mode() || !mmu_is_enabled()) { *phys = logical; return 1; }
+	if (mmu_translate(logical,isWrite,phys)) return 1;
+	return 0;
+}
+
 unsigned int cpu_read_byte(unsigned int address) {
-	return sys_read_byte(address,0);
+	unsigned int phys;
+	if (!cpu_xlate(address,0,&phys)) { BUSERROR(0,address,MSG_READB); return 0xff; }
+	return sys_read_byte(phys,0);
 }
 
 unsigned int cpu_read_word(unsigned int address) {
-	return sys_read_word(address,0);
+	unsigned int phys;
+	if (!cpu_xlate(address,0,&phys)) { BUSERROR(0,address,MSG_READW); return 0xffff; }
+	return sys_read_word(phys,0);
 }
 
 unsigned int cpu_read_long(unsigned int address)
 {
 	unsigned int data;
 
-	data = sys_read_word(address,0) << 16;
+	data = cpu_read_word(address) << 16;
 	if (!(m68k_cpu.cpu_buserror_occurred))
-		data |= sys_read_word(address+2,0);
+		data |= cpu_read_word(address+2);
 	return data;
 }
 
 void cpu_write_byte(unsigned int address, unsigned int value) {
-	sys_write_byte(address,value,0);
+	unsigned int phys;
+	if (!cpu_xlate(address,1,&phys)) { BUSERROR(0,address,MSG_WRITEB); return; }
+	sys_write_byte(phys,value,0);
 }
 
 void cpu_write_word(unsigned int address, unsigned int value) {
-	sys_write_word(address,value,0);
+	unsigned int phys;
+	if (!cpu_xlate(address,1,&phys)) { BUSERROR(0,address,MSG_WRITEW); return; }
+	sys_write_word(phys,value,0);
 }
 
 void cpu_write_long(unsigned int address, unsigned int value) {
@@ -348,12 +432,133 @@ int sys_int_ack (device_t *device, int int_level){
 	/* TODO: int ack for other vector devices (wd,fw,ts) */
     vector = cs_irq_ack(int_level);     /* has cs raised the int ? */
     if (vector == M68K_INT_ACK_SPURIOUS) vector = wd_irq_ack(int_level);
+    if (vector == M68K_INT_ACK_SPURIOUS) vector = fw_irq_ack(int_level);
+    if (vector == M68K_INT_ACK_SPURIOUS) vector = pit_irq_ack(int_level);
     if (vector != M68K_INT_ACK_SPURIOUS) {
         /*printf("sys_int_ack: returning vector %02x\n",vector);*/
         return vector;
     }
 
 	return M68K_INT_ACK_AUTOVECTOR;
+}
+
+/* Ring of recently executed program counters. The instruction hook already
+ * receives the PC of every instruction about to run, so recording it is nearly
+ * free and it answers the one question a watchpoint cannot: how did control
+ * get here. Dump it with the "history" debugger command after a breakpoint. */
+#define PCHISTORY_SIZE 256
+unsigned int pcHistory[PCHISTORY_SIZE];
+unsigned char pcHistSuper[PCHISTORY_SIZE];
+unsigned int pcHistoryIdx = 0;
+unsigned int pcHistoryCount = 0;
+
+/* System call tracing.
+ *
+ * BOSS/IX reaches the kernel the usual 68k way, with a TRAP instruction, so the
+ * question "what is the first user process actually asking for" is answered by
+ * watching user mode instructions for opcode 4E4x. Only user mode is examined,
+ * which is a small fraction of the instruction stream, and the program counter
+ * is translated through a read only copy of the MMU arithmetic so that tracing
+ * does not disturb the segment status bits or the translation counters. */
+int trapTrace = 0;
+
+static int trapPending = 0;
+
+/* Read a user mode long through the same translation the CPU would use, or
+   report failure rather than disturbing anything. */
+static int sys_peek_user_long (unsigned int logical, unsigned int * out) {
+    unsigned int phys;
+
+    if (mmu_is_enabled()) {
+        if (!mmu_peek_translate(logical,&phys)) return 0;
+    } else phys = logical;
+    *out = (sys_read_word(phys,MEM_DISABLEBUSERROR) << 16) |
+            sys_read_word(phys+2,MEM_DISABLEBUSERROR);
+    return 1;
+}
+
+/* Print a NUL terminated user string, for the calls that take a path. */
+static void sys_peek_user_string (unsigned int logical, int max) {
+    unsigned int w;
+    unsigned char c;
+    int k;
+
+    printf("\"");
+    for (k = 0; k < max; k++) {
+        if (!sys_peek_user_long((logical + k) & ~3u,&w)) { printf("<untranslatable>"); break; }
+        c = (w >> (8 * (3 - ((logical + k) & 3)))) & 0xff;
+        if (!c) break;
+        if ((c >= 32) && (c < 127)) putchar(c); else printf("<%02x>",c);
+    }
+    printf("\"");
+}
+
+static void sys_trace_traps (unsigned int pc) {
+    unsigned int phys;
+    UINT16 op;
+    unsigned int d0, d1, d2, a0, a1, a7, i, arg;
+
+    if (m68k_get_reg(NULL,M68K_REG_SR) & 0x2000) return;    /* supervisor */
+
+    /* the first user instruction after a trap carries its result */
+    if (trapPending) {
+        trapPending = 0;
+        printf("      -> returned D0=%08x D1=%08x, back at %06x\n",
+                m68k_get_reg(NULL,M68K_REG_D0),
+                m68k_get_reg(NULL,M68K_REG_D1), pc);
+        fflush(stdout);
+    }
+
+    if (mmu_is_enabled()) {
+        if (!mmu_peek_translate(pc,&phys)) return;
+    } else phys = pc;
+
+    op = sys_read_word(phys,MEM_DISABLEBUSERROR) & 0xffff;
+    if ((op & 0xfff0) != 0x4e40) return;                    /* not a TRAP */
+
+    d0 = m68k_get_reg(NULL,M68K_REG_D0);
+    d1 = m68k_get_reg(NULL,M68K_REG_D1);
+    d2 = m68k_get_reg(NULL,M68K_REG_D2);
+    a0 = m68k_get_reg(NULL,M68K_REG_A0);
+    a1 = m68k_get_reg(NULL,M68K_REG_A1);
+    a7 = m68k_get_reg(NULL,M68K_REG_A7);
+    printf("trap #%u call %02x at %06x  D0=%08x D1=%08x D2=%08x A1=%08x sp=%06x  stack:",
+            op & 0x0f, a0 & 0xff, pc, d0, d1, d2, a1, a7);
+    for (i = 0; i < 5; i++) {
+        if (sys_peek_user_long(a7 + i*4,&arg)) printf(" %08x",arg);
+        else                                   printf(" --------");
+    }
+    printf("\n");
+    /* A write style call: D1 points at the buffer and D2 holds the length,
+       which is how the call pid 1 repeats during boot reads. Dumping it turns
+       an opaque syscall number into the actual message. */
+    /* calls that plausibly carry a path in D1 */
+    switch (a0 & 0xff) {
+        case 0x05: case 0x0a: case 0x0d: case 0x27: case 0x47: case 0x9b:
+            printf("      arg D1 as string: ");
+            sys_peek_user_string(d1,72);
+            printf("\n");
+            printf("      arg D0 as string: ");
+            sys_peek_user_string(d0,72);
+            printf("\n");
+            break;
+    }
+    if (((a0 & 0xff) == 0x0e) && (d2 > 0) && (d2 < 512)) {
+        unsigned int k, w;
+        unsigned char c;
+        printf("      text: \"");
+        for (k = 0; k < d2; k++) {
+            if (!sys_peek_user_long((d1 + k) & ~3u,&w)) { printf("<untranslatable>"); break; }
+            c = (w >> (8 * (3 - ((d1 + k) & 3)))) & 0xff;
+            if ((c >= 32) && (c < 127)) putchar(c);
+            else if (c == 10) printf("\\n");
+            else if (c == 13) printf("\\r");
+            else printf("<%02x>",c);
+        }
+        printf("\"\n");
+    }
+    fflush(stdout);
+    trapPending = 1;
 }
 
 unsigned char timerInstrCount = 0;
@@ -364,20 +569,80 @@ unsigned int m68k_instruction_count = 0;
 void sys_instr_hook (device_t * device, unsigned int pc) {
     m68k_instruction_count++;  // used by fd
 
-	/* totally wrong timing */
-	timerInstrCount++;
-	if (timerInstrCount == 4) {
-		pit_pulse_counter();
-		timerInstrCount = 0;
+	pcHistory[pcHistoryIdx] = pc;
+	pcHistSuper[pcHistoryIdx] = (m68k_get_reg(NULL,M68K_REG_SR) & 0x2000) ? 1 : 0;
+	pcHistoryIdx = (pcHistoryIdx + 1) & (PCHISTORY_SIZE - 1);
+	if (pcHistoryCount < PCHISTORY_SIZE) pcHistoryCount++;
+
+	if (trapTrace) sys_trace_traps(pc);
+}
+
+/* Device time. This used to live in the instruction hook, which stops being
+ * called the moment the CPU executes STOP, because a stopped CPU executes no
+ * instructions. BOSS/IX idles in stop #$2000 waiting for the timer tick, so
+ * the timer only advanced while the machine was busy and froze the moment it
+ * went idle: date stood still, shutdown's countdown hung at its first line,
+ * and every timeout in the kernel waited forever. The run loops call this on
+ * every iteration instead; m68k_execute returns immediately while stopped, so
+ * the loop keeps spinning and time keeps passing, which is what a crystal
+ * driven 68230 does on the real board. */
+/* Counting instructions was wrong twice over. While the CPU spins in stop
+ * #$2000 there are no instructions to count, so the loop pulsed the 68230 at
+ * whatever rate the host could spin: measured at 6.31 times real time, and at
+ * a hundred per cent of a core, which on a small virtual machine leaves
+ * nothing for the console and makes typing lag. The 68230 on the real board is
+ * driven by a crystal, so drive it from the host clock instead. */
+/* One 68230 count, in nanoseconds. Calibrated by running the machine idle for
+ * a minute and comparing its date against the host clock; see NOTES.md. */
+#ifndef PIT_PERIOD_NS
+#define PIT_PERIOD_NS	500
+#endif
+#define PIT_RESYNC_NS	20000000L	/* never make up more than 20 ms in one go */
+
+static long long host_ns (void) {
+	struct timespec ts;
+	clock_gettime (CLOCK_MONOTONIC, &ts);
+	return (long long)ts.tv_sec * 1000000000LL + ts.tv_nsec;
+}
+
+static long long pitDue = 0;
+
+void sys_device_tick (void) {
+	long long now;
+	int idle = m68k_is_stopped();
+
+	if (idle) {
+		/* Nothing to execute until an interrupt arrives, so give the core
+		 * back to the host rather than spinning on it. Keep the pause short:
+		 * the disk controller is serviced from this same loop, and the kernel
+		 * waits for it stopped, so a long pause here is a slow boot. */
+		usleep (100);
 	}
-    wdInstrCount++;
-	if (wdInstrCount == 20) {
+
+	/* Reading the host clock costs more than emulating the instruction does,
+	 * so only look while idle, where we just slept anyway, or every so many
+	 * instructions while running. */
+	timerInstrCount++;
+	if (idle || timerInstrCount >= 64) {
+		timerInstrCount = 0;
+		now = host_ns();
+		if (!pitDue || now - pitDue > PIT_RESYNC_NS) pitDue = now;
+		while (pitDue <= now) {
+			pit_pulse_counter();
+			pitDue += PIT_PERIOD_NS;
+		}
+	}
+	/* One idle pass stands for the instructions the CPU would have executed in
+	 * that time, so the disk keeps its cadence instead of stalling. */
+    wdInstrCount += idle ? 20 : 1;
+	if (wdInstrCount >= 20) {
 		wd_processContinue();
         cs_processContinue();
 		wdInstrCount = 0;
 	}
 	if (fdInstrCount) {
-		fdInstrCount--;
+		int step = idle ? 20 : 1;
+		fdInstrCount -= (fdInstrCount > step) ? step : fdInstrCount;
 		if (fdInstrCount == 0) fd_processContinue();
 	}
 }
@@ -405,7 +670,7 @@ int  msgout(unsigned int msgClass,
             unsigned int routine,
             char * msg, ...) {
 	va_list argptr;
-	char classSrc[30];
+	char classSrc[64];   /* "NOT YET IMPLEMENTED " + source + routine is 32 */
 	char message[512];
     char msgBreak[20];
     int res = 0;
@@ -952,9 +1217,10 @@ void dbgCmd_rese (int numArgs, struct args_t *args) {
 	cmb_pulse_reset();
 	scc_pulse_reset();
 	wd_pulse_reset();
+	mmu_pulse_reset();
     cs_pulse_reset();
 	nv_pulse_reset();
-	/*fw_pulse_reset();*/
+	fw_pulse_reset();
 	fd_pulse_reset();
 	pit_pulse_reset();
 	m68k_set_instr_callback(sys_instr_hook);	/* agghh: cleaed by reset */
@@ -998,7 +1264,9 @@ int breakpointReached (unsigned int addr) {
 	if ((g_breakOnBusError) && (g_busErrorCount)) return -2;
 
 	for (i=0;i<MAXBREAKPOINTS;i++) {
-		if (breakpoints[i].addr == addr) {
+		/* an unused slot holds address 0, which used to match and halt the
+		   emulator every time the CPU reached location 0 */
+		if ((breakpoints[i].addr) && (breakpoints[i].addr == addr)) {
 			if (breakpoints[i].currCount) {
 				breakpoints[i].currCount--;
 				return 0;
@@ -1011,6 +1279,88 @@ int breakpointReached (unsigned int addr) {
 	return 0;
 }
 
+
+void dbgCmd_watch (int numArgs, struct args_t *args) {
+	int i;
+
+	if (numArgs < 1) {
+		printf("watch  address   len  hits  break\n");
+		for (i = 0; i < MAXWATCHPOINTS; i++)
+			if (watchpoints[i].len)
+				printf("%4d  %08x  %4u  %4u  %s\n",i,watchpoints[i].addr,
+						watchpoints[i].len,watchpoints[i].hits,
+						watchpoints[i].brk ? "yes" : "no");
+			else
+				printf("%4d  unused\n",i);
+		return;
+	}
+	if (args[0].value >= MAXWATCHPOINTS) {
+		printf("watchpoint number must be 0 to %d\n",MAXWATCHPOINTS-1);
+		return;
+	}
+	i = args[0].value;
+	if (numArgs < 2) {                      /* watch n  clears it */
+		watchpoints[i].addr = 0;
+		watchpoints[i].len = 0;
+		watchpoints[i].hits = 0;
+		watchpoints[i].brk = 0;
+		printf("watchpoint %d cleared\n",i);
+		return;
+	}
+	watchpoints[i].addr = args[1].value;
+	watchpoints[i].len  = (numArgs > 2) ? args[2].value : 4;
+	if (!watchpoints[i].len) watchpoints[i].len = 4;
+	watchpoints[i].hits = 0;
+	watchpoints[i].brk  = 0;
+	printf("watchpoint %d on writes to %08x..%08x\n",i,watchpoints[i].addr,
+			watchpoints[i].addr + watchpoints[i].len - 1);
+}
+
+void dbgCmd_traptrace (int numArgs, struct args_t *args) {
+	if (numArgs < 1) { printf("trap tracing is %s\n",trapTrace ? "on" : "off"); return; }
+	trapTrace = args[0].value ? 1 : 0;
+	printf("trap tracing %s\n",trapTrace ? "on" : "off");
+}
+
+extern unsigned char ram[];
+
+void dbgCmd_msave (int numArgs, struct args_t *args) {
+	FILE * f;
+	const char * name = (numArgs > 0) ? args[0].txt : "ram.bin";
+
+	f = fopen(name,"wb");
+	if (!f) { printf("cannot open %s\n",name); return; }
+	fwrite(ram,1,MEM_SIZE,f);
+	fclose(f);
+	printf("wrote %u bytes of RAM to %s\n",(unsigned)MEM_SIZE,name);
+}
+
+void dbgCmd_history (int numArgs, struct args_t *args) {
+	unsigned int n, i, idx, prev;
+	char instruction[128];
+
+	n = (numArgs > 0) ? args[0].value : 32;
+	if (n > pcHistoryCount) n = pcHistoryCount;
+	if (n > PCHISTORY_SIZE) n = PCHISTORY_SIZE;
+
+	printf("last %u instructions, oldest first\n",n);
+	prev = 0;
+	for (i = 0; i < n; i++) {
+		idx = (pcHistoryIdx - n + i) & (PCHISTORY_SIZE - 1);
+		m68k_disassemble(&instruction[0], pcHistory[idx], M68K_CPU_TYPE_68010);
+		/* mark anything that is not a straight line continuation, those are the
+		   jumps, calls, returns and exceptions worth looking at */
+		printf("%s%s %08x  %s\n",
+				pcHistSuper[idx] ? "S" : "U",
+				(i && (pcHistory[idx] != prev)) ? "->" : "  ",
+				pcHistory[idx], instruction);
+		prev = pcHistory[idx] + 2;
+		{   /* advance prev past the operand words the disassembler consumed */
+			unsigned int len = m68k_disassemble(&instruction[0], pcHistory[idx], M68K_CPU_TYPE_68010);
+			prev = pcHistory[idx] + len;
+		}
+	}
+}
 
 void dbgCmd_break (int numArgs, struct args_t *args) {
 	int i;
@@ -1076,10 +1426,14 @@ void dbgCmd_step (int numArgs, struct args_t *args) {
 	pc = m68k_get_reg(NULL, M68K_REG_PC);
     if (pc != prevShownPC) showInstruction(pc,"");
 	if (numArgs > 0) instrCount = args[0].value;
+	if (m68k_is_stopped())
+		printf("CPU is stopped (a STOP instruction executed), waiting for an interrupt;\n"
+		       "stepping passes time but executes nothing until one arrives.\n");
 	for (i=0; i<instrCount; i++) {
 		pollBoardStatus();
 		for (j=0; j<NUMREGS;j++) regsBefore[j]=m68k_get_reg(NULL, j);
 		m68k_execute(1);
+		sys_device_tick();
 		pc = m68k_get_reg(NULL, M68K_REG_PC);
 		for (j=0; j<NUMREGS;j++) regsAfter[j]=m68k_get_reg(NULL, j);
 		changedRegs[0]=0;
@@ -1114,12 +1468,16 @@ void dbgCmd_rm (int numArgs, struct args_t *args) {
 	kb_raw();
 	do {
 		pollCount--;
-		if (!(pollCount)) {
+		/* The poll counter measures instructions, and a stopped CPU executes
+		 * none, so without the second test the console would go deaf exactly
+		 * while the kernel sits idle waiting for a keystroke. */
+		if (!(pollCount) || m68k_is_stopped()) {
 			pollCount = SCC_POLL_INSTRUCTIONS;
 			pollBoardStatus();
 		}
 		g_currPC = m68k_get_reg(NULL, M68K_REG_PC); /* REG_PPC does not work */
 		m68k_execute(1);
+		sys_device_tick();
 		pc = m68k_get_reg(NULL, M68K_REG_PC);
 	} while ((numMsgs < maxMsgs) && (!(brkpt = breakpointReached (pc))) && (!(g_ctrlCpressed)));
 	kb_normal();
@@ -1130,6 +1488,8 @@ void dbgCmd_rm (int numArgs, struct args_t *args) {
 	if (g_ctrlCpressed) {
 		printf("break due to ctrl c\n");
 		g_ctrlCpressed = 0;
+		if (m68k_is_stopped())
+			printf("CPU is stopped (a STOP instruction executed), waiting for an interrupt.\n");
 	} else
 		if (brkpt) printf("breakpoint %d @ %08x\n",brkpt-1,breakpoints[brkpt-1].addr);
 	showInstruction(g_currPC,"");
@@ -1148,12 +1508,16 @@ void dbgCmd_go (int numArgs, struct args_t *args) {
 	kb_raw();
 	do {
 		pollCount--;
-		if (!(pollCount)) {
+		/* The poll counter measures instructions, and a stopped CPU executes
+		 * none, so without the second test the console would go deaf exactly
+		 * while the kernel sits idle waiting for a keystroke. */
+		if (!(pollCount) || m68k_is_stopped()) {
 			pollCount = SCC_POLL_INSTRUCTIONS;
 			pollBoardStatus();
 		}
 		g_currPC = m68k_get_reg(NULL, M68K_REG_PC); /* REG_PPC does not work */
 		m68k_execute(1);
+		sys_device_tick();
 		pc = m68k_get_reg(NULL, M68K_REG_PC);
         brkpt = breakpointReached (pc);
 	} while ( (brkpt == 0) && (!(g_ctrlCpressed)));
@@ -1199,6 +1563,8 @@ struct devs_t devs[] =
     { "scc", scc_dbgCmd},
     { "wd",  wd_dbgCmd },
     { "cs",  cs_dbgCmd },
+    { "mmu", mmu_dbgCmd },
+    { "fw",  fw_dbgCmd },
     { "",    NULL}
 };
 
@@ -1341,6 +1707,10 @@ struct cmds_t cmds[] =
 {
     { "an",    dbgCmd_an    , 0,1,0,"aX - change register A0 to A7"},
     { "break", dbgCmd_break , 0,3,1,"BrkNum address [count] - set breakpoint 0 to 3"},
+    { "watch", dbgCmd_watch , 0,3,1,"WatchNum [address] [len] - log writes to an address"},
+    { "history", dbgCmd_history , 0,1,1,"[count] - show recently executed instructions"},
+    { "msave", dbgCmd_msave , 0,1,0,"[file] - dump all RAM to a file"},
+    { "traptrace", dbgCmd_traptrace , 0,1,1,"[0|1] - log TRAP instructions executed in user mode"},
     { "bus"  , dbgCmd_bus   , 0,1,0,"{0|1} disable/enable break on bus error"},
     { "clr"  , dbgCmd_clr   , 0,0,0,"clear all breakpoints"},
 

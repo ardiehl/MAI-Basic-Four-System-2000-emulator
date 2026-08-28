@@ -40,12 +40,69 @@ char  sccregs[][4] = {
 
 int pollCnt = 0;
 
+/* Interrupts, level 5 autovectored.
+ *
+ * The vector table settles it: the kernel installs a real handler at the
+ * level 5 autovector (0x3a83c) and leaves level 4's autovector on the default,
+ * so the CMB interrupt table reads: 1 parallel, 2 I/O bus, 3 floppy, 4 I/O
+ * bus, 5 SCC, 6 timer, 7 powerfail. The console driver's character output
+ * routine at 0x27b78 writes WR1 = 0x17, transmit, external and all-receive
+ * interrupts enabled, pushes one byte into the data register, sets its
+ * busy flag and goes to sleep. Without a transmit-empty interrupt the flag
+ * never clears, the 1024 byte output queue fills, and the fifteenth write of
+ * the startup banner blocks forever, which is exactly where every boot
+ * stopped.
+ *
+ * The emulated transmitter empties instantly, so a data write immediately
+ * raises the pending bit when WR1 bit 1 is set. WR0 commands 5, reset TX
+ * interrupt pending, and 7, reset highest IUS, clear them. RR3 on channel A
+ * reports the pending bits and RR2 on channel B supplies the status modified
+ * vector, both of which a Z8530 dispatch handler may read. */
+#define SCC_INTNO 5
+
+static int sccTxPend[2];
+static int sccRxPend[2];
+
+static void scc_update_irq (void) {
+    static int asserted = 0;
+    int want = sccTxPend[0] || sccTxPend[1] || sccRxPend[0] || sccRxPend[1];
+
+    if (want != asserted) {
+        asserted = want;
+        msgout (MSGC_INFO,MSG_SCC,MSG_NONE,"interrupt line %s (txA %d rxA %d txB %d rxB %d)",
+                want ? "asserted" : "negated",
+                sccTxPend[0],sccRxPend[0],sccTxPend[1],sccRxPend[1]);
+        m68k_set_int_line (SCC_INTNO, want ? 1 : 0);
+    }
+}
+
 unsigned int scc_cmdRead (int port) {
 	int idx;
 
 	idx = scc[port].wr[0] & 0x07;
 	if (((scc[port].wr[0] >> 3) & 0x07) == 1) idx+=8;
 	scc[port].wr[0] = scc[port].wr[0] & 0xf0;	/* reset index to 0 */
+	if ((idx == 3) && (port == 0)) {
+		/* RR3, channel A only: interrupt pending bits */
+		int v = (sccRxPend[0] << 5) | (sccTxPend[0] << 4) |
+		        (sccRxPend[1] << 2) | (sccTxPend[1] << 1);
+		msgout (MSGC_INFO,MSG_SCC,MSG_READB,"PortA RR3 (int pending): %02x",v);
+		return v;
+	}
+	if ((idx == 2) && (port == 1)) {
+		/* RR2, channel B: the vector from WR2 with the status modification */
+		int code;
+		if      (sccRxPend[0]) code = 6;    /* channel A receive  */
+		else if (sccTxPend[0]) code = 4;    /* channel A transmit */
+		else if (sccRxPend[1]) code = 2;    /* channel B receive  */
+		else if (sccTxPend[1]) code = 0;    /* channel B transmit */
+		else                   code = 3;    /* nothing: special condition B */
+		{
+			int v = (scc[0].wr[2] & 0xf1) | (code << 1);
+			msgout (MSGC_INFO,MSG_SCC,MSG_READB,"PortB RR2 (modified vector): %02x",v);
+			return v;
+		}
+	}
 	if (scc[port].rr[idx] != 0x04)
 	    msgout (MSGC_INFO,MSG_SCC,MSG_READB,"Port%c cmd: %02x",port ? 'B' : 'A',scc[port].rr[idx]);
 	if (idx == 0) {
@@ -66,6 +123,8 @@ unsigned int scc_dataRead (int port) {
     char c;
     if (scc[port].rr[0] & 1) {
         scc[port].rr[0] &= 0xfe;
+        sccRxPend[port] = 0;
+        scc_update_irq();
         msgout (MSGC_INFO,MSG_SCC,MSG_READB,"Port%c data: %02x",port ? 'B' : 'A',scc[port].recBuf);
         if (port == 0) return (unsigned int)scc[port].recBuf;
         else {
@@ -82,7 +141,15 @@ unsigned int scc_dataRead (int port) {
     return 0;
 }
 
+static UINT8 sccBaud[2];
+
 unsigned int scc_read_byte(unsigned int address) {
+
+	if ((address & SCC_ADDR_MASK) == BAUD_ADDR) {
+		int port = address & 1;
+		msgout (MSGC_INFO,MSG_SCC,MSG_READB,"baud latch port%c read back as %02x",port ? 'B' : 'A',sccBaud[port]);
+		return sccBaud[port];
+	}
 	switch (address & SCC_REG_MASK) {
 		case (SCC_A_CMD) : { return scc_cmdRead(0); break; }
 		case (SCC_A_DATA): { return scc_dataRead(0); break; }
@@ -105,6 +172,22 @@ void scc_cmdWrite (int port, int value) {
 	idx = scc[port].wr[0] & 0x07;
 	if (((scc[port].wr[0] >> 3) & 0x07) == 1) idx+=8;
 	scc[port].wr[0] = scc[0].wr[0] & 0xf0;	/* reset index to 0 */
+	if (idx == 0) {
+		/* a write to WR0 can carry a command in bits 5 to 3 */
+		switch ((value >> 3) & 0x07) {
+			case 5:	/* reset TX interrupt pending */
+					sccTxPend[port] = 0;
+					scc_update_irq();
+					break;
+			case 7:	/* reset highest IUS, highest first: RX above TX, A above B */
+					if      (sccRxPend[0]) sccRxPend[0] = 0;
+					else if (sccTxPend[0]) sccTxPend[0] = 0;
+					else if (sccRxPend[1]) sccRxPend[1] = 0;
+					else if (sccTxPend[1]) sccTxPend[1] = 0;
+					scc_update_irq();
+					break;
+		}
+	}
 	if (!((idx == 0) && (value == 0))) scc[port].wr[idx] = value & 0xff;
 }
 
@@ -136,11 +219,30 @@ void scc_dataWrite (int port, int value) {
 				fflush(stdout);
 			}
 		}
+		/* the emulated transmitter empties the moment the byte lands, which
+		   is the transmit buffer empty condition the interrupt reports */
+		if (scc[port].wr[1] & 0x02) {
+			sccTxPend[port] = 1;
+			scc_update_irq();
+		}
 	}
 }
 
 
+/* The baud rate latches live in the 64XXXX window. The boot PROM never writes
+ * them, it runs the ports at whatever the hardware comes up with, but the
+ * BOSS/IX tty driver programs them for both ports, so without this every
+ * console open produced a bus error message and the driver got nowhere.
+ * Write only, one byte per port. */
+
 void scc_write_byte(unsigned int address, unsigned int value) {
+
+	if ((address & SCC_ADDR_MASK) == BAUD_ADDR) {
+		int port = address & 1;
+		sccBaud[port] = value & 0xff;
+		msgout (MSGC_INFO,MSG_SCC,MSG_WRITEB,"baud latch port%c = %02x",port ? 'B' : 'A',value & 0xff);
+		return;
+	}
 
 	switch (address & SCC_REG_MASK) {
 		case (SCC_A_CMD) : { scc_cmdWrite(0,value); return; }
@@ -169,7 +271,10 @@ void scc_pollStatus(void) {
                 } else {
                     scc[0].rr[0] |= 1;              /* char is available */
                     scc[0].recBuf = c;
-				    /* TODO: interrupt handling */
+                    if (scc[0].wr[1] & 0x18) {      /* an RX interrupt mode is on */
+                        sccRxPend[0] = 1;
+                        scc_update_irq();
+                    }
                 }
 			}
         }
@@ -442,6 +547,9 @@ void scc_pulse_reset(void) {
 	memset(&scc,0,sizeof(scc));
 	scc[0].rr[0] = 0x04;
 	scc[1].rr[0] = 0x04;
+	sccTxPend[0] = sccTxPend[1] = 0;
+	sccRxPend[0] = sccRxPend[1] = 0;
+	m68k_set_int_line (SCC_INTNO, 0);
 }
 
 

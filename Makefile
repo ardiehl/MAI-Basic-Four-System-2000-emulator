@@ -119,7 +119,7 @@ BUILD_TYPE	?=	debug
 TARGET		=	eagleemu
 
 # source files that produce object files
-SRC			=	cmb.c load.c memory.c nvram.c scc.c sim.c util.c wd.c pit.c fd.c cs.c m68k.c
+SRC			=	cmb.c load.c memory.c nvram.c scc.c sim.c util.c wd.c pit.c fd.c cs.c m68k.c mmu.c fourway.c
 SRC			+=	musashi/m68kcpu.c musashi/m68kdasm.c musashi/m68kops.c
 
 # source type - either "c" or "cpp" (C or C++)
@@ -431,6 +431,7 @@ src/musashi/m68kops.h src/musashi/m68kops.c:	obj/musashi/m68kmake src/musashi/m6
 # make object files from C source files
 obj/%.o:	src/%.c
 	@echo "compiling $@"
+	@mkdir -p $(dir $@) $(dir dep/$*.d)
 	@$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
 
 ##

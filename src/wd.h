@@ -143,9 +143,19 @@ typedef struct {
     UINT16 dmaTestWordRead;
     UINT8  dmaTestCount;    /* 2=HI(dmaTestWordRead),1=LO, 0=none */
     UINT32 intCount;
+    int    intPending;     /* a completion interrupt is outstanding */
+    int    intAsserted;    /* current state of the request line   */
     UINT32 replyBytesLeft;
     UINT32 replyBytePos;
     UINT8  replyBuffer[WD_SECTOR_SIZE];
+    /* disk image backing store, added to make the drive real */
+    FILE * img;
+    char   imgName[FILENAME_MAX+1];
+    UINT32 imgBlocks;      /* size of the image in 512 byte blocks */
+    int    imgReadonly;
+    UINT8  sense[4];       /* sense bytes returned by REQUEST SENSE  */
+    UINT8  statusByte;     /* SCSI status handed over in the status phase */
+    UINT8  dataBuf[WD_SECTOR_SIZE*8];
 
 } wd_regs_t;
 
@@ -154,8 +164,9 @@ typedef enum {
     SCSI_S_MESSAGE,
     SCSI_S_BUSY,
     SCSI_S_COMPLETE,
-    SCSI_S_READRESULTS,
-    SCSI_S_MESSAGEBYTE,
+    SCSI_S_READRESULTS,     /* data in phase,  status 0x48 */
+    SCSI_S_STATUS,          /* status phase,   status 0xcc */
+    SCSI_S_MESSAGEBYTE,     /* message phase,  status 0xe8 */
     SCSI_S_ENDOFCOMMAND
 } SCSI_S;
 
@@ -175,6 +186,8 @@ void wd_write_byte(unsigned int address, unsigned int value, int flags);
 void wd_write_word(unsigned int address, unsigned int value, int flags);
 void wd_pulse_reset(void);
 int wd_dbgCmd(int numArgs, struct args_t * args);
+int wd_attach_image(int unit, const char * name);
+int wd_units_ready(void);
 void wd_processContinue(void);  /* called each n instructions */
 int  wd_irq_ack(int level);
 

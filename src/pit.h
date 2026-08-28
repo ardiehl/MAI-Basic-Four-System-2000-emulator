@@ -48,6 +48,8 @@ void pit_write_word(unsigned int address, unsigned int value, int flags);
 void pit_pulse_reset(void);
 void pit_check_interrupt(void);
 void pit_pulse_counter(void);
+int  pit_irq_ack(int level);
+void pit_update_irq(void);
 int pit_dbgCmd(int numArgs, struct args_t * args);
 
 int pit_save_state(FILE * f);

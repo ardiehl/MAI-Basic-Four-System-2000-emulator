@@ -93,6 +93,7 @@ char pit_regNames[][25] = {
 	""};
 UINT32 counterValue;
 UINT32 counterPreloadValue;
+int pitIntAsserted = 0;     /* current state of the request line */
 
 
 int pitGetReg(int regNo) {
@@ -112,10 +113,21 @@ void pitSetReg(int regNo, int value) {
 	switch (regNo) {
 		case TCR:	if ( (!(pit_regs[TCR] & 0x01)) && (value & 0x01)) {	/* switched on ? */
 						pit_regs[TCR] = value & 0xf7; /* bit3 always 0 */
+						/* enabling the timer loads the counter from the preload
+						 * register (68230, zero detect control = 0). Without
+						 * this the kernel inherited whatever the boot PROM
+						 * left behind, and the PROM's last test ran in
+						 * rollover mode, so the counter sat at sixteen
+						 * million and the first kernel tick was hours away. */
+						if (!(value & 0x10)) counterValue = counterPreloadValue;
 						pit_check_interrupt();
 					} else
 						pit_regs[TCR] = value & 0xf7; /* bit3 always 0 */ 
+					pit_update_irq();
 					break; 
+		case TSR:	if (value & 0x01) pit_regs[TSR] &= ~0x01;  /* write one to clear ZDS */
+					pit_update_irq();
+					break;
 		case CPRH: counterPreloadValue = (counterPreloadValue & 0x00ffff) | (value << 16); break;
 		case CPRM: counterPreloadValue = (counterPreloadValue & 0xff00ff) | (value << 8); break;
 		case CPRL: counterPreloadValue = (counterPreloadValue & 0xffff00) | value; break;
@@ -168,6 +180,8 @@ void pit_pulse_reset(void) {
 	pit_regs[17] = 0x0f;
 	counterValue = 0;
 	counterPreloadValue = 0;
+	pitIntAsserted = 0;
+	m68k_set_int_line (PIT_TINTR, CLEAR_LINE);
 }
 
 /*          765 4 3 21 0
@@ -202,6 +216,52 @@ void pit_pulse_reset(void) {
  * PC3/TOUT is connected to INT6
  */
 
+/* The 68230 timer request is LEVEL sensitive. ZDS, bit 0 of the timer status
+ * register, is set when the counter reaches zero and stays set until software
+ * writes a one to it. While ZDS is set, the timer is enabled and the TOUT
+ * control selects an interrupt mode, the request line is asserted.
+ *
+ * Modelling it as a forced edge, which is what this used to do, had two
+ * consequences. The boot PROM writes a test pattern to the vector register and
+ * runs the counter down from 1 as a register check, and that raised an
+ * interrupt that could never be withdrawn. And nothing ever handed back the
+ * programmed vector, so the BOSS/IX clock handler at vector d4 was never
+ * entered and the kernel idled forever.
+ */
+void pit_update_irq(void) {
+	int tcr = pit_regs[TCR];
+	int toutcontrol = (tcr >> 5) & 0x07;
+	int assertIt;
+
+	assertIt = (tcr & 1) &&                       /* timer running          */
+	           (pit_regs[TSR] & 1) &&             /* zero detect status set */
+	           ((toutcontrol == 5) || (toutcontrol == 7));
+
+	if (assertIt != pitIntAsserted) {
+		pitIntAsserted = assertIt;
+		msgout (MSGC_INFO,MYSELF,MSG_NONE,"timer interrupt %s (tcr %02x tsr %02x)",
+				assertIt ? "asserted" : "negated",tcr,pit_regs[TSR]);
+		m68k_set_int_line (PIT_TINTR, assertIt ? ASSERT_LINE : CLEAR_LINE);
+	}
+}
+
+int pit_irq_ack (int level) {
+	int toutcontrol = (pit_regs[TCR] >> 5) & 0x07;
+
+	if ((level == PIT_TINTR) && (pitIntAsserted)) {
+		/* On this board only PC3/TOUT is wired, to INT6. TIACK is not connected,
+		   so the 68230 can never supply a vector however its TOUT control is
+		   programmed, and the timer is autovectored. Three things agree: the
+		   boot PROM installs its handler at the level 6 autovector while it
+		   programs the timer, the kernel installs one there too, and the vector
+		   register only ever receives a register test pattern from the PROM.
+		   toutcontrol is read only to keep the intent visible. */
+		(void)toutcontrol;
+		return M68K_INT_ACK_AUTOVECTOR;
+	}
+	return M68K_INT_ACK_SPURIOUS;
+}
+
 void pit_check_interrupt(void) {
 	int tcr = pit_regs[TCR];
 	int toutcontrol;
@@ -211,11 +271,13 @@ void pit_check_interrupt(void) {
 		if (counterValue == 0) {		/* check interrupt generation */
 			if ((toutcontrol == 5) ||	/* 101 */
 			    (toutcontrol == 7)) {	/* 111 */
-				m68k_pulse_interrupt (PIT_TINTR);
+				pit_regs[TSR] |= 0x01;      /* zero detect status */
+				pit_update_irq();
 			}
 		}
 	}
 }
+
 
 
 void pit_pulse_counter(void) {

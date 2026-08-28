@@ -599,9 +599,13 @@ void cs_write_word(unsigned int address, unsigned int value, int flags) {
                                         case 0x8000:    msgout(MSGC_FUNC,MYSELF,MSG_NONE,"Reset controller and drive");
                                                         /* should i reset IOPB ? */
                                                         break;
-                                        /*case 0x8001:    msgout(MSGC_FUNC,MYSELF,MSG_NONE,"reset chain address to %08x (address:%08x)",cs.firstIOPB_addr,cs.firstIOPB_addr << 1);
+                                        case 0x8001:    /* seen from BOSS/IX trestore: sent right
+                                                           after the IOPB address handover, so it arms
+                                                           the chain at its first block, which is what
+                                                           the original commented out guess said */
+                                                        msgout(MSGC_FUNC,MYSELF,MSG_NONE,"reset chain address to %08x (address:%08x)",cs.firstIOPB_addr,cs.firstIOPB_addr << 1);
                                                         cs.IOPB_addr = cs.firstIOPB_addr;
-                                                        break;*/
+                                                        break;
                                         case 0x8002:    msgout(MSGC_FUNC,MYSELF,MSG_NONE,"Reset controller");
                                                         /* must not reset IOPB */
                                                         break;
@@ -615,7 +619,29 @@ void cs_write_word(unsigned int address, unsigned int value, int flags) {
                              } else {
                                  msgout (MSGC_INFO,MYSELF,MSG_WRITEW,"%04x to %08x (statusReg), nextIs:%d",value,address,nextIs);
                                  //switch (nextIs) {
-                                 /*   case 2 :*/ cs.IOPB_addr = value; /* assume this overwrites upper */
+                                 /* The IOPB address arrives in two halves, each
+                                  * carrying 14 bits, and the byte address is the
+                                  * assembled value shifted left once. The high half
+                                  * above already merges, keeping the low 14 bits and
+                                  * replacing the upper ones. This half has to do the
+                                  * mirror image of that. It used to simply assign,
+                                  * throwing the upper half away, and the comment here
+                                  * said as much: "assume this overwrites upper".
+                                  *
+                                  * The boot loader never noticed because the addresses
+                                  * it uses fit in the low half. The BOSS/IX kernel sends
+                                  * 4007 then 15db, which should assemble to 0001d5db and
+                                  * a byte address of 0003abb6 in kernel data. Dropping
+                                  * the upper half gave 000015db and 00002bb6, which is
+                                  * inside kernel TEXT, so when the command finished the
+                                  * controller wrote its completion status over the
+                                  * instruction at 00002bca. That turned a pea (-$10,A6)
+                                  * into a move.l D0,D0 followed by an orphaned fff0, and
+                                  * the kernel died on the line F trap a few instructions
+                                  * later with "illegal instruction trap, pc = 2BCC".
+                                  */
+                                             cs.IOPB_addr &= ~0x3fffu;
+                                             cs.IOPB_addr |= (value & 0x3fff);
                                              cs.firstIOPB_addr = cs.IOPB_addr;
                                              msgout (MSGC_INFO,MYSELF,MSG_NONE," IOPB(L), got %04x, IOPB:%08x IOPB-addr:%08x",value,cs.IOPB_addr,cs.IOPB_addr<<1);
                                              return;

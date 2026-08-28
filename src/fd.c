@@ -142,6 +142,8 @@ unsigned int fd_read_word(unsigned int address, int flags) {
 void fd_write_cmd (UINT8 value) {
   char params[255];
   int stepping;
+
+  params[0] = 0;   /* type 3 commands never filled this in, uninitialised %s below */
   char cmdName[20];  // AD 23.10.2020, was to small
   
   fd.regs[WD1793_R_CMD] = value;
@@ -167,6 +169,7 @@ void fd_write_cmd (UINT8 value) {
 		break;
 	}
 	case 2: { sprintf(params,"m(muli sector): %d, s(side compare): %d, E:%d, C: %d, P:%d\n",value >> WS1793_CF_MULTSEC & 1,value >> WS1793_CF_SIDECOMP & 1,value >> WS1793_CF_E & 1,value >> WS1793_CF_C & 1,value >> WS1793_CF_P & 1); break; }
+	case 3: { sprintf(params,"m(multi sector): %d, s(side compare): %d, E: %d\n",value >> WS1793_CF_MULTSEC & 1,value >> WS1793_CF_SIDECOMP & 1,value >> WS1793_CF_E & 1); break; }
 	case 4: { sprintf(params,"Int cond: 0x%2x",value & 0x0f); break; }
   }
   cmdName[0] = '\0';

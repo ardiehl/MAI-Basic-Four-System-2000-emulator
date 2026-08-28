@@ -19,15 +19,28 @@ int cmb_status_word;
 unsigned int cmb_writeRegs;
 
 /* adress must be a valid cmb port (2xxxxy) */
+/* The parity error address registers and the general status register were
+ * recognised but fell through to the unhandled path below, which returns all
+ * ones. Per table 3-1 of BFISD 8079 the CMB status bits include the memory
+ * management error flag, the main memory parity error flag, the power fail flag
+ * and the stack overflow flag, so all ones reads as every fault on the board
+ * being active at once. The boot PROM never looks, the BOSS/IX kernel does, and
+ * it panicked with a memory management trap the moment it did. Nothing here is
+ * latched by this emulator yet, so the honest answer is zero, no fault.
+ */
 unsigned int cmb_read_byte(unsigned int address) {
   switch (address & CMB_ADDR_REG_MASK) {
 	  case CMBW_TSTOL		: { msgout (MSGC_ERR,MSG_CMB,MSG_READB,"attempt to read write only port TSTOL"); break; }
-	  case CMBR_MEMPAR_HI	: { msgout (MSGC_INFO,MSG_CMB,MSG_READB,"read CMB_MEMPAR_HI"); break; }
-	  case CMBR_MEMPAR_LO	: { msgout (MSGC_INFO,MSG_CMB,MSG_READB,"read CMB_MEMPAR_LO"); break; }
+	  case CMBR_MEMPAR_HI	: { msgout (MSGC_INFO,MSG_CMB,MSG_READB,"read CMB_MEMPAR_HI, no fault latched"); return 0; }
+	  case CMBR_MEMPAR_HI+1	: { msgout (MSGC_INFO,MSG_CMB,MSG_READB,"read CMB_MEMPAR_HI low byte, no fault latched"); return 0; }
+	  case CMBR_MEMPAR_LO	: { msgout (MSGC_INFO,MSG_CMB,MSG_READB,"read CMB_MEMPAR_LO, no fault latched"); return 0; }
+	  case CMBR_MEMPAR_LO+1	: { msgout (MSGC_INFO,MSG_CMB,MSG_READB,"read CMB_MEMPAR_LO low byte, no fault latched"); return 0; }
 	  case CMBW_PARDATA		: { msgout (MSGC_ERR,MSG_CMB,MSG_READB,"attempt to read write only port PARDATA"); break; }
 	  case CMBW_INHSER		: { msgout (MSGC_ERR,MSG_CMB,MSG_READB,"attempt to read write only port INHSER"); break; }
 	  case CMBR_STATUS		: { msgout (MSGC_INFO,MSG_CMB,MSG_READB,"read STATUS8: %02x",cmb_status_word); return cmb_status_word & 0xff; }
-	  case CMBR_GENSTATUS	: { msgout (MSGC_INFO,MSG_CMB,MSG_READB,"read GENSTATUS"); break; }
+	  case CMBR_STATUS+1	: { msgout (MSGC_INFO,MSG_CMB,MSG_READB,"read STATUS8 low byte: %02x",cmb_status_word & 0xff); return cmb_status_word & 0xff; }
+	  case CMBR_GENSTATUS	: { msgout (MSGC_INFO,MSG_CMB,MSG_READB,"read GENSTATUS, no fault latched"); return 0; }
+	  case CMBR_GENSTATUS+1	: { msgout (MSGC_INFO,MSG_CMB,MSG_READB,"read GENSTATUS low byte, no fault latched"); return 0; }
   }
   msgout (MSGC_ERR,MSG_CMB,MSG_READB,"unhandled read byte from address %08",address);
   return 0xff;
@@ -36,12 +49,12 @@ unsigned int cmb_read_byte(unsigned int address) {
 unsigned int cmb_read_word(unsigned int address) {
   switch (address & CMB_ADDR_REG_MASK) {
 	  case CMBW_TSTOL		: { msgout (MSGC_ERR,MSG_CMB,MSG_READW,"attempt to read write only port TSTOL"); break; }
-	  case CMBR_MEMPAR_HI	: { msgout (MSGC_INFO,MSG_CMB,MSG_READW,"read CMB_MEMPAR_HI"); break; }
-	  case CMBR_MEMPAR_LO	: { msgout (MSGC_INFO,MSG_CMB,MSG_READW,"read CMB_MEMPAR_LO"); break; }
+	  case CMBR_MEMPAR_HI	: { msgout (MSGC_INFO,MSG_CMB,MSG_READW,"read CMB_MEMPAR_HI, no fault latched"); return 0; }
+	  case CMBR_MEMPAR_LO	: { msgout (MSGC_INFO,MSG_CMB,MSG_READW,"read CMB_MEMPAR_LO, no fault latched"); return 0; }
 	  case CMBW_PARDATA		: { msgout (MSGC_ERR,MSG_CMB,MSG_READW,"attempt to read write only port PARDATA"); break; }
 	  case CMBW_INHSER		: { msgout (MSGC_ERR,MSG_CMB,MSG_READW,"attempt to read write only port INHSER"); break; }
 	  case CMBR_STATUS		: { msgout (MSGC_INFO,MSG_CMB,MSG_READW,"read STATUS16: %04x",cmb_status_word); return cmb_status_word; }
-	  case CMBR_GENSTATUS	: { msgout (MSGC_INFO,MSG_CMB,MSG_READW,"read GENSTATUS"); break; }
+	  case CMBR_GENSTATUS	: { msgout (MSGC_INFO,MSG_CMB,MSG_READW,"read GENSTATUS, no fault latched"); return 0; }
   }
   msgout (MSGC_ERR,MSG_CMB,MSG_READW,"unhandled read word from address %08",address);
   return 0xffff;
