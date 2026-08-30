@@ -37,6 +37,7 @@
 #include "fd.h"			/* floppy */
 #include "load.h"		/* s-record loader */
 #include "version.h"
+#include "socket_connections.h"
 
 #define MYSELF MSG_OTHER
 
@@ -1514,6 +1515,8 @@ void dbgCmd_go (int numArgs, struct args_t *args) {
 		if (!(pollCount) || m68k_is_stopped()) {
 			pollCount = SCC_POLL_INSTRUCTIONS;
 			pollBoardStatus();
+			// check for incoming connections or data on all open ports and set the status field for each connection
+			sock_poll();
 		}
 		g_currPC = m68k_get_reg(NULL, M68K_REG_PC); /* REG_PPC does not work */
 		m68k_execute(1);
@@ -1565,6 +1568,7 @@ struct devs_t devs[] =
     { "cs",  cs_dbgCmd },
     { "mmu", mmu_dbgCmd },
     { "fw",  fw_dbgCmd },
+    { "sock",sock_dbgCmd },
     { "",    NULL}
 };
 
@@ -1959,7 +1963,7 @@ void commandHandler(char * oneCmd)
 		if (cmdNum == -1) findAndExecCommand (cmd,cmds,numArgs,args);
 	  }
 	  /*printf("\n");*/
-	
+
 	if (oneCmd) return;
 	} while ((strcmp(cmd,"quit")));
 	if (lastCmd) free(lastCmd);
@@ -2023,6 +2027,8 @@ int main(int argc, char* argv[])
 	if (loadROM (MEM_ROM_FILENAME))
 		exit_error("unable to open rom file %s\n",MEM_ROM_FILENAME);
 
+	sock_init(0);	/* init listen sockets */
+
     m68k_set_cpu_type(M68K_CPU_TYPE_68010);
 	m68k_set_int_ack_callback(sys_int_ack);
 
@@ -2052,6 +2058,7 @@ int main(int argc, char* argv[])
 	}
 
 	commandHandler(NULL);
+	sock_deinit();
 	write_history (HISTORY_FILENAME);
 	return 0;
 }

@@ -2,7 +2,7 @@
  *  scc.c
  *
  *  Created: Nov, 22 2011
- *  Changed: Dec, 17 2011
+ *  Changed: Aug, 30 2026
  *  Armin Diehl <ad@ardiehl.de>
  ****************************************************************************
  * mai scc (serial boards on cmb) - Zilog z8530
@@ -17,6 +17,7 @@
 #include "sim.h"
 #include "cmb.h"
 #include "util.h"
+#include "socket_connections.h"
 
 #define SCC_NUM_REGS 16
 
@@ -31,6 +32,7 @@ struct scc_t
 	int wr[SCC_NUM_REGS];	/* WR0: Reg. pointers, various initialization commands */
 	int rr[SCC_NUM_REGS];
 	char recBuf;
+	int sockEnable;		/* 0: in/out from console, 1: via sockets */
   };
 
 struct scc_t scc[2];
@@ -131,8 +133,11 @@ unsigned int scc_dataRead (int port) {
             if (scc[port].wr[14] & 0x10) {	/* are we in loopback mode ? */
                 return (unsigned int)scc[port].recBuf;
             } else {
-                c = *fileBufferPos; fileBufferPos++; filePos++;
-                return c;
+            	if (fileBufferPos) {
+					c = *fileBufferPos; fileBufferPos++; filePos++;
+					return c;
+            	} else
+					return (unsigned int)scc[port].recBuf;
             }
         }
     } else {
@@ -207,16 +212,24 @@ void scc_dataWrite (int port, int value) {
 	} else {
 		if (port == 0) {	/* echo port A to console */
 			if (!(cmb_getWriteRegs() & CMBWSTAT_INHSER)) {
-				fputc(value & 0x7f,stderr);	/* stdout conflicts with keyboard input */
-				fflush(stderr);
-				fflush(stdout);
+				if (scc[port].sockEnable) {
+					sock_putchar(0,value & 0x7f);
+				} else {
+					fputc(value & 0x7f,stderr);	/* stdout conflicts with keyboard input */
+					fflush(stderr);
+					fflush(stdout);
+				}
 			}
 		} else
         if (port == 1) {	/* echo port B to console */
 			if (!(cmb_getWriteRegs() & CMBWSTAT_INHSER)) {
-				fputc(value & 0x7f,stderr);	/* stdout conflicts with keyboard input */
-				fflush(stderr);
-				fflush(stdout);
+				if (scc[port].sockEnable) {
+					sock_putchar(1,value & 0x7f);
+				} else {
+					fputc(value & 0x7f,stderr);	/* stdout conflicts with keyboard input */
+					fflush(stderr);
+					fflush(stdout);
+				}
 			}
 		}
 		/* the emulated transmitter empties the moment the byte lands, which
@@ -260,22 +273,44 @@ void scc_write_word(unsigned int address, unsigned int value) {
 
 void scc_pollStatus(void) {
     char c;
+    int len = 0;
     //static char lastC = 0;
 
     if (!(cmb_getWriteRegs() & CMBWSTAT_INHSER)) {  /* are the serial port drivers enabled ? */
         if (!(scc[0].wr[14] & 0x10)) {              /* are we not n loopback mode ? */
-            if (kbhit()) {                          /* key available ? */
-                c = getch();
-                if (c == 24) { 	/* ^x */
-                    setCtrlCPressed();              /* break execution (in sim.c) */
-                } else {
-                    scc[0].rr[0] |= 1;              /* char is available */
-                    scc[0].recBuf = c;
-                    if (scc[0].wr[1] & 0x18) {      /* an RX interrupt mode is on */
-                        sccRxPend[0] = 1;
-                        scc_update_irq();
-                    }
-                }
+			if (kbhit()) {                          /* key available ? */
+				c = getch();
+				len++;
+				if (c == 24) { 	/* ^x */
+					setCtrlCPressed();              /* break execution (in sim.c) */
+				}
+			}
+			if (scc[0].sockEnable) {
+				len = sock_getchar(0,&c);			/* get a character from socket 0 */
+			}
+			if (len > 0) {
+				scc[0].rr[0] |= 1;                  /* char is available */
+				scc[0].recBuf = c;
+				if (scc[0].wr[1] & 0x18) {          /* an RX interrupt mode is on */
+					sccRxPend[0] = 1;
+					scc_update_irq();
+				}
+			}
+        }
+
+        if (!(scc[1].wr[14] & 0x10)) {              /* are we not n loopback mode ? */
+			if (scc[1].sockEnable) {
+				len = sock_getchar(1,&c);			/* get a character from socket 0 */
+			} else {
+				len = 0;
+			}
+			if (len > 0) {
+				scc[1].rr[0] |= 1;              /* char is available */
+				scc[1].recBuf = c;
+				if (scc[1].wr[1] & 0x18) {      /* an RX interrupt mode is on */
+					sccRxPend[1] = 1;
+					scc_update_irq();
+				}
 			}
         }
     }
@@ -610,12 +645,36 @@ void scc_showRegs(int numArgs, struct args_t *args) {
 	}
 }
 
+void scc_socketio(int numArgs, struct args_t *args) {
+	int argsValid;
+
+	if (numArgs == 0) {
+		printf("port A: %s\nport B: %s\n",scc[0].sockEnable ? "Socket" : "console", scc[1].sockEnable ? "Socket" : "console");
+		return;
+	}
+	argsValid = 1;
+	if (numArgs != 2) argsValid = 0;
+	if (argsValid)
+		if (! args[0].isValue) argsValid = 0;
+	if (argsValid)
+		if (! args[1].isValue) argsValid = 0;
+	if (argsValid)
+		if (args[0].value < 0 || args[0].value > 1 || args[1].value < 0 || args[1].value > 1) argsValid = 0;
+
+	if (!argsValid) {
+		printf("usage socketio port enable\nwhere port has to 0 or and and enable has to be 0 or 1\n");
+		return;
+	}
+	scc[args[0].value].sockEnable = args[1].value;
+}
+
 void scc_help (int numArgs, struct args_t *args);
 
 struct cmds_t sccCmds[] =
 {
 	{ "registers",	scc_showRegs, 0,0,0,"show scc registers"},
     { "file",	    scc_file    , 0,1,0,"load file for port B"},
+    { "socketio",   scc_socketio, 0,2,0,"enable socket i/o, 0|1 (portnum) 0|1 (disable,enable)" },
 	{ "?",			scc_help	, 0,0,0,"show this help"},
 	{ "help",		scc_help	, 0,0,0,"show this help"},
     { "",  NULL, 0,0,0,""}

@@ -1,0 +1,3 @@
+#!/bin/sh
+gdb ./eagleemu --args ./eagleemu "dev wd im wd/bossix_micropolis_2011.dsk" "dev scc sock 0 1" "dev scc sock 1 1"
+

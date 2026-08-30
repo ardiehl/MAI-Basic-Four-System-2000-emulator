@@ -107,7 +107,7 @@
 # note that VER_EXTRA can be overridden on the command line, e.g.:
 # make VER_EXTRA=12345 all
 VER_MAJOR	= 0
-VER_MINOR	= 2
+VER_MINOR	= 3
 VER_EXTRA	?=
 
 # build platform: win32 or linux
@@ -119,7 +119,7 @@ BUILD_TYPE	?=	debug
 TARGET		=	eagleemu
 
 # source files that produce object files
-SRC			=	cmb.c load.c memory.c nvram.c scc.c sim.c util.c wd.c pit.c fd.c cs.c m68k.c mmu.c fourway.c
+SRC			=	cmb.c load.c memory.c nvram.c scc.c sim.c util.c wd.c pit.c fd.c cs.c m68k.c mmu.c fourway.c esc_sequences.c socket_connections.c
 SRC			+=	musashi/m68kcpu.c musashi/m68kdasm.c musashi/m68kops.c
 
 # source type - either "c" or "cpp" (C or C++)

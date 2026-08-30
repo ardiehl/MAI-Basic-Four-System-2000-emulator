@@ -1,3 +1,3 @@
 #!/bin/sh
-./eagleemu "bus -" "dev wd im wd/bossix.dsk" 
+./eagleemu "dev wd im wd/bossix_micropolis_2011.dsk" 
 

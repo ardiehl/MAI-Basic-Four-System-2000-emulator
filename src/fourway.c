@@ -30,6 +30,7 @@
 #include "fourway.h"
 #include "sim.h"
 #include "memory.h"
+#include "socket_connections.h"
 
 #define MYSELF MSG_FW
 
@@ -152,6 +153,7 @@ static void fw_runCommand (int n, int port) {
     UINT16 cmd, count;
     UINT32 i;
     UINT8  ch;
+    int socketPortNum;	// 0 and 1 are for scc, than for the fourways
 
     cb = (b->cmdBlock << 1) + port * FW_CB_PORTSIZE;
     cmd    = fw_peek(cb + FW_CB_CMD);
@@ -178,9 +180,11 @@ static void fw_runCommand (int n, int port) {
                without any further plumbing. */
             for (i = 0; i < count; i++) {
                 ch = sys_read_byte(packet + i,1) & 0xff;
-                if ((n == 0) && (port == 0)) {
+                socketPortNum = 2 + (port * 4) + n;
+                /*if ((n == 0) && (port == 0)) {
                     fputc(ch & 0x7f,stderr);
-                }
+                }*/
+                sock_putchar(socketPortNum, ch & 0x7f);
             }
             if ((n == 0) && (port == 0)) fflush(stderr);
             msgout (MSGC_INFO,MYSELF,MSG_NONE,"fw%d port%c: transferred %d bytes",n,'A'+port,count);
