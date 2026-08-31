@@ -260,7 +260,7 @@ struct bfescseq_t bfescseq_tab[] =
 			case 2:
 				if (vtseq) {
 					int offset = bfescseq_tab[sta->seqBuf[0] - BFESCSEQ_TAB_FIRST].offsetArgsOut;
-					snprintf(tmpBuf,sizeof(tmpBuf)-1,vtseq,((int)sta->seqBuf[2])+offset,((int)sta->seqBuf[1])+offset);
+					snprintf(tmpBuf,sizeof(tmpBuf)-1,vtseq,((int)sta->seqBuf[1])+offset,((int)sta->seqBuf[2])+offset);
 					addStrToOutBuf(tmpBuf,outBuf,outBufSize);
 				}
 				sta->inSequence = 0;

@@ -2028,6 +2028,7 @@ int main(int argc, char* argv[])
 		exit_error("unable to open rom file %s\n",MEM_ROM_FILENAME);
 
 	sock_init(0);	/* init listen sockets */
+	scc_setSockCom(1,1); /* set scc port B to socket connection by default */
 
     m68k_set_cpu_type(M68K_CPU_TYPE_68010);
 	m68k_set_int_ack_callback(sys_int_ack);

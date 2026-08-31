@@ -579,12 +579,18 @@ void printWr (int port, int regNum) {
 }
 
 void scc_pulse_reset(void) {
+	int sockEnable0 = scc[0].sockEnable;
+	int sockEnable1 = scc[1].sockEnable;
+
 	memset(&scc,0,sizeof(scc));
 	scc[0].rr[0] = 0x04;
 	scc[1].rr[0] = 0x04;
 	sccTxPend[0] = sccTxPend[1] = 0;
 	sccRxPend[0] = sccRxPend[1] = 0;
 	m68k_set_int_line (SCC_INTNO, 0);
+
+	scc[0].sockEnable = sockEnable0;
+	scc[1].sockEnable = sockEnable1;
 }
 
 
@@ -703,4 +709,8 @@ int scc_load_state(FILE * f) {
     STATEREADID(f);
     STATEREADLEN(scc,f);
     return 1;
+}
+
+void scc_setSockCom(int port, int enabled) {
+	scc[port].sockEnable = enabled;
 }

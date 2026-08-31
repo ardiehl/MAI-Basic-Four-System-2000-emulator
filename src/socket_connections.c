@@ -24,6 +24,7 @@
 #include "sim.h"
 #include "telnetDefs.h"
 #include <assert.h>
+#include "util.h"
 #include "esc_sequences.h"
 
 // for holding escape sequences
@@ -36,6 +37,8 @@ enum sockstat_t {
 	STAT_DATA_AVAILABLE
 };
 
+#define SEND_DATA_BUF_DEF_SIZE 32768
+
 struct sock_t {
 	int fd;
 	enum sockstat_t status;
@@ -46,7 +49,11 @@ struct sock_t {
 	bool doInTranslation;		// translate pressed keys to evdt codes
 	bfseq_State_t outSeqSta;	// state for outgoing escape sequences
 	int dumpIO_console;			// dump send and received chars to console
-
+	int saveSendData;			// save send data to buffer
+	int sendDataBufferSize;
+	int sendDataBufferLen;
+	char *sendDataBufferPos;
+	char *sendDataBuffer;
 };
 
 struct sock_t socks[SOCK_MAX];
@@ -277,6 +284,15 @@ void dumpStr(char prefix, char *data) {
 void sock_putchar(int portNum, char data) {
 	if (portNum < 0 || portNum > SOCK_MAX-1) return;
 	if (socks[portNum].status != STAT_DATA_AVAILABLE && socks[portNum].status != STAT_OPEN) return;
+
+	if (socks[portNum].sendDataBuffer) {	// save data send to terminal if enabled
+		if (socks[portNum].sendDataBufferLen < socks[portNum].sendDataBufferSize) {
+			*socks[portNum].sendDataBufferPos = data;
+			socks[portNum].sendDataBufferPos++;
+			socks[portNum].sendDataBufferLen++;
+		}
+	}
+
 	if (socks[portNum].doOutTranslation) {		// if we have outgoing escape sequence translation
 		char outSeqBuffer[OUT_BUF_SIZE];
 												// bfseq_processChar will process the character and fill outSeqBuffer when we have a complete sequence
@@ -461,6 +477,89 @@ void sock_dump(int numArgs, struct args_t *args) {
 	}
 }
 
+void sock_recSend (int numArgs, struct args_t *args) {
+	int newBufSize = 0;
+	int portNum;
+	if (numArgs < 1 || !args[0].isValue) {
+		printf("usage: dev sock savesend PortNum [BufferSize]\n");
+		return;
+	}
+	portNum = args[0].value;
+	if (portNum >= SOCK_MAX) {
+		printf("invalid port number\n");
+		return;
+	}
+
+	if (socks[portNum].sendDataBuffer) {
+		free(socks[portNum].sendDataBuffer);
+		socks[portNum].sendDataBuffer = NULL;
+		printf("recording disabled\n");
+		return;
+	}
+
+	if (numArgs == 2)
+		newBufSize = args[1].value;
+	else
+		newBufSize = SEND_DATA_BUF_DEF_SIZE;
+
+	socks[portNum].sendDataBuffer = calloc(1,newBufSize);
+	if (!socks[portNum].sendDataBuffer) {
+		printf("failed to allocate %d bytes\n",newBufSize);
+		return;
+	}
+	socks[portNum].sendDataBufferSize = newBufSize;
+
+	socks[portNum].sendDataBufferPos = socks[portNum].sendDataBuffer;
+	socks[portNum].sendDataBufferLen = 0;
+}
+
+
+void dumpSendBuf (unsigned int addr, unsigned int endAddr, int lineLen, char * buf) {
+	unsigned int data;
+	int asciiLen = 0;
+	int hexLen;
+	char hexData[100];
+	char ascii[17];
+
+	printf("\n");
+	hexData[0]=0; sprintf(hexData,"%08x: ",addr);
+	hexLen = strlen(hexData);
+	while (addr <= endAddr) {
+		data = *buf; buf++;
+		if ((data < ' ') | (data > 0x7e)) ascii[asciiLen++] = '.'; else ascii[asciiLen++] = data;
+		ascii[asciiLen] = 0;
+		hexData[hexLen++] = hexNibble(data >> 4);
+		hexData[hexLen++] = hexNibble(data);
+		hexData[hexLen++] = ' ';
+		hexData[hexLen] = 0;
+		if (asciiLen == 8) { hexData[hexLen++] = ' '; hexData[hexLen] = 0; }
+		addr++;
+		if (asciiLen == lineLen) {
+			printf("%-59s  %s\n",hexData,ascii);
+			asciiLen = 0;
+			hexData[0]=0; sprintf(hexData,"%08x: ",addr);
+			hexLen = strlen(hexData);
+		}
+	}
+	if (asciiLen > 0) {
+		printf("%-59s  %s\n",hexData,ascii);
+	}
+}
+
+void sock_showRec (int numArgs, struct args_t *args) {
+	int portNum = args[0].value;
+
+	if (portNum >= SOCK_MAX) {
+		printf("invalid port number\n");
+		return;
+	}
+	if (!socks[portNum].sendDataBuffer) {
+		printf("no data available on port %d\n",portNum);
+		return;
+	}
+
+	dumpSendBuf (0,socks[portNum].sendDataBufferLen-1,16,socks[portNum].sendDataBuffer);
+}
 
 void sock_help (int numArgs, struct args_t *args);
 
@@ -470,6 +569,8 @@ struct cmds_t sockCmds[] =
 	{ "telnetinit" , sock_telnetInit,  0,2,0,"do telnet init 0|1 for all ports or portNum 0|1"},
 	{ "outtrans"   , sock_outTrans  ,  0,2,0,"do translate outgoing escape sequences to VT100 0|1 for all ports or portNum 0|1"},
 	{ "intrans"    , sock_inTrans   ,  0,2,0,"do translate incoming key sequences from VT100 0|1 for all ports or portNum 0|1"},
+	{ "recsend"    , sock_recSend   ,  0,1,0,"record data send to terminal in buffer for the given port , 2nd optional parameter is buffer size"},
+	{ "showrec"    , sock_showRec   ,  1,1,0,"show recorded data"},
 	{ "dump"       , sock_dump      ,  0,2,0,"dump data to console 0|1 for all ports or portNum 0|1"},
 	{ "?"          , sock_help,        0,0,0,"show this help"},
 	{ "help"       , sock_help,        0,0,0,"show this help"},

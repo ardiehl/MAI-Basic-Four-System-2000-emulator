@@ -59,5 +59,6 @@ int scc_dbgCmd(int numArgs, struct args_t * args);
 
 int scc_save_state(FILE * f);
 int scc_load_state(FILE * f);
+void scc_setSockCom(int port, int enabled);
 
 #endif

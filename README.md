@@ -155,11 +155,11 @@ the tape directory "cs/diag" you can start the emulator with
 ```
 Redirecting devices
 =
-By default, the port A of the maim board are console, the other ports are listening for telnet connections starting from port 4000. You can change that with the dev scc command.
+By default, the port A of the main board are console, the other ports are listening for telnet connections starting from port 4000. You can change that with the dev scc command.
 The 2 supported fourway controllers are always on tcp starting with port 4002.
 There is some translation of basic four escape sequences to vt100 sequences. This is settable via dev sock command, try dev sock ?
 ```
-aglesim 0.3.45 (ad Sun 30-Aug-2026)
+eaglesim 0.3.45 (ad Sun 30-Aug-2026)
 Control x will break into the command line
 <dbg> dev wd im wd/bossix_micropolis_2011.dsk
 wd0: attached 'wd/bossix_micropolis_2011.dsk', 139264 blocks (68.0 MB)
