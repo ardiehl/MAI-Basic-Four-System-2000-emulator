@@ -51,6 +51,23 @@ typedef struct {
     UINT32     accesses;
 } fw_regs_t;
 
+
+/* as all fourways share the same interrupt line, we have to queue the generation
+   of an interrupt. The command has already been executed but the interrupt could
+   not be raised because the ack from a previous interrupt is missing */
+typedef struct {
+	int waiting;
+	int n;                      /* fw board */
+	int port;                   /* fw port number */
+	int condition;              /* vector, e.g. FW_VEC_CMDEXECUTED */
+	int isVector;               /* pending interrupt not from a command block, e.g. Receive Character Available */
+	int intVector;              /* FW_VEC_EXTSTATUS | FW_VEC_RXCHAR | FW_VEC_SPECIALRX */
+} fw_pendingComplete_t;
+
+fw_pendingComplete_t fw_pendingComplete[FW_INSTALLED * 4];
+int numPendingComplete;
+
+
 static fw_regs_t fw[FW_MAX];
 static int fwDsrBits = FW_ST_DSRA | FW_ST_DSRB | FW_ST_DSRC | FW_ST_DSRD;
 
@@ -64,6 +81,7 @@ static int fwDsrBits = FW_ST_DSRA | FW_ST_DSRB | FW_ST_DSRC | FW_ST_DSRD;
 static int fwIntLevel = 4;
 static int fwIntPending = 0;    /* board index + 1, or 0 for none */
 static int fwIntVector  = 0;    /* vector for the pending interrupt         */
+
 
 /* The manual calls the DSR bits "negative TRUE" without saying which way that
  * comes out in the register, so this starts with all four asserted, meaning a
@@ -120,15 +138,51 @@ static void fw_poke (UINT32 byteAddr, UINT16 value) {
     sys_write_word(byteAddr,value,1);
 }
 
+static void fw_addPendingComplete (int n, int port, int condition) {
+	int idx = (n * 4) + port;
+
+	//msgout (MSGC_ERR,MYSELF,MSG_NONE,"fw%d port%c: fw_addPendingComplete %d",n,'A'+port,idx);
+	if (fw_pendingComplete[idx].waiting) msgout (MSGC_ERR,MYSELF,MSG_NONE,"fw%d port%c: FIXME, already waiting, should not happen %d",n,'A'+port,idx);
+	else numPendingComplete++;
+
+	fw_pendingComplete[idx].waiting = 1;
+	fw_pendingComplete[idx].n = n;
+	fw_pendingComplete[idx].port = port;
+	fw_pendingComplete[idx].condition = condition;
+	fw_pendingComplete[idx].isVector = 0;
+	fw_pendingComplete[idx].intVector = 0;
+}
+
+static void fw_addPendingInterrupt (int n, int port, int intVector) {
+	if (intVector) {
+// TODO, will be required for receive int
+	}
+}
+
+
 /* Command complete. The board owns an interrupt vector handed to it during
-   initialisation and raises it when it has finished a command block. */
+   initialization and raises it when it has finished a command block. */
 static void fw_complete (int n, int port, int condition) {
+	int intVector;
+
     if (fw[n].instr & FW_IR_INTINHIBIT) {
         msgout (MSGC_INFO,MYSELF,MSG_NONE,"fw%d: completion interrupt inhibited",n);
         return;
     }
     /* base plus four per channel plus the condition, M8155A 3.2.2.2 */
-    fwIntVector = (fw[n].intVector + port * 4 + condition) & 0xff;
+    intVector = (fw[n].intVector + port * 4 + condition) & 0xff;
+
+    /* if there is already a pending interrupt, we must generate the interrupt
+	   after the previous one has completed */
+    if (fwIntPending) {
+		msgout (MSGC_INFO,MYSELF,MSG_NONE,
+            "fw%d port%c: completion interrupt queued, level %d, vector %02x (base %02x + %d)",
+            n,'A'+port,fwIntLevel,fwIntVector,fw[n].intVector,port*4+condition);
+		fw_addPendingComplete (n, port, condition);
+		return;
+    }
+    fwIntVector = intVector;
+
     msgout (MSGC_INFO,MYSELF,MSG_NONE,
             "fw%d port%c: completion interrupt, level %d, vector %02x (base %02x + %d)",
             n,'A'+port,fwIntLevel,fwIntVector,fw[n].intVector,port*4+condition);
@@ -136,16 +190,37 @@ static void fw_complete (int n, int port, int condition) {
     m68k_set_int_line (fwIntLevel, ASSERT_LINE);
 }
 
+
+void fw_processPendingCompletes() {
+	if (fwIntPending) return;
+	if (!numPendingComplete) return;
+
+	for (int i=0; i<FW_INSTALLED*4;i++) {
+		if (fw_pendingComplete[i].waiting) {
+			fw_pendingComplete[i].waiting = 0;
+			numPendingComplete--;
+			fw_complete(fw_pendingComplete[i].n, fw_pendingComplete[i].port, fw_pendingComplete[i].condition);
+			return;
+		}
+	}
+}
+
+
 int fw_irq_ack (int level) {
     int n;
 
-    if ((level != fwIntLevel) || (!fwIntPending)) return M68K_INT_ACK_SPURIOUS;
     n = fwIntPending - 1;
-    fwIntPending = 0;
+    if ((level != fwIntLevel) || (!fwIntPending)) {
+		msgout (MSGC_INFO,MYSELF,MSG_NONE,"fw%d: interrupt for vector %02x not acknowledged (pending: %d, level: %d",n,fwIntVector,fwIntPending,level);
+		return M68K_INT_ACK_SPURIOUS;
+	}
+	fwIntPending = 0;
     msgout (MSGC_INFO,MYSELF,MSG_NONE,"fw%d: interrupt acknowledged, handing back vector %02x",n,fwIntVector);
     m68k_set_int_line (fwIntLevel, CLEAR_LINE);
     return fwIntVector;
 }
+
+int testRetCode = 0;
 
 static void fw_runCommand (int n, int port) {
     fw_regs_t * b = &fw[n];
@@ -186,23 +261,72 @@ static void fw_runCommand (int n, int port) {
                 }*/
                 sock_putchar(socketPortNum, ch & 0x7f);
             }
-            if ((n == 0) && (port == 0)) fflush(stderr);
+            //if ((n == 0) && (port == 0)) fflush(stderr);
             msgout (MSGC_INFO,MYSELF,MSG_NONE,"fw%d port%c: transferred %d bytes",n,'A'+port,count);
             fw_poke(cb + FW_CB_STATUS,FW_ST_EXECUTED);
             fw_complete(n,port,FW_VEC_CMDEXECUTED);
             break;
+		case FW_CMD_ZERO:
+			msgout (MSGC_NOTIMP,MYSELF,MSG_NONE,
+                    "fw%d port%c: command %02x not understood but reporting success",
+                    n,'A'+port,cmd & 0xff);
+            fw_poke(cb + FW_CB_STATUS,FW_ST_EXECUTED);
+            fw_complete(n,port,FW_VEC_CMDEXECUTED);
+            break;
+		case FW_CMD_STAT:
+	 /* status - The status Command is the only command that allows the 4-Way to write to system memory;
+	    therefore, the CMB reserves 8 consecutive word memory locations prior to issuing the status Command.
+	    Upon receiving the status Command, the 4-Way sends (via DMA) all the data in the Read Registers of
+	    the specified SCC. The Command Block byte count is ignored while the 4-Way status information
+        is written into CMB memory using the lower 8 data lines (the upper lines· are indeterminate). The 8
+        lines contain the following information:
 
-        default:
-            msgout (MSGC_NOTIMP,MYSELF,MSG_NONE,
+        Address  Register No. Description
+        Add + 0  RRO          Transmit/Receive Buffer status; External status
+        Add + 2  RR2          Special Receive status
+        Add + 4  RR3          Unmodified Interrupt Vector
+        Add + 6  RR10         Interrupt Pending Bits
+        Add + 8  RR12         Miscellaneous status
+        Add + 10 RR13         Lower Byte of Baud Rate Generator Time Constant
+        Add + 12 RR13         Upper Byte of Baud Rate Generator Time Constant
+        Add + 14 RR15         External/Status Interrupt Control Information	*/
+			count = 0;
+			fw_poke(packet,0xff); // Transmit/Receive Buffer status; External status
+			fw_poke(packet+2,0x00);  // Special Receive status
+			fw_poke(packet+4, (fw[n].intVector + port * 4 + FW_ST_EXECUTED) & 0xff);
+			fw_poke(packet+6,0xff);
+			fw_poke(packet+8,0xff);
+			fw_poke(packet+10,0x00);
+			fw_poke(packet+12,0x01);  // 38400 baud
+			fw_poke(packet+14,0x00);
+			msgout (MSGC_INFO,MYSELF,MSG_NONE,"fw%d port%c: transferred 8 status words to 0x%08x",n,'A'+port,packet);
+            fw_poke(cb + FW_CB_STATUS,testRetCode);
+            fw_complete(n,port,FW_VEC_CMDEXECUTED);
+            break;
+		case FW_CMD_CONF:
+		case FW_CMD_LDDEF:
+		case FW_CMD_LDXON:
+		case FW_CMD_LDXOFF:
+		case FW_CMD_ENXON:
+		case FW_CMD_ENFLOW:
+		case FW_CMD_EIGHT:
+			msgout (MSGC_NOTIMP,MYSELF,MSG_NONE,
                     "fw%d port%c: command %02x not implemented, reporting success anyway",
                     n,'A'+port,cmd & 0xff);
             fw_poke(cb + FW_CB_STATUS,FW_ST_EXECUTED);
             fw_complete(n,port,FW_VEC_CMDEXECUTED);
             break;
+        default:
+            msgout (MSGC_NOTIMP,MYSELF,MSG_NONE,
+                    "fw%d port%c: command %02x invalid, reporting error",
+                    n,'A'+port,cmd & 0xff);
+            fw_poke(cb + FW_CB_STATUS,FW_ST_NOTUNDERSTOOD);
+            fw_complete(n,port,FW_VEC_CMDEXECUTED);
+            break;
     }
 }
 
-/* the initialisation handshake, M8155A 3.3.6 */
+/* the initialization handshake, M8155A 3.3.6 */
 static void fw_instrWrite (int n, unsigned int value) {
     fw_regs_t * b = &fw[n];
 
@@ -242,6 +366,10 @@ static void fw_instrWrite (int n, unsigned int value) {
             if (value & FW_IR_PORTRESET)
                 msgout (MSGC_INFO,MYSELF,MSG_NONE,"fw%d: reset of port %d",n,
                         (value & FW_IR_PORTSEL_MASK) >> FW_IR_PORTSEL_SHIFT);
+                /* AD: TODO: this does not work for more than one port if interrupts are anabled as the interrupt
+                       will be processed for the last one only. This happens e.g. in diags fway test 3
+			           We can do it for one port here (or for all w/o interruopts) and needs to process the remaining
+			           ones after the interrupt line has been cleared */
             for (port = 0; port < FW_PORTS; port++)
                 if (value & (FW_IR_PORTA_READY << port))
                     fw_runCommand(n,port);
@@ -304,6 +432,12 @@ void fw_write_word (unsigned int address, unsigned int value, int flags) {
         msgout (MSGC_INFO,MYSELF,MSG_WRITEW,"fw%d: %08x instruction register <= %04x",n,address,value & 0xffff);
         fw_instrWrite(n,value);
         return;
+    }
+    if ((address & FW_REG_MASK) == FW_REG_CONTROL) {
+		// the fwfs RESET command writes 00FF
+		// TODO: check on a real machine what reset does
+		msgout (MSGC_NOTIMP,MYSELF,MSG_WRITEW,"fw%d: RESET write %04x to %08x (%s)",n,value & 0xffff,address,fw_regName(address));
+		return;
     }
     msgout (MSGC_NOTIMP,MYSELF,MSG_WRITEW,"fw%d: write %04x to %08x (%s)",n,value & 0xffff,address,fw_regName(address));
 }
@@ -368,6 +502,7 @@ void fw_level (int numArgs, struct args_t *args) {
     fwIntLevel = args[0].value & 7;
     printf("fw interrupt level set to %d\n",fwIntLevel);
 }
+
 
 void fw_help (int numArgs, struct args_t *args);
 

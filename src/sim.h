@@ -4,6 +4,7 @@
 #define HISTORY_FILENAME "./sim.history"
 
 #define SCC_POLL_INSTRUCTIONS	100000
+#define FW_PENDING_INT_INSTRUCTIONS 200
 
 #define MSGC_MAX	6
 #define MSGC_ERR 0

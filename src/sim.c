@@ -344,6 +344,59 @@ void sys_write_long(unsigned int address, unsigned int value, int memFlags) {
 }
 
 /*******************************************************************
+ * Watchpoints for memory access from cpu only
+ *******************************************************************/
+
+static int cpu_in_user_mode(void) {
+	return (m68k_get_reg(NULL,M68K_REG_SR) & 0x2000) ? 0 : 1;
+}
+
+#define CPUMAXWATCHPOINTS 4
+#define CPU_WATCHRW 0
+#define CPU_WATCHW 1
+#define CPU_WATCHR 2
+
+struct cpuWatchpoint_t {
+    unsigned int addr;
+    unsigned int len;
+    unsigned int hits;
+    int          isVirtual;
+    int          rw;        /* read/write, write or read */
+    int          brk;       /* stop the emulation as well as logging */
+};
+
+struct cpuWatchpoint_t cpuWatchpoints[CPUMAXWATCHPOINTS];
+int cpuWatchHit = 0;
+
+void cpu_watch_check (unsigned int address, unsigned int addressVirtual, int size, int isWrite) {
+    int i;
+    char instruction[128];
+
+    for (i = 0; i < CPUMAXWATCHPOINTS; i++) {
+        if (!cpuWatchpoints[i].len) continue;
+
+        if (cpuWatchpoints[i].rw > 0) {
+			if (cpuWatchpoints[i].rw == CPU_WATCHR && isWrite) continue;
+		}
+
+        if (cpuWatchpoints[i].isVirtual && (!cpu_in_user_mode() || !mmu_is_enabled())) {
+			if ((addressVirtual + size - 1 < cpuWatchpoints[i].addr) ||
+				(addressVirtual >= cpuWatchpoints[i].addr + cpuWatchpoints[i].len)) continue;
+		} else {
+			if ((address + size - 1 < cpuWatchpoints[i].addr) ||
+				(address >= cpuWatchpoints[i].addr + cpuWatchpoints[i].len)) continue;
+		}
+
+		cpuWatchpoints[i].hits++;
+        m68k_disassemble(&instruction[0], g_currPC, M68K_CPU_TYPE_68010);
+		printf("cpuwatch %d: %08x (PC:%08x %s)\n",
+                i, address, g_currPC, instruction);
+        fflush(stdout);
+        if (cpuWatchpoints[i].brk) cpuWatchHit = 1;
+    }
+}
+
+/*******************************************************************
  * memory routines called from musashi
  *******************************************************************/
 
@@ -354,9 +407,6 @@ void sys_write_long(unsigned int address, unsigned int value, int memFlags) {
  * the real board does with MMERR-, and which BOSS/IX prints as
  * "68010 memory management trap".
  */
-static int cpu_in_user_mode(void) {
-	return (m68k_get_reg(NULL,M68K_REG_SR) & 0x2000) ? 0 : 1;
-}
 
 static int cpu_xlate(unsigned int logical, int isWrite, unsigned int * phys) {
 	if (!cpu_in_user_mode() || !mmu_is_enabled()) { *phys = logical; return 1; }
@@ -367,13 +417,17 @@ static int cpu_xlate(unsigned int logical, int isWrite, unsigned int * phys) {
 unsigned int cpu_read_byte(unsigned int address) {
 	unsigned int phys;
 	if (!cpu_xlate(address,0,&phys)) { BUSERROR(0,address,MSG_READB); return 0xff; }
-	return sys_read_byte(phys,0);
+	unsigned int res = sys_read_byte(phys,0);
+	cpu_watch_check (phys,address, 1, 0);
+	return res;
 }
 
 unsigned int cpu_read_word(unsigned int address) {
 	unsigned int phys;
 	if (!cpu_xlate(address,0,&phys)) { BUSERROR(0,address,MSG_READW); return 0xffff; }
-	return sys_read_word(phys,0);
+	unsigned int res = sys_read_word(phys,0);
+	cpu_watch_check (phys,address, 2, 0);
+	return res;
 }
 
 unsigned int cpu_read_long(unsigned int address)
@@ -390,12 +444,14 @@ void cpu_write_byte(unsigned int address, unsigned int value) {
 	unsigned int phys;
 	if (!cpu_xlate(address,1,&phys)) { BUSERROR(0,address,MSG_WRITEB); return; }
 	sys_write_byte(phys,value,0);
+	cpu_watch_check (phys,address, 1, 1);
 }
 
 void cpu_write_word(unsigned int address, unsigned int value) {
 	unsigned int phys;
 	if (!cpu_xlate(address,1,&phys)) { BUSERROR(0,address,MSG_WRITEW); return; }
 	sys_write_word(phys,value,0);
+	cpu_watch_check (phys,address, 1, 2);
 }
 
 void cpu_write_long(unsigned int address, unsigned int value) {
@@ -1317,6 +1373,62 @@ void dbgCmd_watch (int numArgs, struct args_t *args) {
 			watchpoints[i].addr + watchpoints[i].len - 1);
 }
 
+void cpuWatchpointClear(int num) {
+	memset(&cpuWatchpoints[num],0,sizeof(struct cpuWatchpoint_t));
+}
+
+void dbgCmd_cwatch (int numArgs, struct args_t *args) {
+	int i;
+	char tmp[10];
+
+	if (numArgs < 1) {
+		printf("cwatch  address    len  hits  break [r|w|rw] [1=virtual]\n");
+		for (i = 0; i < CPUMAXWATCHPOINTS; i++)
+			if (cpuWatchpoints[i].len) {
+				if (cpuWatchpoints[i].rw == CPU_WATCHRW) strcpy(tmp,"rw"); else
+				if (cpuWatchpoints[i].rw == CPU_WATCHW) strcpy(tmp,"w "); else strcpy(tmp,"r ");
+
+				printf("%4d    %08x  %4u  %4u  %s      %s       %d\n",i,cpuWatchpoints[i].addr,
+						cpuWatchpoints[i].len,cpuWatchpoints[i].hits,
+						cpuWatchpoints[i].brk ? "yes   " : "no    ",tmp,cpuWatchpoints[i].isVirtual);
+			} else
+				printf("%4d  unused\n",i);
+		return;
+	}
+	if (args[0].value >= CPUMAXWATCHPOINTS) {
+		printf("watchpoint number must be 0 to %d\n",CPUMAXWATCHPOINTS-1);
+		return;
+	}
+	i = args[0].value;
+	if (numArgs < 2) {                      /* watch n  clears it */
+		cpuWatchpointClear(i);
+		printf("watchpoint %d cleared\n",i);
+		return;
+	}
+	cpuWatchpoints[i].addr = args[1].value;
+	cpuWatchpoints[i].len  = (numArgs > 2) ? args[2].value : 4;
+	if (!cpuWatchpoints[i].len) cpuWatchpoints[i].len = 4;
+
+	if (numArgs > 3) {
+		if (strcmp(args[3].txt, "rw") == 0) cpuWatchpoints[i].rw = CPU_WATCHRW;
+		else if (strcmp(args[3].txt, "w") == 0) cpuWatchpoints[i].rw = CPU_WATCHW;
+		else if (strcmp(args[3].txt, "r") == 0) cpuWatchpoints[i].rw = CPU_WATCHR;
+		else {
+			printf("arg 4: r,w or rw expected\n");
+			cpuWatchpointClear(i);
+			return;
+		}
+	}
+	if (numArgs > 4) cpuWatchpoints[i].isVirtual = 1;
+
+	cpuWatchpoints[i].hits = 0;
+	cpuWatchpoints[i].brk  = 1;
+	printf("watchpoint %d %08x..%08x\n",i,cpuWatchpoints[i].addr,
+			cpuWatchpoints[i].addr + cpuWatchpoints[i].len - 1);
+}
+
+
+
 void dbgCmd_traptrace (int numArgs, struct args_t *args) {
 	if (numArgs < 1) { printf("trap tracing is %s\n",trapTrace ? "on" : "off"); return; }
 	trapTrace = args[0].value ? 1 : 0;
@@ -1499,13 +1611,14 @@ void dbgCmd_rm (int numArgs, struct args_t *args) {
 
 
 void dbgCmd_go (int numArgs, struct args_t *args) {
-	unsigned int pc,pollCount;
+	unsigned int pc,pollCount,fwPendingIntCount;
 	int brkpt;
 
 	if (numArgs > 0)
 		m68k_set_reg(M68K_REG_PC,args[0].value);
 
 	pollCount = SCC_POLL_INSTRUCTIONS;
+	fwPendingIntCount = FW_PENDING_INT_INSTRUCTIONS;
 	kb_raw();
 	do {
 		pollCount--;
@@ -1518,12 +1631,19 @@ void dbgCmd_go (int numArgs, struct args_t *args) {
 			// check for incoming connections or data on all open ports and set the status field for each connection
 			sock_poll();
 		}
+		fwPendingIntCount--;
+		if (!(fwPendingIntCount) || m68k_is_stopped()) {
+			fwPendingIntCount = FW_PENDING_INT_INSTRUCTIONS;
+			fw_processPendingCompletes();
+		}
+
 		g_currPC = m68k_get_reg(NULL, M68K_REG_PC); /* REG_PPC does not work */
 		m68k_execute(1);
 		sys_device_tick();
 		pc = m68k_get_reg(NULL, M68K_REG_PC);
         brkpt = breakpointReached (pc);
-	} while ( (brkpt == 0) && (!(g_ctrlCpressed)));
+	} while ( (brkpt == 0) && (!(g_ctrlCpressed)) && watchHit == 0 && cpuWatchHit == 0);
+	watchHit = 0; cpuWatchHit = 0;
 	kb_normal();
 	if (g_busErrorCount) {
 		showBusError ("break due to");
@@ -1712,6 +1832,7 @@ struct cmds_t cmds[] =
     { "an",    dbgCmd_an    , 0,1,0,"aX - change register A0 to A7"},
     { "break", dbgCmd_break , 0,3,1,"BrkNum address [count] - set breakpoint 0 to 3"},
     { "watch", dbgCmd_watch , 0,3,1,"WatchNum [address] [len] - log writes to an address"},
+    { "cwatch", dbgCmd_cwatch , 0,5,0,"WatchNum [address] [len] [rw,r or w] [1 = virtual]- log cpu access to an address"},
     { "history", dbgCmd_history , 0,1,1,"[count] - show recently executed instructions"},
     { "msave", dbgCmd_msave , 0,1,0,"[file] - dump all RAM to a file"},
     { "traptrace", dbgCmd_traptrace , 0,1,1,"[0|1] - log TRAP instructions executed in user mode"},

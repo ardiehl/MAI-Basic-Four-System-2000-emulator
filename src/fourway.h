@@ -84,6 +84,7 @@
 #define FW_PORTS            4
 
 /* commands */
+#define FW_CMD_ZERO         0x00    /* diag fway test 3 sends this and expects 81 */
 #define FW_CMD_CONF         0x01
 #define FW_CMD_DT           0x02    /* data transfer                         */
 #define FW_CMD_STAT         0x03
@@ -111,6 +112,7 @@
 #define ADDR_IS_FW(A)  (fw_decode(A) >= 0)
 
 int  fw_decode (unsigned int address);   /* board index, or -1 */
+void fw_processPendingCompletes();
 
 unsigned int fw_read_byte (unsigned int address, int flags);
 unsigned int fw_read_word (unsigned int address, int flags);
