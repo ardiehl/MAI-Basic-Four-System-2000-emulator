@@ -14,7 +14,9 @@
 #define MSGC_FATAL 4
 #define MSGC_FUNC 5
 /* adder */
-#define MSGC_BREAK 0x80000000
+#define MSGC_BREAK 0x001000000
+#define MSGC_NOPC  0x002000000
+#define MSGC_MASK  0x000ffffff
 
 /* bits for source of message */
 #define MSG_OTHER	0
@@ -41,10 +43,16 @@
 #define MSG_WRITEL 6
 #define MSG_SAVE 7
 #define MSG_LOAD 8
+#define MSG_INTR 9
 
 #define MEM_DISABLEBUSERROR 1
 /* to avoid bus errors while disassembling */
 #define BUSERROR(F,A,PROC) if (!(F & MEM_DISABLEBUSERROR)) { msgout (MSGC_ERR,MYSELF,PROC,"%08x: generating BUSERR",address); sim_pulse_bus_error(); }
+
+typedef enum {
+	none=0, black, red, green, brown, blue, purple, cyan, white, boldblack, boldred, boldgreen, boldbrown, boldblue, boldpurple, boldcyan, boldwhite
+} colors_t;
+
 
 void setCtrlCPressed(void);     /* for break from scc.c */
 int messageIsEnabled (int msgClass,int msgSource);

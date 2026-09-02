@@ -483,19 +483,36 @@ unsigned int m68k_read_disassembler_32 (unsigned int address) {
 /*******************************************************************
  * callbacks from musashi
  *******************************************************************/
+/* Interrupt Device
+   ================
+   1         pit
+   2         wd
+   3         fd
+   4         cs
+   5         scc
+   6         pit timer */
+char * intDevices[]=
+{
+	"","pit","wd","fd","cs","scc","pit timer"
+};
 
 int sys_int_ack (device_t *device, int int_level){
     unsigned int vector;
-	/* TODO: int ack for other vector devices (wd,fw,ts) */
+    char *deviceName;
+
+    if (int_level < 7) deviceName = intDevices [int_level];
+    else deviceName = intDevices [0];
+
+	/* TODO: int ack for other vector devices (fd) */
     vector = cs_irq_ack(int_level);     /* has cs raised the int ? */
     if (vector == M68K_INT_ACK_SPURIOUS) vector = wd_irq_ack(int_level);
     if (vector == M68K_INT_ACK_SPURIOUS) vector = fw_irq_ack(int_level);
     if (vector == M68K_INT_ACK_SPURIOUS) vector = pit_irq_ack(int_level);
     if (vector != M68K_INT_ACK_SPURIOUS) {
-        /*printf("sys_int_ack: returning vector %02x\n",vector);*/
+		msgout (MSGC_INFO+MSGC_NOPC,MSG_CPU,MSG_INTR,"sys_int_ack: returning vector %02x for int level %d (%s)",vector,int_level,deviceName);
         return vector;
     }
-
+	msgout (MSGC_INFO+MSGC_NOPC,MSG_CPU,MSG_INTR,"sys_int_ack: returning M68K_INT_ACK_AUTOVECTOR for int level %d (%s)",int_level,deviceName);
 	return M68K_INT_ACK_AUTOVECTOR;
 }
 
@@ -719,19 +736,42 @@ int messageIsEnabled (int msgClass,int msgSource) {
   return (msgClassFlags[msgClass] & (1<<msgSource));
 }
 
+char * colorsNames [] = {
+	"none", "black", "red", "green", "brown", "blue", "purple", "cyan", "white", "boldblack", "boldred", "boldgreen", "boldbrown", "boldblue", "boldpurple", "boldcyan", "boldwhite"
+};
+
+char * colors [] = {
+	"\033[0m", "\033[0;30m", "\033[0;31m", "\033[0;32m", "\033[0;33m", "\033[0;34m", "\033[0;35m", "\033[0;36m", "\033[0;37m",  "\033[1;30m", "\033[1;31m", "\033[1;32m", "\033[1;33m", "\033[1;34m", "\033[1;35m", "\033[1;36m", "\033[1;37m"
+};
+
+#define COLOR_NONE colors[0]
+colors_t classColors[] = {
+	boldred,    // MSGC_ERR
+	cyan,		// MSGC_NOTIMP
+	boldwhite,  // MSGC_WARN
+	none,       // MSGC_INFO
+	boldred,    // MSGC_FATAL
+	white       // MSGC_FUNC
+};
+
+
 INT32 g_showDuplicateMessages = 1;
 char g_lastMessage[512];
-
+int msgout_active; /* can happen if called from the sys memory routines */
 int  msgout(unsigned int msgClass,
-            unsigned int msgSource,
-            unsigned int routine,
-            char * msg, ...) {
+             unsigned int msgSource,
+             unsigned int routine,
+             char * msg, ...) {
 	va_list argptr;
 	char classSrc[64];   /* "NOT YET IMPLEMENTED " + source + routine is 32 */
 	char message[512];
     char msgBreak[20];
     int res = 0;
     char instruction[255];
+    int showPC = 1;
+
+    if (msgout_active) return 0;
+    msgout_active++;
 
 	msgBreak[0]=0;
     if (msgClass & MSGC_BREAK) {
@@ -741,8 +781,15 @@ int  msgout(unsigned int msgClass,
             strcpy(msgBreak,"+break ");
         }
     }
+    if (msgClass & MSGC_NOPC) {
+        msgClass &= ~MSGC_NOPC;
+        showPC--;
+    }
 
-	if ((msgClass != MSGC_FATAL) && (msgBreak[0] == 0) && (!(msgClassFlags[msgClass] & (1<<msgSource)))) return 0;
+	if ((msgClass != MSGC_FATAL) && (msgBreak[0] == 0) && (!(msgClassFlags[msgClass] & (1<<msgSource)))) {
+		msgout_active = 0;
+		return 0;
+	}
 
 	va_start(argptr,msg);
 	vsnprintf(message,sizeof(message),msg,argptr);
@@ -754,6 +801,7 @@ int  msgout(unsigned int msgClass,
 		case (MSGC_NOTIMP)  : { strcat(classSrc,"NOT YET IMPLEMENTED "); break; }
 		case (MSGC_WARN) 	: { strcat(classSrc,"WARNING "); break; }
 		case (MSGC_FATAL)	: { strcat(classSrc,"FATAL "); break; }
+		case (MSGC_INFO)	: { strcat(classSrc,"INFO "); break; }
 	}
     switch (msgSource) {
 		case (MSG_OTHER): { strcat(classSrc,"unknown: "); break; }
@@ -777,11 +825,16 @@ int  msgout(unsigned int msgClass,
 		case (MSG_WRITEL)	: { strcat(classSrc,"write32 "); break; }
 		case (MSG_SAVE)		: { strcat(classSrc,"save "); break; }
 		case (MSG_LOAD)		: { strcat(classSrc,"load "); break; }
+		case (MSG_INTR)     : { strcat(classSrc,"intr "); break; }
 	}
     if ((g_showDuplicateMessages) || (strcmp(message,g_lastMessage) != 0)) {
-        m68k_disassemble(&instruction[0], g_currPC, M68K_CPU_TYPE_68010);
-	    printf("%s%s%s (PC:%08x %s)\n",classSrc,msgBreak,message,g_currPC,instruction);
-        res = 1;
+		if (showPC) {
+			m68k_disassemble(&instruction[0], g_currPC, M68K_CPU_TYPE_68010);
+			printf("%s%s%s%s (PC:%08x %s)%s\n",colors[classColors[msgClass]],classSrc,msgBreak,message,g_currPC,instruction,COLOR_NONE);
+		} else {
+			printf("%s%s%s%s)%s\n",colors[classColors[msgClass]],classSrc,msgBreak,message,COLOR_NONE);
+		}
+		res = 1;
     }
 	numMsgs++;
     strcpy(g_lastMessage,message);
@@ -790,6 +843,7 @@ int  msgout(unsigned int msgClass,
 		kb_normal();
 		exit(EXIT_FAILURE);
 	}
+	msgout_active = 0;
     return res;
 }
 
@@ -1827,6 +1881,113 @@ void dbgCmd_int (int numArgs, struct args_t *args) {
 	m68k_pulse_interrupt (args[0].value);
 }
 
+
+char * msgClassNames[] = { "notimp","warn","info","fatal","func" };
+void dbgCmd_color (int numArgs, struct args_t *args) {
+	int i;
+
+	if (numArgs == 0) {
+		for (i=0; i<MSGC_MAX-1;i++)
+			printf("%-10s%s %s%s\n",msgClassNames[i],colors[classColors[i]],colorsNames[classColors[i]],colors[0]);
+		return;
+	}
+	if (numArgs == 1 && args[0].isValue && args[0].value == 0) {
+		for (i=0; i<MSGC_MAX-1;i++)
+			classColors[i] = 0;
+		printf("Colors disabled\n");
+	}
+	if (numArgs == 2 && !args[0].isValue && !args[0].isValue) {
+		int msgClass = -1;
+		for (i=0; i<MSGC_MAX-1; i++)
+			if (strcmp(args[0].txt, msgClassNames[i]) == 0) msgClass = i;
+		if (msgClass < 0) {
+			printf("invalid message class\n");
+			return;
+		}
+
+//	none=0, black, red, green, yellow, blue, purple, cyan, white, boldblack, boldred, boldgreen, boldyellow, boldblue, boldpurple, boldcyan, boldwhite} colors_t;
+		int color = -1;
+		for (i=0; i<boldwhite; i++)
+			if (strcmp(args[1].txt,colorsNames[i]) == 0)
+				color = i;
+		if (color < 0) {
+			printf("invalid color name\n");
+			return;
+		}
+		classColors[msgClass] = color;
+		printf("%s set to %s%s%s\n",msgClassNames[msgClass],colors[classColors[msgClass]],colorsNames[color],colors[0]);
+
+
+	} else
+		printf("usage: color to list color 0 to disable, color err|notimp|warn|info|fatal|func colorName\n");
+}
+
+typedef struct {
+	int vectorNum;
+	unsigned int address;
+	char * txt;
+} vector_t;
+
+vector_t vectors[] = {
+	{  0,0x000,"Reset Initial Interrupt Stack Pointer" },
+	{  1,0x004,"Reset Initial Program Counter" },
+	{  2,0x008,"Access Fault" },
+	{  3,0x00c,"Address Error" },
+	{  4,0x010,"Illegal Instruction" },
+	{  5,0x014,"Integer Divide by Zero" },
+	{  6,0x018,"CHK, CHK2 Instruction" },
+	{  7,0x01c,"FTRAPcc, TRAPcc, TRAPV Instructions" },
+	{  8,0x020,"Privilege Violation" },
+	{  9,0x024,"Trace" },
+	{ 10,0x028,"Line 1010 Emulator (Unimplemented A- Line Opcode)" },
+	{ 11,0x02c,"Line 1111 Emulator (Unimplemented F-Line Opcode)" },
+	{ 14,0x038,"Format Error" },
+	{ 15,0x03c,"Uninitialized Interrupt" },
+	{ 24,0x060,"Spurious Interrupt" },
+	{ 25,0x064,"Level 1 Interrupt Autovector" },
+	{ 26,0x068,"Level 2 Interrupt Autovector" },
+	{ 27,0x06c,"Level 3 Interrupt Autovector" },
+	{ 28,0x070,"Level 4 Interrupt Autovector" },
+	{ 29,0x074,"Level 5 Interrupt Autovector" },
+	{ 30,0x078,"Level 6 Interrupt Autovector" },
+	{ 31,0x07c,"Level 7 Interrupt Autovector" },
+	{ 32,0x080,"TRAP #0" },
+	{ 33,0x084,"TRAP #1" },
+	{ 34,0x088,"TRAP #2" },
+	{ 35,0x08c,"TRAP #3" },
+	{ 36,0x090,"TRAP #4" },
+	{ 37,0x094,"TRAP #5" },
+	{ 38,0x098,"TRAP #6" },
+	{ 39,0x09c,"TRAP #7" },
+	{ 40,0x0a0,"TRAP #8" },
+	{ 41,0x0a4,"TRAP #9" },
+	{ 42,0x0a8,"TRAP #10" },
+	{ 43,0x0ac,"TRAP #11" },
+	{ 44,0x0b0,"TRAP #12" },
+	{ 45,0x0b4,"TRAP #13" },
+	{ 46,0x0b8,"TRAP #14" },
+	{ 47,0x0bc,"TRAP #15" },
+	{ -1,0,NULL }
+};
+
+
+void dbgCmd_vector (int numArgs, struct args_t *args) {
+	unsigned int vbr;
+	int i = 0;
+	unsigned int address;
+
+	vbr = m68k_get_reg(NULL,M68K_REG_VBR);
+
+	printf("addr    Vector  Vector addr  description\n" \
+		   "==============================================================================\n");
+	while (vectors[i].vectorNum >= 0) {
+		address = sys_read_long (vbr + vectors[i].address,0);
+		printf("%08x:  %3d     %08x  %s\n",vectors[i].vectorNum, vbr + vectors[i].address,address,vbr + vectors[i].txt);
+		i++;
+	}
+}
+
+
 struct cmds_t cmds[] =
 {
     { "an",    dbgCmd_an    , 0,1,0,"aX - change register A0 to A7"},
@@ -1864,6 +2025,8 @@ struct cmds_t cmds[] =
     { "rm"   , dbgCmd_rm    , 0,0,0,"Run until (enabled) message from emu"},
     { "step",  dbgCmd_step  , 0,1,1,"step one or more instructions"},
     { "type",  dbgCmd_type  , 1,3,1,"fromAdr toAddr - display memory dump"},
+    { "colors",dbgCmd_color , 0,0,0,"color to list color 0 to disable, color err|notimp|warn|info|fatal|func colorName"},
+    { "vector",dbgCmd_vector, 0,0,0,"show vector table"},
 
     { "?",     dbgCmd_help  , 0,0,0,""},
     { "help",  dbgCmd_help  , 0,0,0,"show this help"},
@@ -1894,6 +2057,8 @@ void showHelp (char * caption, struct cmds_t * cmds, int extended) {
 	    printf("You can break into the simulator debugger with control x or by by sending\nSIGINT to eagleemu.\n");
         }
 }
+
+
 
 void dbgCmd_help (int numArgs, struct args_t *args) {
 
