@@ -508,7 +508,11 @@ int sys_int_ack (device_t *device, int int_level){
     if (vector == M68K_INT_ACK_SPURIOUS) vector = wd_irq_ack(int_level);
     if (vector == M68K_INT_ACK_SPURIOUS) vector = fw_irq_ack(int_level);
     if (vector == M68K_INT_ACK_SPURIOUS) vector = pit_irq_ack(int_level);
-    if (vector != M68K_INT_ACK_SPURIOUS) {
+	/* A device that claims the level but has no vector to give, the timer being
+	   the case here since TIACK is not wired, returns the autovector marker.
+	   Reporting that as "vector ffffffff" reads like a device handing back a
+	   nonsense vector, so say what it is instead. */
+    if ((vector != M68K_INT_ACK_SPURIOUS) && (vector != M68K_INT_ACK_AUTOVECTOR)) {
 		msgout (MSGC_INFO+MSGC_NOPC,MSG_CPU,MSG_INTR,"sys_int_ack: returning vector %02x for int level %d (%s)",vector,int_level,deviceName);
         return vector;
     }
