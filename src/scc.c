@@ -190,7 +190,7 @@ void scc_cmdWrite (int port, int value) {
 	msgout (MSGC_INFO,MSG_SCC,MSG_WRITEB,"Port%c cmd %02x",port ? 'B' : 'A',value);
 	idx = scc[port].wr[0] & 0x07;
 	if (((scc[port].wr[0] >> 3) & 0x07) == 1) idx+=8;
-	scc[port].wr[0] = scc[0].wr[0] & 0xf0;	/* reset index to 0 */
+	scc[port].wr[0] = scc[port].wr[0] & 0xf0;	/* reset index to 0 */
 	if (idx == 0) {
 		/* a write to WR0 can carry a command in bits 5 to 3 */
 		switch ((value >> 3) & 0x07) {
