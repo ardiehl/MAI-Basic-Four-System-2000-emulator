@@ -270,7 +270,7 @@ void dumpChar(char prefix, char data) {
 	char tmpBuf[20];
 
 	snprintf(tmpBuf,sizeof(tmpBuf)-1,"%c: 0x%02x %c ",prefix,data,data > ' ' && data < 127 ? data : ' ');
-	printf(tmpBuf);
+	printf("%s",tmpBuf);
 	fflush(stdout);
 }
 
