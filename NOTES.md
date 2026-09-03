@@ -437,6 +437,82 @@ now print `CPU is stopped (a STOP instruction executed), waiting for an
 interrupt` so the state is visible instead of puzzling. Stepping also advances
 device time now, so a determined `s 200000` really would wake the machine.
 
+## The configuration record
+
+The kernel refuses to boot a disk whose configuration record it dislikes, and
+says only `Invalid system configuration record`, crash code 37, whatever the
+reason. That single message covers five separate checks, which is why editing
+any field by hand looks like the same failure as editing the wrong one. They
+are all in the function at `0x249ca`:
+
+1. `jsr $24b64` reads **two** consecutive blocks, 1024 bytes in all.
+2. `jsr $1612c` computes a checksum over the first 1020 bytes and compares it
+   with the long at offset `0x3fc` of that unit.
+3. `jsr $159da` decodes the record into a structure in memory.
+4. The release level in the decoded structure is compared against two bytes the
+   loader left in globals.
+5. `jsr $25ca4` compares the record against the NVRAM: seven bytes of serial
+   number, `memcmp(record+9, nvram+2, 7)`, and the system type, the word at
+   `record+0x10` against the first four characters of the NVRAM string read as a
+   number.
+
+The checksum folds backwards over the 255 longs below itself:
+
+```c
+acc = 20;
+for (p = 0x3f8; p >= 0; p -= 4)
+    acc = rol32(acc ^ be32(buf + p), 1);
+```
+
+`rol32` is one bit left, which the original writes as `asl.l #1` followed by an
+`or #1` when the value was negative. Verified against the reference image: the
+stored value and the computed one are both `564c75d0`.
+
+Drive counts are packed, which is easy to mistake for encryption when reading a
+hex dump. **One 16 bit word holds both: bits 0 to 10 are the size, bits 11 to 15
+are how many drives of that size.** `iconf` does exactly this, `swap` and
+`andi.l #$7ff` for the size, `rol.l #5` and `andi.l #$1f` for the count. So the
+hard disk word `0x1078` is two drives of 120 MB, and the floppy word `0x0280` is
+zero drives with a 640 KB capacity, which is what a machine with the floppy
+disabled looks like. **One 640 KB floppy is `0x0a80`.**
+
+Field offsets, relative to the second block of the unit, which is the 512 byte
+record that circulates on its own. Every one was verified by changing it,
+recomputing the checksum, booting, and reading the result back with the
+machine's own `/bin/iconf`:
+
+| offset | field |
+|---|---|
+| `0x100` | user serial number, 8 ASCII digits |
+| `0x10c` | hard disks, packed word, size in MB |
+| `0x11c` | main memory, **long**, KB |
+| `0x124` | floppies, packed word, size in KB |
+| `0x12c` | 4-Way controllers |
+| `0x130` | system type |
+| `0x132`, `0x133` | release level, 5 and 2 for 7.5B |
+| `0x134` | 8-Way controllers |
+| `0x135` | parallel ports |
+| `0x136` | comm ports |
+| `0x138` | creator serial number, 8 ASCII digits |
+| `0x150` | system name, NUL padded text |
+| `0x1fc` | checksum, relative to the 1024 byte unit |
+
+The LAN and MTS flags are somewhere between `0x127` and `0x137` and are not
+pinned down. The bytes outside the `0x100` to `0x17f` window are still opaque.
+
+`tools/configrec.py` reads and writes all of the above and recomputes the
+checksum, so a field change is a field change. It finds the record by checksum
+rather than by a fixed block number. An image given one floppy drive and 2 MB of
+memory with it boots, and `iconf` on the running machine reports both.
+
+Two notes for anyone reversing a user mode program in this emulator. The
+debugger's `dis` and `dump` take **physical** addresses, so asking for a logical
+one silently reads past the end of RAM and disassembles `ff`; translate by hand
+with `device mmu registers`. And Ctrl-X arrives through the same pipe as the
+command that started the program, so it is always processed too late and lands
+in the idle loop; send **SIGINT** to the emulator process instead, which is
+asynchronous and does stop inside the program.
+
 ## What is still missing
 
 Multi user now works, so the frontier has moved:
