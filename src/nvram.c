@@ -2,17 +2,16 @@
  *   nvram.c
  *
  *  Created:	Nov 27,2011
- *  Changed:	Dec 21,2011 
  *  Armin Diehl <ad@ardiehl.de>
  ****************************************************************************/
 /*
  * 2000 nvram
  * There is a Xicor X2210 (64x4 nvram/static ram) installed. The chip is a
- * ram and eeprom. Contents of ram will be saved to the internal eeprom by a 
- * supervisor write (not read as stated in the manuals) to 0x6Axxxx. Recall 
- * from internal eeprom to ram will be done by a supervirsor write to 0x6Cxxxx.
- * see M8097C 'MAI 2000 Desktop Computer System Sevice Manual', Section 3.2.9
- * 
+ * ram and eeprom. Contents of ram will be saved to the internal eeprom by a
+ * supervisor write (not read as stated in the manuals) to 0x6Axxxx. Recall
+ * from internal eeprom to ram will be done by a supervisor write to 0x6Cxxxx.
+ * see M8097C 'MAI 2000 Desktop Computer System Service Manual', Section 3.2.9
+ *
  * diags nvram test: no errors
  */
 
@@ -20,7 +19,6 @@
 #include <string.h>
 #include "m68k.h"
 #include "nvram.h"
-#include "sim.h"
 
 char nvram[NV_SIZE];	/* only lower 4 bits are used */
 
@@ -31,13 +29,13 @@ void nvram_save() {
 		msgout (MSGC_FATAL,MSG_NV,MSG_SAVE,"unable to create contents file %s",NV_FILENAME);
 		return;
 	}
-	if(fwrite(nvram, 1, NV_SIZE, fhandle) <= 0) { 
+	if(fwrite(nvram, 1, NV_SIZE, fhandle) <= 0) {
 		fclose(fhandle);
 		msgout (MSGC_FATAL,MSG_NV,MSG_SAVE,"unable to write contents to %s",NV_FILENAME);
-		return; 
+		return;
 	}
 	fclose(fhandle);
-	msgout (MSGC_WARN,MSG_NV,MSG_SAVE,"content saved to %s",NV_FILENAME);
+	msgout (MSGC_FUNC,MSG_NV,MSG_SAVE,": content saved to %s",NV_FILENAME);
 }
 
 
@@ -48,19 +46,19 @@ void nvram_load() {
 		msgout (MSGC_ERR,MSG_NV,MSG_LOAD,"unable to open contents file %s",NV_FILENAME);
 		return;
 	}
-	if(fread(nvram, 1, NV_SIZE, fhandle) <= 0) { 
+	if(fread(nvram, 1, NV_SIZE, fhandle) <= 0) {
 		fclose(fhandle);
 		msgout (MSGC_ERR,MSG_NV,MSG_LOAD,"unable to read contents from %s",NV_FILENAME);
-		return; 
+		return;
 	}
 	fclose(fhandle);
-	msgout (MSGC_WARN,MSG_NV,MSG_LOAD,": content restored fom %s",NV_FILENAME);
+	msgout (MSGC_FUNC,MSG_NV,MSG_LOAD,": content restored from %s",NV_FILENAME);
 }
 
 
 unsigned int nv_read_byte(unsigned int address) {
 	int idx;
-	
+
 	if (ADDR_IS_NV_BANK0(address)) {
 		if (address & 1) { msgout (MSGC_ERR,MSG_NV,MSG_READB,"access to invalid(odd) bank0 address %08x",address); return 0xff; }
 		idx = (address >> 1) & 0xff;
@@ -86,7 +84,7 @@ unsigned int nv_read_word(unsigned int address) {
 
 void nv_write_byte(unsigned int address, unsigned int value) {
 	int idx;
-	
+
 	if (ADDR_IS_NV_BANK0(address)) {
 		if (address & 1) { msgout (MSGC_ERR,MSG_NV,MSG_WRITEB,"to invalid(odd) bank0 address %08x",address); return; }
 		idx = (address >> 1) & 0xff;
@@ -97,18 +95,18 @@ void nv_write_byte(unsigned int address, unsigned int value) {
 		if (address & 1) { msgout (MSGC_ERR,MSG_NV,MSG_WRITEB,"to invalid(odd) bank1 address %08x",address); return; }
 		idx = ((address & 0xff) >> 1) & 0xff;
 		if ((NV_BANK1_PROTECTED) && (idx < NV_BANK1_PROTSIZE)) {
-			msgout (MSGC_WARN,MSG_NV,MSG_WRITEB,"%02x to upper protected nvram bank %08x denied idx in bank1:%d",value,address,idx);
+			//msgout (MSGC_WARN,MSG_NV,MSG_WRITEB,"%02x to upper protected nvram bank %08x denied idx in bank1:%d",value,address,idx);
 		} else {
 			nvram[idx+NV_BANK_SIZE] = value & 0x0f;
 			msgout (MSGC_INFO,MSG_NV,MSG_WRITEB,"%02x to bank1 %08x, idx in bank1:%d",value,address,idx);
 		}
 	} else
 	/* docs state that addr is read only but rom does only writes (0x40351A) */
-	if (ADDR_IS_NV_RECALL(address))  
-		nvram_load(); 
+	if (ADDR_IS_NV_RECALL(address))
+		nvram_load();
 	else
-	if (ADDR_IS_NV_SAVE(address)) 
-		nvram_save(); 
+	if (ADDR_IS_NV_SAVE(address))
+		nvram_save();
 	 else  /* this should not happen: */
 		msgout (MSGC_ERR,MSG_NV,MSG_WRITEB,"to unknown address %08x",address);
 }
@@ -118,17 +116,83 @@ void nv_write_word(unsigned int address, unsigned int value) {
 	if (!(address & 1)) {  /* 16 bit to even address, to avoid warning, ignore upper 8 bit */
 		nv_write_byte(address,(value >> 8) & 0xff);
 	} else
-	if (ADDR_IS_NV_RECALL(address))  
-		nvram_load(); 
+	if (ADDR_IS_NV_RECALL(address))
+		nvram_load();
 	else
-	if (ADDR_IS_NV_SAVE(address)) 
-		nvram_save(); 
+	if (ADDR_IS_NV_SAVE(address))
+		nvram_save();
 	else
 		msgout (MSGC_ERR,MSG_NV,MSG_WRITEW,"to odd address %08x not supported",address);
 }
 
 void nv_pulse_reset (void) {
 	memset(nvram,0x00,sizeof(nvram));
+}
+
+typedef struct {
+    char * deviceName;
+    char byte1;
+    char byte2;
+    char byte3;
+} nv_bootDevType_t;
+
+
+nv_bootDevType_t nv_bootDevTypes_t[] = {
+	{ "fd" ,0x0f,0x0e,0x02 },
+	{ "cs" ,0x00,0x01,0x05 },
+	{ "wd" ,0x0f,0x0f,0x03 },
+	{ NULL,0,0,0 }
+};
+
+
+static void nv_setBootDevice (char *bootDevice) {
+	int i = 0;
+
+	while (nv_bootDevTypes_t[i].deviceName) {
+		if (strcmp(bootDevice,nv_bootDevTypes_t[i].deviceName) == 0) {
+			nvram_load();
+			nvram[NV_BOOTDEV_1] = nv_bootDevTypes_t[i].byte1;
+			nvram[NV_BOOTDEV_2] = nv_bootDevTypes_t[i].byte2;
+			nvram[NV_BOOTDEV_3] = nv_bootDevTypes_t[i].byte3;
+			nvram_save();
+			return;
+		}
+		i++;
+	}
+	printf("unknown boot device \"%s\"",bootDevice);
+}
+
+static void nv_load_cs (int numArgs, struct args_t *args) {
+	nv_setBootDevice ("cs");
+}
+
+static void nv_load_wd (int numArgs, struct args_t *args) {
+	nv_setBootDevice ("wd");
+}
+
+static void nv_load_fd (int numArgs, struct args_t *args) {
+	nv_setBootDevice ("fd");
+}
+
+static void nv_help (int numArgs, struct args_t *args);
+
+struct cmds_t nvCmds[] =
+{
+	{ "cs",		nv_load_cs	, 0,0,0,"change boot device to cs" },
+	{ "wd",		nv_load_wd	, 0,0,0,"change boot device to wd0" },
+	{ "fd",		nv_load_fd	, 0,0,0,"change boot device to fd0" },
+	{ "?",		nv_help	    , 0,0,0,"show this help"},
+	{ "help",	nv_help	    , 0,0,0,"show this help"},
+    { "",  NULL, 0,0,0,""}
+};
+
+void nv_help (int numArgs, struct args_t *args) {
+	showHelp ("nv help commands",nvCmds,0);
+}
+
+
+int nv_dbgCmd(int numArgs, struct args_t * args) {
+	return findAndExecCommand (args[0].txt,nvCmds,numArgs-1,&args[1]);
 }
 
 int nv_save_state(FILE * f) {

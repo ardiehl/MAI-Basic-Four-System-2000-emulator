@@ -211,11 +211,11 @@ int fw_irq_ack (int level) {
 
     n = fwIntPending - 1;
     if ((level != fwIntLevel) || (!fwIntPending)) {
-		msgout (MSGC_INFO,MYSELF,MSG_NONE,"fw%d: interrupt for vector %02x not acknowledged (pending: %d, level: %d",n,fwIntVector,fwIntPending,level);
+		msgout (MSGC_INFO,MYSELF,MSG_NONE,"fw%d: interrupt for vector %02x not acknowledged (pending: %d, level: %d",n+1,fwIntVector,fwIntPending,level);
 		return M68K_INT_ACK_SPURIOUS;
 	}
 	fwIntPending = 0;
-    msgout (MSGC_INFO,MYSELF,MSG_NONE,"fw%d: interrupt acknowledged, handing back vector %02x",n,fwIntVector);
+    msgout (MSGC_INFO,MYSELF,MSG_NONE,"fw%d: interrupt acknowledged, handing back vector %02x",n+1,fwIntVector);
     m68k_set_int_line (fwIntLevel, CLEAR_LINE);
     return fwIntVector;
 }
@@ -454,6 +454,7 @@ void fw_pulse_reset (void) {
         fw[i].initState = FW_INIT_CBLOCK_LOW;
     }
     fwIntPending = 0;
+    numPendingComplete = 0;
     m68k_set_int_line (fwIntLevel, CLEAR_LINE);
 }
 

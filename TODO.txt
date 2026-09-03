@@ -1,0 +1,40 @@
+General
+ - Figure out how the checksum of the config record works, goal, change the config
+   record to use full ram and enable the use of floppy disk and to enable 2 wd controllers
+ - Make a new image that contains the diags on wd (required 2 nd disk support)
+ - Get rid of personal data from Scott Printing from the image but leaving the basic programs working
+ - Test asm, may work
+ - Get a linker/c-compiler/libs/headers, the only one i have is for a newer version of unos, traps with unknown trap,
+   same for c compiler and header files
+ - Complete and test the installation tape further, try if instetc from the 3000 tape can be patched to run even
+   it was compiled for 68020
+
+emu
+ Move sock/scc polling and fw int dequeue to sys_device_tick
+ DONE AD Sep 3,2026 Add nvram load command
+ Add command to post keystrokes to sock
+ Add exec command to allow auto start of several xterm's with telnet after sock was initialized
+ Add a command to save messages to a file as well
+ DONE AD Sep 3,2026 dont write no color escape sequences when colors are off
+ Write the message w/o disassembly on recusive call intead of suppressing the message
+
+fway
+ DONE AD Sep 3,2026 Fix interrupt message
+ Implement character input 
+ Implement reset
+ Implement registers
+ Make more diag tests running
+ My be diag will check status after a command, in that case all ints have to queued and fired after n instructions
+
+wd
+ Add second harddisk support
+ Check if we can create a new image with diag (format support may be needed)
+
+sock
+ Add support for injecting chars
+ Outgoing key translation (e.g. for MB I..MB VI keys required as well as backspace (7f to ^H))
+ Add support for serial ports and local sockets
+
+fd
+ To be implemented further, would only make sense if we have a new config record that allow us to use
+ fd not only when booted from the boot partition

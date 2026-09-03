@@ -2,7 +2,7 @@
  *  nvram.h
  *
  *  Created:	Nov 27,2011
- *  Changed:	Dec 21,2011 
+ *  Changed:	Dec 21,2011
  *  Armin Diehl <ad@ardiehl.de>
  ****************************************************************************/
 /*
@@ -20,26 +20,28 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  * There is a Xicor X2210 (64x4 nvram/static ram) installed. The chip is a
- * ram and eeprom. Contents of ram will be saved to the internal eeprom by a 
- * supervisor read to 0x6Axxxx. Recall from internal eeprom to ram will be 
+ * ram and eeprom. Contents of ram will be saved to the internal eeprom by a
+ * supervisor read to 0x6Axxxx. Recall from internal eeprom to ram will be
  * done by a supervirsor read to 0x6Cxxxx.
  * This is from the technical manual, however, there seems to be a large nvram
  * installed, the rom verifies access to 680120. The chip only contains a
  * MAI part numer, so i assume it is a 128 or 256x4 one
  *
- * Lower 32 nibbles are documented and contains boot params as terminal port, 
+ * Lower 32 nibbles are documented and contains boot params as terminal port,
  * boot device, ...
  * Upper 32 nibbles contains the serial number information and are not writable
  * unless the address decoding pal is replaced by a 'ssn' pal. There was a
  * special ssn program available to field services allowing rewrite of the
  * serial number (later versions included a verfication code, MAI had to be
  * called for this serial number dependend verification code)
- * 
+ *
  * see M8097C 'MAI 2000 Desktop Computer System Sevice Manual', Section 3.2.9
  */
 
 #ifndef NVRAM_H
 #define NVRAM_H
+
+#include "sim.h"
 
 #define NV_BANK1_PROTECTED	1
 #define NV_ADDR				0x680000
@@ -64,6 +66,11 @@
 #define ADDR_IS_NV_BANK0(ADDR) (((ADDR & NV_BANK_MASK) >= NV_ADDR_BANK0_MIN) && ((ADDR & NV_BANK_MASK) <= NV_ADDR_BANK0_MAX))
 #define ADDR_IS_NV_BANK1(ADDR) (((ADDR & NV_BANK_MASK) >= NV_ADDR_BANK1_MIN) && ((ADDR & NV_BANK_MASK) <= NV_ADDR_BANK1_MAX))
 
+/* byte positions in nvram for boot device */
+#define NV_BOOTDEV_1 0x1e
+#define NV_BOOTDEV_2 0x1f
+#define NV_BOOTDEV_3 0x30
+
 unsigned int nv_read_byte(unsigned int address);
 unsigned int nv_read_word(unsigned int address);
 
@@ -74,6 +81,7 @@ void nv_pulse_reset (void);
 int nv_save_state(FILE * f);
 int nv_load_state(FILE * f);
 
-
+//void nv_help (int numArgs, struct args_t *args);
+int nv_dbgCmd(int numArgs, struct args_t * args);
 
 #endif

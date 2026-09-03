@@ -50,7 +50,7 @@
 #define BUSERROR(F,A,PROC) if (!(F & MEM_DISABLEBUSERROR)) { msgout (MSGC_ERR,MYSELF,PROC,"%08x: generating BUSERR",address); sim_pulse_bus_error(); }
 
 typedef enum {
-	none=0, black, red, green, brown, blue, purple, cyan, white, boldblack, boldred, boldgreen, boldbrown, boldblue, boldpurple, boldcyan, boldwhite
+	nullColor=0, none, black, red, green, brown, blue, purple, cyan, white, boldblack, boldred, boldgreen, boldbrown, boldblue, boldpurple, boldcyan, boldwhite
 } colors_t;
 
 

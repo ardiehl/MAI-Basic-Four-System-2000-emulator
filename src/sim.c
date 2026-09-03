@@ -741,14 +741,14 @@ int messageIsEnabled (int msgClass,int msgSource) {
 }
 
 char * colorsNames [] = {
-	"none", "black", "red", "green", "brown", "blue", "purple", "cyan", "white", "boldblack", "boldred", "boldgreen", "boldbrown", "boldblue", "boldpurple", "boldcyan", "boldwhite"
+	"null", "none", "black", "red", "green", "brown", "blue", "purple", "cyan", "white", "boldblack", "boldred", "boldgreen", "boldbrown", "boldblue", "boldpurple", "boldcyan", "boldwhite"
 };
 
 char * colors [] = {
-	"\033[0m", "\033[0;30m", "\033[0;31m", "\033[0;32m", "\033[0;33m", "\033[0;34m", "\033[0;35m", "\033[0;36m", "\033[0;37m",  "\033[1;30m", "\033[1;31m", "\033[1;32m", "\033[1;33m", "\033[1;34m", "\033[1;35m", "\033[1;36m", "\033[1;37m"
+	"", "\033[0m", "\033[0;30m", "\033[0;31m", "\033[0;32m", "\033[0;33m", "\033[0;34m", "\033[0;35m", "\033[0;36m", "\033[0;37m",  "\033[1;30m", "\033[1;31m", "\033[1;32m", "\033[1;33m", "\033[1;34m", "\033[1;35m", "\033[1;36m", "\033[1;37m"
 };
 
-#define COLOR_NONE colors[0]
+//#define COLOR_NONE colors[0]
 colors_t classColors[] = {
 	boldred,    // MSGC_ERR
 	cyan,		// MSGC_NOTIMP
@@ -762,7 +762,7 @@ colors_t classColors[] = {
 INT32 g_showDuplicateMessages = 1;
 char g_lastMessage[512];
 int msgout_active; /* can happen if called from the sys memory routines */
-int  msgout(unsigned int msgClass,
+int msgout(unsigned int msgClass,
              unsigned int msgSource,
              unsigned int routine,
              char * msg, ...) {
@@ -832,11 +832,14 @@ int  msgout(unsigned int msgClass,
 		case (MSG_INTR)     : { strcat(classSrc,"intr "); break; }
 	}
     if ((g_showDuplicateMessages) || (strcmp(message,g_lastMessage) != 0)) {
+		char *endColor = "";
+		if (classColors[msgClass] > nullColor) endColor=colors[1];
+
 		if (showPC) {
 			m68k_disassemble(&instruction[0], g_currPC, M68K_CPU_TYPE_68010);
-			printf("%s%s%s%s (PC:%08x %s)%s\n",colors[classColors[msgClass]],classSrc,msgBreak,message,g_currPC,instruction,COLOR_NONE);
+			printf("%s%s%s%s (PC:%08x %s)%s\n",colors[classColors[msgClass]],classSrc,msgBreak,message,g_currPC,instruction,endColor);
 		} else {
-			printf("%s%s%s%s)%s\n",colors[classColors[msgClass]],classSrc,msgBreak,message,COLOR_NONE);
+			printf("%s%s%s%s)%s\n",colors[classColors[msgClass]],classSrc,msgBreak,message,endColor);
 		}
 		res = 1;
     }
@@ -1746,6 +1749,7 @@ struct devs_t devs[] =
     { "cs",  cs_dbgCmd },
     { "mmu", mmu_dbgCmd },
     { "fw",  fw_dbgCmd },
+    { "nv",  nv_dbgCmd },
     { "sock",sock_dbgCmd },
     { "",    NULL}
 };
@@ -1892,13 +1896,14 @@ void dbgCmd_color (int numArgs, struct args_t *args) {
 
 	if (numArgs == 0) {
 		for (i=0; i<MSGC_MAX-1;i++)
-			printf("%-10s%s %s%s\n",msgClassNames[i],colors[classColors[i]],colorsNames[classColors[i]],colors[0]);
+			printf("%-10s%s %s%s\n",msgClassNames[i],colors[classColors[i]],colorsNames[classColors[i]],colors[1]);
 		return;
 	}
 	if (numArgs == 1 && args[0].isValue && args[0].value == 0) {
 		for (i=0; i<MSGC_MAX-1;i++)
 			classColors[i] = 0;
 		printf("Colors disabled\n");
+		return;
 	}
 	if (numArgs == 2 && !args[0].isValue && !args[0].isValue) {
 		int msgClass = -1;
@@ -1919,7 +1924,7 @@ void dbgCmd_color (int numArgs, struct args_t *args) {
 			return;
 		}
 		classColors[msgClass] = color;
-		printf("%s set to %s%s%s\n",msgClassNames[msgClass],colors[classColors[msgClass]],colorsNames[color],colors[0]);
+		printf("%s set to %s%s%s\n",msgClassNames[msgClass],colors[classColors[msgClass]],colorsNames[color],colors[1]);
 
 
 	} else
@@ -2185,7 +2190,7 @@ int findAndExecCommand (	char * cmd,
  * If oneCmd is given, only that command will be executed
  * ======================================================================== */
 
-void commandHandler(char * oneCmd)
+void commandHandler(char * oneCmd, int echo)
 {
 	char cmd[MAXCMDLEN+1];
 	int i,cmdNum;
@@ -2202,7 +2207,7 @@ void commandHandler(char * oneCmd)
 	  }
 	  if (oneCmd) {
 		  tmp = strdup(oneCmd);
-		  printf("<dbg> %s\n",tmp);
+		  if (echo) printf("<dbg> %s\n",tmp);
 	  } else {
       	  tmp = readline("<dbg>");		/* get command line */
 	  	  if (tmp)
@@ -2252,7 +2257,6 @@ void commandHandler(char * oneCmd)
 
 		if (cmdNum == -1) findAndExecCommand (cmd,cmds,numArgs,args);
 	  }
-	  /*printf("\n");*/
 
 	if (oneCmd) return;
 	} while ((strcmp(cmd,"quit")));
@@ -2275,38 +2279,10 @@ void kbtest (void) {
 	exit(1);
 }
 
-#if 0
-/* timer conflicts with keyboard input ???? */
-void sigtimer_action(int signo) {
-
-}
-
-void init_timer(void) {
-	struct sigaction sigalrm_action;
-	struct itimerval timer;
-
-	timer.it_interval.tv_sec = 0;	//Deal only in usec
-	timer.it_interval.tv_usec = 100;
-	timer.it_value.tv_sec = 0;	//Deal only in usec
-	timer.it_value.tv_usec = 100;
-
-	sigalrm_action.sa_handler  = sigtimer_action;
-	sigemptyset(&sigalrm_action.sa_mask);
-	sigalrm_action.sa_flags = 0;
-
-	sigaction(SIGALRM, &sigalrm_action, 0);
-	if(setitimer(ITIMER_REAL, &timer,NULL) != 0){
-		exit_error("Error starting timer");
-	}
-}
-#endif
-
 
 int main(int argc, char* argv[])
 {
 	int i;
-
-	//kbtest();
 
 	printf("eaglesim %s (%s %s)\nControl x will break into the command line\n",VER_FULLSTR,VER_COMPILE_BY,VER_COMPILE_DATE);
 
@@ -2329,26 +2305,27 @@ int main(int argc, char* argv[])
 	 * needs to be changed later because ^c is used to enter "alt load" */
 	(void) signal(SIGINT,ctrlChandler);
 
-	/*init_timer();*/
-
 	using_history();
 	read_history (HISTORY_FILENAME);
 
     setbuf(stdout, NULL); /* to avoid problems writing single chars w/o cr/lf */
 
     /* set directory for tape */
-    //commandHandler("device cs directory cs/diag");
+    //commandHandler("device cs directory cs/diag",1);
+
+    /* set the boot device in nvram to wd0, can be changed later via dev nv device */
+    commandHandler("dev nv wd",0);
 
 	for (i=1;i<argc;i++) {
 		if ((strcmp(argv[i],"-h") == 0) || (strcmp(argv[i],"--help") == 0)) {
 			printf ("usage: %s --help\n",argv[0]);
-			printf ("   or  sim Command Command ..\n");
+			printf ("   or  %s \"Command\" \"Command\" ..\n",argv[0]);
 			exit(1);
 		}
-		commandHandler(argv[i]);
+		commandHandler(argv[i],1);
 	}
 
-	commandHandler(NULL);
+	commandHandler(NULL,1);
 	sock_deinit();
 	write_history (HISTORY_FILENAME);
 	return 0;
