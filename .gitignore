@@ -13,3 +13,4 @@ pdf/
 sendsrec
 *.cbp
 *.layout
+src/version.h
