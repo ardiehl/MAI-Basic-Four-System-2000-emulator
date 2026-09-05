@@ -37,22 +37,22 @@ struct bfescseq_t {
 // for ESC g
 struct bfescseqaux_t bfescseq_g_tab[] =
 {
-	{ '0', "\e[0m"	},						// mormal
-	{ '1', "\e[0m\e[4m"	},					// b underline
-	{ '2', "\e[0m\e[5m"	},					// b blink
-	{ '3', "\e[0m\e[4\e[5m"	},				// b link underline
-	{ '4', "\e[0m\e[7m"	},					// b reverse
-	{ '5', "\e[0m\e[7m\e[4m"	},			// b reverse underline
-	{ '6', "\e[0m\e[7m\e[5m"	},			// b reverse blink
-	{ '7', "\e[0m\e[7m\e[4m\e[5m"	},		// b blink underline reverse
-	{ '8', "\e[0m\e[2m"	},					// dark normal
-	{ '9', "\e[0m\e[2m\e[4m"	},			// dark underline
-	{ 'A', "\e[0m\e[2m\e[5m"	},			// dark blink
-	{ 'B', "\e[0m\e[2m\e[4m\e[5m"	},		// d_blink_underline
-	{ 'C', "\e[0m\e[2m\e[7m"	},			// d_reverse
-	{ 'D', "\e[0m\e[2m\e[7m\e[4m"	},		// d_reverse_underline
-	{ 'E', "\e[0m\e[2m\e[7m\e[5m"	},		// d_reverse_blink
-	{ 'F', "\e[0m\e[2m\e[7m\e[5m\e[4m"	}	// d_reverse_blink underline
+	{ '0', "\033[0m"	},						// mormal
+	{ '1', "\033[0m\033[4m"	},					// b underline
+	{ '2', "\033[0m\033[5m"	},					// b blink
+	{ '3', "\033[0m\033[4\033[5m"	},				// b link underline
+	{ '4', "\033[0m\033[7m"	},					// b reverse
+	{ '5', "\033[0m\033[7m\033[4m"	},			// b reverse underline
+	{ '6', "\033[0m\033[7m\033[5m"	},			// b reverse blink
+	{ '7', "\033[0m\033[7m\033[4m\033[5m"	},		// b blink underline reverse
+	{ '8', "\033[0m\033[2m"	},					// dark normal
+	{ '9', "\033[0m\033[2m\033[4m"	},			// dark underline
+	{ 'A', "\033[0m\033[2m\033[5m"	},			// dark blink
+	{ 'B', "\033[0m\033[2m\033[4m\033[5m"	},		// d_blink_underline
+	{ 'C', "\033[0m\033[2m\033[7m"	},			// d_reverse
+	{ 'D', "\033[0m\033[2m\033[7m\033[4m"	},		// d_reverse_underline
+	{ 'E', "\033[0m\033[2m\033[7m\033[5m"	},		// d_reverse_blink
+	{ 'F', "\033[0m\033[2m\033[7m\033[5m\033[4m"	}	// d_reverse_blink underline
 
 };
 
@@ -71,7 +71,7 @@ struct bfescseq_t bfescseq_tab[] =
 	{ 1, 0, NULL }, // 0x27 (39) - ''' clear_foreground 3
 	{ 0, 0, NULL }, // 0x28 (40) - '('
 	{ 0, 0, NULL }, // 0x29 (41) - ')'
-	{ 1, 0, "\e[2J\e[H" }, // 0x2A (42) - '*' clear screen
+	{ 1, 0, "\033[2J\033[H" }, // 0x2A (42) - '*' clear screen
 	{ 1, 0, NULL }, // 0x2B (43) - '+' clear_foreground 2
 	{ 0, 0, NULL }, // 0x2C (44) - ','
 	{ 0, 0, NULL }, // 0x2D (45) - '-'
@@ -90,7 +90,7 @@ struct bfescseq_t bfescseq_tab[] =
 	{ 0, 0, NULL }, // 0x3A (58) - ':'
 	{ 0, 0, NULL }, // 0x3B (59) - ';'
 	{ 0, 0, NULL }, // 0x3C (60) - '<'
-	{ 3, 2, "\e[%d;%dH", -31 }, // 0x3D (61) - '=' xy
+	{ 3, 2, "\033[%d;%dH", -31 }, // 0x3D (61) - '=' xy
 	{ 0, 0, NULL }, // 0x3E (62) - '>'
 	{ 1, 0, NULL }, // 0x3F (63) - '?' read_cursor
 	{ 0, 0, NULL }, // 0x40 (64) - '@'
@@ -98,7 +98,7 @@ struct bfescseq_t bfescseq_tab[] =
 	{ 1, 0, NULL }, // 0x42 (66) - 'B' end_bypass
 	{ 0, 0, NULL }, // 0x43 (67) - 'C'
 	{ 0, 0, NULL }, // 0x44 (68) - 'D'
-	{ 1, 0, "\e[L" }, // 0x45 (69) - 'E' insert line
+	{ 1, 0, "\033[L" }, // 0x45 (69) - 'E' insert line
 	{ 2, 0, NULL }, // 0x46 (70) - 'F' expanded_print
 	{ 0, 0, NULL }, // 0x47 (71) - 'G'
 	{ 0, 0, NULL }, // 0x48 (72) - 'H'
@@ -110,17 +110,17 @@ struct bfescseq_t bfescseq_tab[] =
 	{ 0, 0, NULL }, // 0x4E (78) - 'N'
 	{ 0, 0, NULL }, // 0x4F (79) - 'O'
 	{ 0, 0, NULL }, // 0x50 (80) - 'P' print_screen
-	{ 1, 0, "\e[@" }, // 0x51 (81) - 'Q' ic
-	{ 1, 0, "\e[M" }, // 0x52 (82) - 'R' dl
+	{ 1, 0, "\033[@" }, // 0x51 (81) - 'Q' ic
+	{ 1, 0, "\033[M" }, // 0x52 (82) - 'R' dl
 	{ 0, 0, NULL }, // 0x53 (83) - 'S'
-	{ 1, 0, "\e[K" }, // 0x54 (84) - 'T' eol
+	{ 1, 0, "\033[K" }, // 0x54 (84) - 'T' eol
 	{ 0, 0, NULL }, // 0x55 (85) - 'U'
 	{ 0, 0, NULL }, // 0x56 (86) - 'V'
-	{ 1, 0, "\e[P" }, // 0x57 (87) - 'W' delete character
+	{ 1, 0, "\033[P" }, // 0x57 (87) - 'W' delete character
 	{ 0, 0, NULL }, // 0x58 (88) - 'X'
-	{ 1, 0, "\e[J" }, // 0x59 (89) - 'Y' clear to eos
+	{ 1, 0, "\033[J" }, // 0x59 (89) - 'Y' clear to eos
 	{ 0, 0, NULL }, // 0x5A (90) - 'Z'
-	{ 1, 0, "\e[H" }, // 0x5B (91) - '[' home
+	{ 1, 0, "\033[H" }, // 0x5B (91) - '[' home
 	{ 0, 0, NULL }, // 0x5C (92) - '\'
 	{ 0, 0, NULL }, // 0x5D (93) - ']'
 	{ 0, 0, NULL }, // 0x5E (94) - '^'
@@ -207,7 +207,7 @@ struct bfescseq_t bfescseq_tab[] =
 		//sta->seqBuf[0] = c; sta->seqBufLen = 1; sta->seqBuf[sta->seqBufLen] = 0;
 		if (c < BFESCSEQ_TAB_FIRST || c > BFESCSEQ_TAB_LAST) {
 			// we do not have anything for that sequence, send it as is
-			addCharToOutBuf('\e',outBuf, outBufSize);
+			addCharToOutBuf('\033',outBuf, outBufSize);
 			addCharToOutBuf(c,outBuf, outBufSize);
 			sta->inSequence = 0;
 			return 2;
@@ -279,7 +279,7 @@ struct bfescseq_t bfescseq_tab[] =
 	}
 
 	// should never happen, we reached buffer len
-	addCharToOutBuf('\e',outBuf,outBufSize);
+	addCharToOutBuf('\033',outBuf,outBufSize);
 	addStrToOutBuf(sta->seqBuf,outBuf,outBufSize);
 	sta->inSequence = 0;
 	return sta->seqBufLen+1;

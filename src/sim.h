@@ -111,7 +111,7 @@ void invalidArgs(void);
 char inputHexval (unsigned int * value, const char * exitChars);
 
 #define MAXCMDLEN 10
-#define MAXNUMARGS 4
+#define MAXNUMARGS 255
 #define MAXARGLEN 255
 
 struct args_t {

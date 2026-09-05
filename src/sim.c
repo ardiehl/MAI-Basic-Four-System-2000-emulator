@@ -1792,7 +1792,7 @@ void dbgCmd_load (int numArgs, struct args_t *args) {
 	}
 }
 
-
+/* can be done with load as well
 void dbgCmd_exec (int numArgs, struct args_t *args) {
     unsigned int loadAddr;
     unsigned int dummy;
@@ -1804,7 +1804,46 @@ void dbgCmd_exec (int numArgs, struct args_t *args) {
         m68k_set_reg(M68K_REG_PC,loadAddr);
         printf("exec loaded\n");
     }
+} */
+
+// number of calls to sock_poll() after fork
+#define EXEC_NUMPOLLS 100
+#define EXEC_POLLDELAY 10000
+void dbgCmd_exec (int numArgs, struct args_t *args) {
+    char *a[MAXNUMARGS+1];
+    int i;
+
+    if (numArgs < 1 || args[1].isValue) {
+        printf("usage: exec arg [,arg ...]\n");
+        return;
+    }
+
+    for (i=0;i<numArgs;i++) {
+        //printf("%d: isValue:%d value:%d txt: \"%s\"\n",i,args[i].isValue,args[i].value,&args[i].txt[0]);
+        a[i] = &args[i].txt[0];
+    }
+    a[i] = NULL;
+
+    // Fork and execute
+    pid_t pid = fork();
+    if (pid < 0) {
+        perror("Fork failed");
+    }
+    else if (pid == 0) {
+        // Child process execution
+        execvp(a[0], a);
+        perror("Exec failed");
+        exit(1);
+    } else {
+        for (i=0; i<EXEC_NUMPOLLS; i++) {
+            sock_poll();
+            usleep(EXEC_POLLDELAY);
+        }
+    }
+
+
 }
+
 
 int emu_save_state(FILE * f) {
     STATEWRITEVARS("emu");
@@ -2018,7 +2057,7 @@ struct cmds_t cmds[] =
     { "dump",  dbgCmd_dump  , 2,3,1,"fromAdr len    - display memory dump"},
     { "dup" ,  dbgCmd_dup   , 0,1,0,"{0|1} disable/enable showing of duplicate messages"},
     { "dw",    dbgCmd_dw    , 1,1,1,"[count] - change/display count word(s)"},
-    { "exec",  dbgCmd_exec  , 0,1,1,"[load address] - load exec"},
+    { "exec",  dbgCmd_exec  , 1,1,0,"command - start a new process"},
 
     { "go",    dbgCmd_go    , 0,1,1,"[address] - run, optional from address"},
     { "image", dbgCmd_img   , 0,1,0,"save|load [filename] save/load current state to/from file"},
@@ -2257,8 +2296,8 @@ void commandHandler(char * oneCmd, int echo)
 
 		if (cmdNum == -1) findAndExecCommand (cmd,cmds,numArgs,args);
 	  }
-
-	if (oneCmd) return;
+      sock_poll();
+      if (oneCmd) return;
 	} while ((strcmp(cmd,"quit")));
 	if (lastCmd) free(lastCmd);
 }
@@ -2283,6 +2322,8 @@ void kbtest (void) {
 int main(int argc, char* argv[])
 {
 	int i;
+	int port = 0;
+	int socketInitDone = 0;
 
 	printf("eaglesim %s (%s %s)\nControl x will break into the command line\n",VER_FULLSTR,VER_COMPILE_BY,VER_COMPILE_DATE);
 
@@ -2293,7 +2334,7 @@ int main(int argc, char* argv[])
 	if (loadROM (MEM_ROM_FILENAME))
 		exit_error("unable to open rom file %s\n",MEM_ROM_FILENAME);
 
-	sock_init(0);	/* init listen sockets */
+
 	scc_setSockCom(1,1); /* set scc port B to socket connection by default */
 
     m68k_set_cpu_type(M68K_CPU_TYPE_68010);
@@ -2316,14 +2357,31 @@ int main(int argc, char* argv[])
     /* set the boot device in nvram to wd0, can be changed later via dev nv device */
     commandHandler("dev nv wd",0);
 
+    for (i=1;i<argc;i++) {
+        printf("%d: %s\n",i,argv[i]);
+    }
 	for (i=1;i<argc;i++) {
 		if ((strcmp(argv[i],"-h") == 0) || (strcmp(argv[i],"--help") == 0)) {
-			printf ("usage: %s --help\n",argv[0]);
+			printf ("usage: %s\n  --help\n",argv[0]);
+			printf("  --port or -p  starting tcp port number for terminal connections\n");
 			printf ("   or  %s \"Command\" \"Command\" ..\n",argv[0]);
 			exit(1);
 		}
-		commandHandler(argv[i],1);
+		if ((strcmp(argv[i],"-p") == 0) || (strcmp(argv[i],"--port") == 0)) {
+		    i++;
+		    port = atoi(argv[i]);
+		    printf("Port %d\n",port);
+		    i++;
+		} else {
+            if (! socketInitDone) {
+                sock_init(port);	/* init listen sockets */
+                socketInitDone++;
+            }
+			commandHandler(argv[i],1);
+		}
 	}
+	if (! socketInitDone)
+        sock_init(port);	/* init listen sockets */
 
 	commandHandler(NULL,1);
 	sock_deinit();
