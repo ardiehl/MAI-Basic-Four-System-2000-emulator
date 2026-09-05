@@ -1929,24 +1929,24 @@ void dbgCmd_int (int numArgs, struct args_t *args) {
 }
 
 
-char * msgClassNames[] = { "notimp","warn","info","fatal","func" };
+char * msgClassNames[] = { "err","notimp","warn","info","fatal","func" };
 void dbgCmd_color (int numArgs, struct args_t *args) {
 	int i;
 
 	if (numArgs == 0) {
-		for (i=0; i<MSGC_MAX-1;i++)
+		for (i=0; i<MSGC_MAX;i++)
 			printf("%-10s%s %s%s\n",msgClassNames[i],colors[classColors[i]],colorsNames[classColors[i]],colors[1]);
 		return;
 	}
 	if (numArgs == 1 && args[0].isValue && args[0].value == 0) {
-		for (i=0; i<MSGC_MAX-1;i++)
+		for (i=0; i<MSGC_MAX;i++)
 			classColors[i] = 0;
 		printf("Colors disabled\n");
 		return;
 	}
 	if (numArgs == 2 && !args[0].isValue && !args[0].isValue) {
 		int msgClass = -1;
-		for (i=0; i<MSGC_MAX-1; i++)
+		for (i=0; i<MSGC_MAX; i++)
 			if (strcmp(args[0].txt, msgClassNames[i]) == 0) msgClass = i;
 		if (msgClass < 0) {
 			printf("invalid message class\n");
@@ -1955,7 +1955,7 @@ void dbgCmd_color (int numArgs, struct args_t *args) {
 
 //	none=0, black, red, green, yellow, blue, purple, cyan, white, boldblack, boldred, boldgreen, boldyellow, boldblue, boldpurple, boldcyan, boldwhite} colors_t;
 		int color = -1;
-		for (i=0; i<boldwhite; i++)
+		for (i=0; i<=boldwhite; i++)
 			if (strcmp(args[1].txt,colorsNames[i]) == 0)
 				color = i;
 		if (color < 0) {
