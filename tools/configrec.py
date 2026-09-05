@@ -29,9 +29,9 @@ Usage
                               [--eightway N] [--parallel N] [--comm N]
                               [--name TEXT] [--block N]
 
-The record is found by checksum: every block boundary is tried and the one
-whose stored checksum matches its contents wins, so no block number is needed
-unless the image holds more than one valid record, in which case --block picks.
+The record is found by checksum rather than by a fixed block number, searching
+from the end of the image towards the front because the record sits after the
+last partition. --block overrides that.
 
 Writing always recomputes the checksum. The image is modified in place, so work
 on a copy.
@@ -91,18 +91,35 @@ def pack_drives(count, size):
     return (count << 11) | size
 
 
-def find_records(data):
-    """Every unit whose stored checksum matches its contents."""
-    hits = []
-    for blk in range(len(data) // BLOCK - 1):
+def looks_like_record(data, off):
+    """Cheap test before paying for a checksum over 1020 bytes.
+
+    The kernel compares seven bytes of the record against the serial number
+    held in NVRAM, which is ASCII, so the serial number field has to be ASCII
+    digits in any record the machine would accept.
+    """
+    ssn = data[off + REC + F_USER_SSN:off + REC + F_USER_SSN + 8]
+    return len(ssn) == 8 and ssn.isdigit()
+
+
+def find_record(data, prefilter=True):
+    """The last unit in the image whose stored checksum matches its contents.
+
+    Armin Diehl points out that the record sits after the last partition, so
+    the search runs from the end of the image towards the front and stops at
+    the first hit.
+    """
+    for blk in range(len(data) // BLOCK - 2, -1, -1):
         off = blk * BLOCK
+        if prefilter and not looks_like_record(data, off):
+            continue
         unit = data[off:off + UNIT]
         stored = struct.unpack_from(">I", unit, CKSUM_OFF)[0]
         if stored == 0:
             continue                      # an empty region checksums to zero
         if stored == checksum(unit):
-            hits.append(blk)
-    return hits
+            return blk
+    return None
 
 
 def text(unit, off, length):
@@ -192,14 +209,13 @@ def main():
         if args.block is not None:
             blk = args.block
         else:
-            hits = find_records(data)
-            if not hits:
+            blk = find_record(data)
+            if blk is None:
+                # the cheap test rules out almost every block, so if it ruled
+                # out all of them, pay for the slow pass before giving up
+                blk = find_record(data, prefilter=False)
+            if blk is None:
                 sys.exit("no configuration record found: no block pair checksums correctly")
-            if len(hits) > 1:
-                print("valid records at blocks %s, using the last one, "
-                      "pass --block to choose" % ", ".join(str(h) for h in hits),
-                      file=sys.stderr)
-            blk = hits[-1]
 
         off = blk * BLOCK
         unit = bytearray(data[off:off + UNIT])
