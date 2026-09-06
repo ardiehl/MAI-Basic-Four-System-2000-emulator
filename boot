@@ -40,21 +40,21 @@ terminalPort () {
         ;;
         1) TP="scc1"
         ;;
-        2) TP="fourway 1 port A"
+        2) TP="fourway_1A"
         ;;
-        3) TP="fourway 1 port B"
+        3) TP="fourway_1B"
         ;;
-        4) TP="fourway 1 port C"
+        4) TP="fourway_1C"
         ;;
-        5) TP="fourway 1 port D"
+        5) TP="fourway_1D"
         ;;
-        6) TP="fourway 2 port A"
+        6) TP="fourway_2A"
         ;;
-        7) TP="fourway 2 port B"
+        7) TP="fourway_2B"
         ;;
-        8) TP="fourway 2 port C"
+        8) TP="fourway_2C"
         ;;
-        9) TP="fourway 2 port D"
+        9) TP="fourway_2D"
         ;;
     esac
 }
