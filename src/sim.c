@@ -2022,15 +2022,25 @@ vector_t vectors[] = {
 void dbgCmd_vector (int numArgs, struct args_t *args) {
 	unsigned int vbr;
 	int i = 0;
+	unsigned int vectorAddress;
 	unsigned int address;
 
 	vbr = m68k_get_reg(NULL,M68K_REG_VBR);
 
-	printf("addr    Vector  Vector addr  description\n" \
-		   "==============================================================================\n");
+	if (numArgs > 0) {
+		int vector = args[0].value;
+		vectorAddress = vbr + (vector * 4);
+		address = sys_read_long (vectorAddress,0);
+		printf("vector #%d %02x @ %08x points to %08x\n",vector,vector,vectorAddress,address);
+		return;
+	}
+
+	printf("addr      Vector     Vector addr  description\n" \
+		   "=================================================================================\n");
 	while (vectors[i].vectorNum >= 0) {
 		address = sys_read_long (vbr + vectors[i].address,0);
-		printf("%08x:  %3d     %08x  %s\n",vectors[i].vectorNum, vbr + vectors[i].address,address,vbr + vectors[i].txt);
+		printf("%08x: #%-3d %02x    %08x  %s\n",vbr + vectors[i].address, vectors[i].vectorNum, vectors[i].vectorNum,
+				address,vbr + vectors[i].txt);
 		i++;
 	}
 }
@@ -2074,7 +2084,7 @@ struct cmds_t cmds[] =
     { "step",  dbgCmd_step  , 0,1,1,"step one or more instructions"},
     { "type",  dbgCmd_type  , 1,3,1,"fromAdr toAddr - display memory dump"},
     { "colors",dbgCmd_color , 0,0,0,"color to list color 0 to disable, color err|notimp|warn|info|fatal|func colorName"},
-    { "vector",dbgCmd_vector, 0,0,0,"show vector table"},
+    { "vector",dbgCmd_vector, 0,1,1,"show vector table"},
 
     { "?",     dbgCmd_help  , 0,0,0,""},
     { "help",  dbgCmd_help  , 0,0,0,"show this help"},

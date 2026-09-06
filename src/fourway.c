@@ -49,6 +49,7 @@ typedef struct {
     UINT32     cmdBlock;        /* word address, as handed over              */
     UINT32     intVector;
     UINT32     accesses;
+    char       recvData;        /* for this we have fired the recv interrupt */
 } fw_regs_t;
 
 
@@ -107,6 +108,7 @@ static const char * fw_regName (unsigned int address) {
     switch (address & FW_REG_MASK) {
         case FW_REG_STATUS: return "status";
         case FW_REG_INSTR : return "instruction";
+        case FW_REG_RECV  : return "rxdata";
     }
     return "unknown";
 }
@@ -153,11 +155,6 @@ static void fw_addPendingComplete (int n, int port, int condition) {
 	fw_pendingComplete[idx].intVector = 0;
 }
 
-static void fw_addPendingInterrupt (int n, int port, int intVector) {
-	if (intVector) {
-// TODO, will be required for receive int
-	}
-}
 
 
 /* Command complete. The board owns an interrupt vector handed to it during
@@ -192,10 +189,25 @@ static void fw_complete (int n, int port, int condition) {
 
 
 void fw_processPendingCompletes() {
-	if (fwIntPending) return;
-	if (!numPendingComplete) return;
+	int i;
+	int numAdded = 0;
 
-	for (int i=0; i<FW_INSTALLED*4;i++) {
+	if (fwIntPending) return;
+	if (!numPendingComplete) {
+		for (i=0; i<FW_INSTALLED*4;i++) {
+			if (sock_dataAvailable(2+i)) {	// do we have incoming data ?
+				int n = i/4;
+				int port = n % 4;
+				sock_getchar(2+i, &fw[n].recvData);
+				fw_addPendingComplete (n, port, FW_VEC_RXCHAR); // queue them all so that not only the first gets priority
+				numAdded++;
+				msgout (MSGC_INFO,MYSELF,MSG_NONE,"fw%d port%c: rxchar completion interrupt queued", n,'A'+port);
+			}
+		}
+		if (numAdded == 0) return;
+	}
+
+	for (i=0; i<FW_INSTALLED*4;i++) {
 		if (fw_pendingComplete[i].waiting) {
 			fw_pendingComplete[i].waiting = 0;
 			numPendingComplete--;
@@ -211,7 +223,7 @@ int fw_irq_ack (int level) {
 
     n = fwIntPending - 1;
     if ((level != fwIntLevel) || (!fwIntPending)) {
-		msgout (MSGC_INFO,MYSELF,MSG_NONE,"fw%d: interrupt for vector %02x not acknowledged (pending: %d, level: %d",n+1,fwIntVector,fwIntPending,level);
+		//msgout (MSGC_INFO,MYSELF,MSG_NONE,"fw%d: interrupt for vector %02x not acknowledged (pending: %d, level: %d",n+1,fwIntVector,fwIntPending,level);
 		return M68K_INT_ACK_SPURIOUS;
 	}
 	fwIntPending = 0;
@@ -384,9 +396,24 @@ unsigned int fw_read_byte (unsigned int address, int flags) {
     UINT8 value;
     char tx[255];
 
+    //w: read8 fw0: read of 00d4c001 (unknown),
+
     if (n < 0) { BUSERROR(flags,address,MSG_READB); return 0xff; }
     b = &fw[n];
     b->accesses++;
+
+    // 3ef44
+	if ((address & FW_REG_MASK) == FW_REG_RECV) {
+		msgout (MSGC_FUNC,MYSELF,MSG_READB,"fw%d: read of %08x (%s), returning 0x%02x",n,address,fw_regName(address),fw[n].recvData);
+		return fw[n].recvData;
+	} else
+	// if this is set to ff, kernel reports "Cannot set transmission characteristics"
+
+	if ((address & FW_REG_MASK) == 0x2001) {
+		value = 0x00;  // kernel @ 2727e
+		msgout (MSGC_FUNC,MYSELF,MSG_READB,"fw%d: read of %08x (%s), returning 0x%02x",n,address,fw_regName(address),value);
+		return value;
+	} else
 
     if ((address & FW_REG_MASK) == FW_REG_STATUS) {
         value = b->status | fwDsrBits;

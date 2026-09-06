@@ -606,6 +606,10 @@ int sock_getchar(int portNum, char * data) {
 	return rc;
 }
 
+int sock_dataAvailable(int portNum) {
+	return ring_buffer_peek(&socks[portNum].recvData, NULL, 0);
+}
+
 
 // init: setup any port to listen for a new connection, startingPortNumber can be 0 for the default
 void sock_init(int startingPortNumber) {
@@ -641,9 +645,9 @@ void sock_deinit() {
 
 	for (i=0;i<SOCK_MAX;i++) {
 		if (socks[i].fd > -1) {
-            printf("%d: closing socket %d ",i,socks[i].fd); fflush(stdout);
+//            printf("%d: closing socket %d ",i,socks[i].fd); fflush(stdout);
 			close(socks[i].fd);
-            printf("\n");
+//            printf("\n");
 			socks[i].fd = -1;
 			socks[i].status = STAT_CLOSED;
 		}

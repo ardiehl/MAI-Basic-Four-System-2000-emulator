@@ -52,7 +52,8 @@
 #define FW_REG_STATUS       0x2000  /* bit 0 is BUSY, polled by the kernel   */
 #define FW_REG_INSTR        0xa000  /* manual calls this D(x)A000            */
 #define FW_REG_AUX          0xc000  /* read by both PROM and kernel, unknown */
-#define FW_REG_MASK         0xe000
+#define FW_REG_RECV         0xc001  /* read after char received int for port A */
+#define FW_REG_MASK         0xe00f
 
 /* status register, normal mode, M8155A 3.4.6 */
 #define FW_ST_BUSY          0x01    /* board not ready                       */

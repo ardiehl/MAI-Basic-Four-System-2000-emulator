@@ -34,6 +34,9 @@ void sock_poll();
 // read a byte, returns 1 if data was available
 int sock_getchar(int portNum, char * data);
 
+// return 1 if data is avaiable
+int sock_dataAvailable(int portNum);
+
 void sock_putchar(int portNum, char data);
 
 void sock_putstr(int portNum, char * data);

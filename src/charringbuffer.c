@@ -67,8 +67,10 @@ uint8_t ring_buffer_peek(ring_buffer_t *buffer, char *data, ring_buffer_size_t i
   }
 
   /* Add index to pointer */
-  ring_buffer_size_t data_index = ((buffer->tail_index + index) & RING_BUFFER_MASK(buffer));
-  *data = buffer->buffer[data_index];
+  if (data) {
+	ring_buffer_size_t data_index = ((buffer->tail_index + index) & RING_BUFFER_MASK(buffer));
+	*data = buffer->buffer[data_index];
+  }
   return 1;
 }
 
