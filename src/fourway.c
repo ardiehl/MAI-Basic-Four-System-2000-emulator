@@ -41,15 +41,28 @@ typedef enum {
     FW_INIT_DONE
 } fw_init_t;
 
+
 typedef struct {
-    int        installed;
-    UINT8      status;
-    UINT8      instr;           /* last value written to the instruction reg */
-    fw_init_t  initState;
-    UINT32     cmdBlock;        /* word address, as handed over              */
-    UINT32     intVector;
-    UINT32     accesses;
-    char       recvData;        /* for this we have fired the recv interrupt */
+	int           is8bit;          /* 1 = 8 bit, 2 = 7 bit */
+	int           hwFlowEnabled;
+	int           xonXoffEnabled;
+	char          xonValue;
+	char          xoffValue;
+	int           baudGenLow;
+	int           baudGenHi;
+} fw_portRegs_t;
+
+
+typedef struct {
+    int           installed;
+    UINT8         status;
+    UINT8         instr;           /* last value written to the instruction reg */
+    fw_init_t     initState;
+    UINT32        cmdBlock;        /* word address, as handed over              */
+    UINT32        intVector;
+    UINT32        accesses;
+    char          recvData;        /* for this we have fired the recv interrupt */
+    fw_portRegs_t portRegs[4];
 } fw_regs_t;
 
 
@@ -68,6 +81,13 @@ typedef struct {
 fw_pendingComplete_t fw_pendingComplete[FW_INSTALLED * 4];
 int numPendingComplete;
 
+static void portSetDefaults (fw_portRegs_t * p) {
+	p->hwFlowEnabled = 1;
+	p->xonValue = 0x11;
+	p->xoffValue = 0x13;
+	p->baudGenLow = 0x0a; // 9600 baud
+	p->baudGenHi = 0;
+}
 
 static fw_regs_t fw[FW_MAX];
 static int fwDsrBits = FW_ST_DSRA | FW_ST_DSRB | FW_ST_DSRC | FW_ST_DSRD;
@@ -211,6 +231,7 @@ void fw_processPendingCompletes() {
 		if (fw_pendingComplete[i].waiting) {
 			fw_pendingComplete[i].waiting = 0;
 			numPendingComplete--;
+			// TODO: Reset the busy flag (Bit 0 if status)
 			fw_complete(fw_pendingComplete[i].n, fw_pendingComplete[i].port, fw_pendingComplete[i].condition);
 			return;
 		}
@@ -241,12 +262,16 @@ static void fw_runCommand (int n, int port) {
     UINT32 i;
     UINT8  ch;
     int socketPortNum;	// 0 and 1 are for scc, than for the fourways
+    int charMask;
+    int regNumber;
 
     cb = (b->cmdBlock << 1) + port * FW_CB_PORTSIZE;
     cmd    = fw_peek(cb + FW_CB_CMD);
     count  = fw_peek(cb + FW_CB_COUNT);
     packet = (((UINT32)fw_peek(cb + FW_CB_ADDR_HI)) << 16) | fw_peek(cb + FW_CB_ADDR_LO);
     packet <<= 1;
+    socketPortNum = 2 + (n * 4) + port;
+    if (fw[n].portRegs[port].is8bit) charMask = 0x7f; else charMask = 0xff;
 
     msgout (MSGC_FUNC,MYSELF,MSG_NONE,
             "fw%d port%c: command block %08x, cmd %04x, count %d, packet %08x",
@@ -260,24 +285,82 @@ static void fw_runCommand (int n, int port) {
     }
 
     switch (cmd & 0xff) {
-        case FW_CMD_DT:
-        case FW_CMD_SINGL:
-            /* Data transfer, host to port. Emit it where the SCC console
-               output goes so a terminal on port A of the first board shows up
-               without any further plumbing. */
-            for (i = 0; i < count; i++) {
-                ch = sys_read_byte(packet + i,1) & 0xff;
-                socketPortNum = 2 + (port * 4) + n;
-                /*if ((n == 0) && (port == 0)) {
-                    fputc(ch & 0x7f,stderr);
-                }*/
-                sock_putchar(socketPortNum, ch & 0x7f);
-            }
-            //if ((n == 0) && (port == 0)) fflush(stderr);
-            msgout (MSGC_INFO,MYSELF,MSG_NONE,"fw%d port%c: transferred %d bytes",n,'A'+port,count);
+    	case FW_CMD_SINGL:
+    		/* Single Byte Transfer - This command allows the CMB to transfer a single byte of data from
+    		   the CMB to the specified port. The data to be transferred is placed in the Command Block
+    		   in place of the Byte Count (lower 8 bits). No DP address is required. A Command Executed
+    		   Interrupt is sent upon completion of the transfer. */
+
+            sock_putchar(socketPortNum, count & charMask);
             fw_poke(cb + FW_CB_STATUS,FW_ST_EXECUTED);
             fw_complete(n,port,FW_VEC_CMDEXECUTED);
             break;
+        case FW_CMD_DT:
+            /* Data transfer, host to port. Emit it where the SCC console
+               output goes so a terminal on port A of the first board shows up
+               without any further plumbing. */
+
+            for (i = 0; i < count; i++) {
+                ch = sys_read_byte(packet + i,1) & 0xff;
+                sock_putchar(socketPortNum, ch & charMask);
+            }
+            msgout (MSGC_FUNC,MYSELF,MSG_NONE,"fw%d port%c: transferred %d bytes",n,'A'+port,count);
+            fw_poke(cb + FW_CB_STATUS,FW_ST_EXECUTED);
+            fw_complete(n,port,FW_VEC_CMDEXECUTED);
+            break;
+		case FW_CMD_EIGHT:
+			/* 7-Bit/8-Bit Data - This command tells the 4-way whether it is handling 7-bit or 8-bit data.
+			   If 7-bit data is selected, the eighth bit is stripped off by the CMB. If 8-bit data is selected
+			   , all data is passed along to the 4-way with no conditioning. A Byte Count value of 1 (OlH)
+               in the Command Block configures the specified 4-way receive port for 7 bits; any other value
+               configures the port for 8 bits. The default setting is for 7 bits. */
+			fw[n].portRegs[port].is8bit = (count = 1);
+			msgout (MSGC_FUNC,MYSELF,MSG_NONE,"fw%d port%c: set to %c bits",n,'A'+port,count,count == 1 ? '8' : '7');
+            fw_poke(cb + FW_CB_STATUS,FW_ST_EXECUTED);
+            fw_complete(n,port,FW_VEC_CMDEXECUTED);
+            break;
+		/* X-ON Enable/Disable - This command toggles the DTR and CTS lines to enable or disable the hardware
+		   flow controls. Flow control is enabled when the Byte Count of the Command Block equals 1 (01H), and
+		   is disabled by any other Byte Count value. The default setting is Hardware Flow Control Enabled. */
+		case FW_CMD_ENFLOW:
+			fw[n].portRegs[port].hwFlowEnabled = (count == 1);
+			msgout (MSGC_FUNC,MYSELF,MSG_NONE,"fw%d port%c: hw flow control %s",n,'A'+port,(count == 1) ? "enabled" : "disabled");
+			fw_poke(cb + FW_CB_STATUS,FW_ST_EXECUTED);
+            fw_complete(n,port,FW_VEC_CMDEXECUTED);
+			break;
+		/* Load Port Default Parameters - This command tells the 4-Way to load the default parameters to the SCC
+		   port being addressed: 9600 Baud, 1 start Bit, 1 stop Bit, Odd Parity. */
+		case FW_CMD_LDDEF:
+		    portSetDefaults (&fw[n].portRegs[port]);
+			msgout (MSGC_FUNC,MYSELF,MSG_NONE,"fw%d port%c: default values loaded",n,'A'+port);
+			fw_poke(cb + FW_CB_STATUS,FW_ST_EXECUTED);
+            fw_complete(n,port,FW_VEC_CMDEXECUTED);
+			break;
+
+         /* Load X-off Value - This command allows the CMB to alter, via software, the ASCII character which is
+            used as the X-oFF character for each port. The default values of 013H and 093H are assigned to all
+            ports of the 4-Way during initial Reset. The new value is placed in the Command Block in place of the
+            Byte Count (lower 8 bits). An eight-bit alternate form of the X-OFF value can also be used. */
+		case FW_CMD_LDXOFF:
+			fw[n].portRegs[port].xoffValue = count;
+			msgout (MSGC_FUNC,MYSELF,MSG_NONE,"fw%d port%c: xoff set to 0x%02x",n,'A'+port,count);
+			fw_poke(cb + FW_CB_STATUS,FW_ST_EXECUTED);
+            fw_complete(n,port,FW_VEC_CMDEXECUTED);
+			break;
+
+		case FW_CMD_LDXON:
+			fw[n].portRegs[port].xonValue = count;
+			msgout (MSGC_FUNC,MYSELF,MSG_NONE,"fw%d port%c: xon set to 0x%02x",n,'A'+port,count);
+			fw_poke(cb + FW_CB_STATUS,FW_ST_EXECUTED);
+            fw_complete(n,port,FW_VEC_CMDEXECUTED);
+			break;
+		case FW_CMD_ENXON:
+			fw[n].portRegs[port].xonXoffEnabled = (count == 1);
+			msgout (MSGC_FUNC,MYSELF,MSG_NONE,"fw%d port%c: xon/xoff flow control %s",n,'A'+port,(count == 1) ? "enabled" : "disabled");
+			fw_poke(cb + FW_CB_STATUS,FW_ST_EXECUTED);
+            fw_complete(n,port,FW_VEC_CMDEXECUTED);
+			break;
+
 		case FW_CMD_ZERO:
 			msgout (MSGC_NOTIMP,MYSELF,MSG_NONE,
                     "fw%d port%c: command %02x not understood but reporting success",
@@ -285,7 +368,8 @@ static void fw_runCommand (int n, int port) {
             fw_poke(cb + FW_CB_STATUS,FW_ST_EXECUTED);
             fw_complete(n,port,FW_VEC_CMDEXECUTED);
             break;
-		//case FW_CMD_STAT:
+
+		case FW_CMD_STAT:
 	 /* status - The status Command is the only command that allows the 4-Way to write to system memory;
 	    therefore, the CMB reserves 8 consecutive word memory locations prior to issuing the status Command.
 	    Upon receiving the status Command, the 4-Way sends (via DMA) all the data in the Read Registers of
@@ -302,32 +386,31 @@ static void fw_runCommand (int n, int port) {
         Add + 10 RR13         Lower Byte of Baud Rate Generator Time Constant
         Add + 12 RR13         Upper Byte of Baud Rate Generator Time Constant
         Add + 14 RR15         External/Status Interrupt Control Information	*/
-/*
+
 			count = 0;
 			fw_poke(packet,0xff); // Transmit/Receive Buffer status; External status
 			fw_poke(packet+2,0x00);  // Special Receive status
 			fw_poke(packet+4, (fw[n].intVector + port * 4 + FW_ST_EXECUTED) & 0xff);
 			fw_poke(packet+6,0xff);
 			fw_poke(packet+8,0xff);
-			fw_poke(packet+10,0x00);
-			fw_poke(packet+12,0x01);  // 38400 baud
+			fw_poke(packet+10,fw[n].portRegs[port].baudGenLow);
+			fw_poke(packet+12,fw[n].portRegs[port].baudGenHi);
 			fw_poke(packet+14,0x00);
 			msgout (MSGC_INFO,MYSELF,MSG_NONE,"fw%d port%c: transferred 8 status words to 0x%08x",n,'A'+port,packet);
             fw_poke(cb + FW_CB_STATUS,testRetCode);
             fw_complete(n,port,FW_VEC_CMDEXECUTED);
             break;
-*/
-        case FW_CMD_STAT:
+
+		/* Cbmmand Configuration - For each register to be changed, the Data Packet (DP) must specify the
+		   register number first, followed by the new command. */
 		case FW_CMD_CONF:
-		case FW_CMD_LDDEF:
-		case FW_CMD_LDXON:
-		case FW_CMD_LDXOFF:
-		case FW_CMD_ENXON:
-		case FW_CMD_ENFLOW:
-		case FW_CMD_EIGHT:
+
+			regNumber = sys_read_byte(packet,1) & 0xff;
+			int value = sys_read_byte(packet + 1,1) & 0xff;
+
 			msgout (MSGC_NOTIMP,MYSELF,MSG_NONE,
-                    "fw%d port%c: command %02x not implemented, reporting success anyway",
-                    n,'A'+port,cmd & 0xff);
+                    "fw%d port%c: command CONF, Register %d, value %02x not implemented, reporting success anyway",
+                    n,'A'+port,regNumber,value);
             fw_poke(cb + FW_CB_STATUS,FW_ST_EXECUTED);
             fw_complete(n,port,FW_VEC_CMDEXECUTED);
             break;
@@ -401,7 +484,7 @@ unsigned int fw_read_byte (unsigned int address, int flags) {
 
     //w: read8 fw0: read of 00d4c001 (unknown),
 
-    if (n < 0) { BUSERROR(flags,address,MSG_READB); return 0xff; }
+    if (n < 0 || n > FW_INSTALLED-1) { BUSERROR(flags,address,MSG_READB); return 0xff; }
     b = &fw[n];
     b->accesses++;
 
@@ -426,6 +509,7 @@ unsigned int fw_read_byte (unsigned int address, int flags) {
            has taken it. Clearing it on the read after it was set gives the
            host the set then clear transition the manual describes without
            ever leaving it stuck. */
+		/* FIXME: busy has to be 1 until all pending interrupts for a fourway has been fired */
         b->status &= ~FW_ST_BUSY;
         return value;
     }
@@ -473,7 +557,7 @@ void fw_write_word (unsigned int address, unsigned int value, int flags) {
 }
 
 void fw_pulse_reset (void) {
-    int i;
+    int i,j;
 
     memset(&fw,0,sizeof(fw));
     for (i = 0; i < FW_MAX; i++) {
@@ -482,6 +566,8 @@ void fw_pulse_reset (void) {
            vector, and says so, M8155A 3.3.6 step 2 */
         fw[i].status = FW_ST_NOCMDBLOCK | FW_ST_NOVECTOR;
         fw[i].initState = FW_INIT_CBLOCK_LOW;
+        for (j=0;j<3;j++)
+			portSetDefaults(&fw[i].portRegs[j]);
     }
     fwIntPending = 0;
     numPendingComplete = 0;

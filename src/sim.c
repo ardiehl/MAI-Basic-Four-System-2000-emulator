@@ -1807,8 +1807,8 @@ void dbgCmd_exec (int numArgs, struct args_t *args) {
 } */
 
 // number of calls to sock_poll() after fork
-#define EXEC_NUMPOLLS 100
-#define EXEC_POLLDELAY 10000
+#define EXEC_NUMPOLLS 50
+#define EXEC_POLLDELAY 1000
 void dbgCmd_exec (int numArgs, struct args_t *args) {
     char *a[MAXNUMARGS+1];
     int i;

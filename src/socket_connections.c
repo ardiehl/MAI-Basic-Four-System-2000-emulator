@@ -694,7 +694,7 @@ void sock_telnetInit (int numArgs, struct args_t *args) {
 		for (i=0; i<SOCK_MAX; i++) socks[i].doTelnetInit = args[0].value;
 	}
 	if (numArgs == 2) {
-		if (!args[0].isValue || args[0].value < 0 || args[0].value >= SOCK_MAX-1 || !args[1].isValue || args[1].value < 0 || args[1].value > 1) {
+		if (!args[0].isValue || args[0].value < 0 || args[0].value > SOCK_MAX-1 || !args[1].isValue || args[1].value < 0 || args[1].value > 1) {
 			printf("invalid arguments\n");
 			return;
 		}
@@ -713,7 +713,7 @@ void sock_outTrans (int numArgs, struct args_t *args) {
 		for (i=0; i<SOCK_MAX; i++) socks[i].doOutTranslation = args[0].value;
 	}
 	if (numArgs == 2) {
-		if (!args[0].isValue || args[0].value < 0 || args[0].value >= SOCK_MAX-1 || !args[1].isValue || args[1].value < 0 || args[1].value > 1) {
+		if (!args[0].isValue || args[0].value < 0 || args[0].value > SOCK_MAX-1 || !args[1].isValue || args[1].value < 0 || args[1].value > 1) {
 			printf("invalid arguments\n");
 			return;
 		}
@@ -732,11 +732,23 @@ void sock_inTrans (int numArgs, struct args_t *args) {
 		for (i=0; i<SOCK_MAX; i++) socks[i].doInTranslation = args[0].value;
 	}
 	if (numArgs == 2) {
-		if (!args[0].isValue || args[0].value < 0 || args[0].value >= SOCK_MAX-1 || !args[1].isValue || args[1].value < 0 || args[1].value > 1) {
+		if (!args[0].isValue || args[0].value < 0 || args[0].value > SOCK_MAX-1 || !args[1].isValue || args[1].value < 0 || args[1].value > 1) {
 			printf("invalid arguments\n");
 			return;
 		}
 		socks[args[0].value].doInTranslation = args[1].value;
+	}
+}
+
+void sock_terminal(int numArgs, struct args_t *args) {
+	if (numArgs == 2) {
+		if (!args[0].isValue || args[0].value < 0 || args[0].value > SOCK_MAX-1 || !args[1].isValue || args[1].value < 0 || args[1].value > 1) {
+			printf("invalid arguments\n");
+			return;
+		}
+		socks[args[0].value].doInTranslation = args[1].value;
+		socks[args[0].value].doOutTranslation = args[1].value;
+		socks[args[0].value].doTelnetInit = args[1].value;
 	}
 }
 
@@ -752,7 +764,7 @@ void sock_dump(int numArgs, struct args_t *args) {
 		for (i=0; i<SOCK_MAX; i++) socks[i].dumpIO_console = args[0].value;
 	}
 	if (numArgs == 2) {
-		if (!args[0].isValue || args[0].value < 0 || args[0].value >= SOCK_MAX-1 || !args[1].isValue || args[1].value < 0 || args[1].value > 1) {
+		if (!args[0].isValue || args[0].value < 0 || args[0].value > SOCK_MAX-1 || !args[1].isValue || args[1].value < 0 || args[1].value > 1) {
 			printf("invalid arguments\n");
 			return;
 		}
@@ -848,13 +860,14 @@ void sock_help (int numArgs, struct args_t *args);
 
 struct cmds_t sockCmds[] =
 {
-	{ "status"     , sock_showStatus,  0,0,0,"show socket connection status"},
-	{ "telnetinit" , sock_telnetInit,  0,2,0,"do telnet init 0|1 for all ports or portNum 0|1"},
-	{ "outtrans"   , sock_outTrans  ,  0,2,0,"do translate outgoing escape sequences to VT100 0|1 for all ports or portNum 0|1"},
-	{ "intrans"    , sock_inTrans   ,  0,2,0,"do translate incoming key sequences from VT100 0|1 for all ports or portNum 0|1"},
-	{ "recsend"    , sock_recSend   ,  0,1,0,"record data send to terminal in buffer for the given port , 2nd optional parameter is buffer size"},
-	{ "showrec"    , sock_showRec   ,  1,1,0,"show recorded data"},
-	{ "dump"       , sock_dump      ,  0,2,0,"dump data to console 0|1 for all ports or portNum 0|1"},
+	{ "status"     , sock_showStatus,  0,0,1,"show socket connection status"},
+	{ "telnetinit" , sock_telnetInit,  0,2,1,"do telnet init 0|1 for all ports or portNum 0|1"},
+	{ "outtrans"   , sock_outTrans  ,  0,2,1,"do translate outgoing escape sequences to VT100 0|1 for all ports or portNum 0|1"},
+	{ "intrans"    , sock_inTrans   ,  0,2,1,"do translate incoming key sequences from VT100 0|1 for all ports or portNum 0|1"},
+	{ "terminal"   , sock_terminal  ,  0,2,1,"set telnetinit,outtrans and inttrans for the given port on or off"},
+	{ "recsend"    , sock_recSend   ,  0,1,1,"record data send to terminal in buffer for the given port , 2nd optional parameter is buffer size"},
+	{ "showrec"    , sock_showRec   ,  1,1,1,"show recorded data"},
+	{ "dump"       , sock_dump      ,  0,2,1,"dump data to console 0|1 for all ports or portNum 0|1"},
 	{ "?"          , sock_help,        0,0,0,"show this help"},
 	{ "help"       , sock_help,        0,0,0,"show this help"},
 	{ "",  NULL, 0,0,0,""}

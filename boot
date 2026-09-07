@@ -131,8 +131,10 @@ fi
 
 for i in $SOCKNUMS; do
     terminalPort $i
-    [ $i = 0 ] && addarg "dev scc socketio 0 1"
-    [ $i = 1 ] && addarg "dev scc socketio 1 1"
+    if [ $i = 0 ]; then addarg "dev scc socketio 0 1"
+    elif [ $i = 1 ]; then addarg "dev scc socketio 1 1"
+    else addarg "dev sock terminal $i 1"
+    fi
     PORT=$((PORT_BASE + i))
     addarg "exec $XT1 -T $TP $TELNET $HOST $PORT"
 done
