@@ -197,7 +197,7 @@ void fw_processPendingCompletes() {
 		for (i=0; i<FW_INSTALLED*4;i++) {
 			if (sock_dataAvailable(2+i)) {	// do we have incoming data ?
 				int n = i/4;
-				int port = n % 4;
+				int port = i % 4;
 				sock_getchar(2+i, &fw[n].recvData);
 				fw_addPendingComplete (n, port, FW_VEC_RXCHAR); // queue them all so that not only the first gets priority
 				numAdded++;
@@ -285,7 +285,7 @@ static void fw_runCommand (int n, int port) {
             fw_poke(cb + FW_CB_STATUS,FW_ST_EXECUTED);
             fw_complete(n,port,FW_VEC_CMDEXECUTED);
             break;
-		case FW_CMD_STAT:
+		//case FW_CMD_STAT:
 	 /* status - The status Command is the only command that allows the 4-Way to write to system memory;
 	    therefore, the CMB reserves 8 consecutive word memory locations prior to issuing the status Command.
 	    Upon receiving the status Command, the 4-Way sends (via DMA) all the data in the Read Registers of
@@ -302,6 +302,7 @@ static void fw_runCommand (int n, int port) {
         Add + 10 RR13         Lower Byte of Baud Rate Generator Time Constant
         Add + 12 RR13         Upper Byte of Baud Rate Generator Time Constant
         Add + 14 RR15         External/Status Interrupt Control Information	*/
+/*
 			count = 0;
 			fw_poke(packet,0xff); // Transmit/Receive Buffer status; External status
 			fw_poke(packet+2,0x00);  // Special Receive status
@@ -315,6 +316,8 @@ static void fw_runCommand (int n, int port) {
             fw_poke(cb + FW_CB_STATUS,testRetCode);
             fw_complete(n,port,FW_VEC_CMDEXECUTED);
             break;
+*/
+        case FW_CMD_STAT:
 		case FW_CMD_CONF:
 		case FW_CMD_LDDEF:
 		case FW_CMD_LDXON:
