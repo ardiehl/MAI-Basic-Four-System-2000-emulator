@@ -80,7 +80,6 @@ while [[ $# -gt 0 ]]; do
         -t|--telnet)
             TELNET="$2"
             shift
-            shift
         ;;
         -a|--all)
             SOCKNUMS="0 1 2 3 4 5 6 7 8 9"
@@ -95,16 +94,13 @@ while [[ $# -gt 0 ]]; do
         -w|--wd)
             addarg "dev nv wd"
             shift
-            shift
         ;;
         -c|--cs)
             addarg "dev nv cs"
             shift
-            shift
         ;;
         -f|--fd)
             addarg "dev nv fd"
-            shift
             shift
         ;;
         -*|--*)
