@@ -101,6 +101,74 @@ int cmdTransferToController (int cmd) {
 }
 
 
+char * scsiCommandNames[] = {
+	"SCSI_TESTREADY",     // 0x00
+	"SCSI_REZEROUNIT",     // 0x01
+	"invalid",
+	"SCSI_REQUESTSENSE",     // 0x03
+	"SCSI_FORMAT",     // 0x04
+	"invalid",
+	"invalid",
+	"invalid",
+	"SCSI_READ",     // 0x08
+	"invalid",
+	"SCSI_WRITE",     // 0x0a
+	"SCSI_SEEK",     // 0x0b
+	"invalid",
+	"invalid",
+	"invalid",
+	"invalid",
+	"invalid",
+	"invalid",
+	"invalid",
+	"SCSI_WRITEBUF",     // 0x13
+	"SCSI_READBUFRAM",     // 0x14
+	"SCSI_MODESELECT",     // 0x15
+	"invalid",
+	"invalid",
+	"invalid",
+	"invalid",
+	"SCSI_MODESENSE",     // 0x1a
+	"SCSI_STARTSTOP",     // 0x1b
+	"SCSI_RECDIAG",     // 0x1c
+	"SCSI_SENDDIAG",     // 0x1d
+	"invalid",
+	"invalid",
+	"invalid",
+	"invalid",
+	"invalid",
+	"invalid",
+	"invalid",
+	"SCSI_READCAPACITY",     // 0x25
+	"invalid",
+	"invalid",
+	"SCSI_READ2",     // 0x28
+	"invalid",
+	"SCSI_WRITE2",     // 0x2a
+	"invalid",
+	"invalid",
+	"invalid",
+	"SCSI_WRITEVERIFY",     // 0x2e
+	"SCSI_VERIFY",     // 0x2f
+	"invalid",
+	"SCSI_SEARCH",     // 0x31
+	"invalid",
+	"invalid",
+	"invalid",
+	"invalid",
+	"invalid",
+	"invalid",
+	"invalid",
+	"invalid",
+	"invalid",
+	"invalid",
+	"invalid",
+	"invalid",
+	"invalid",
+	"invalid"
+};
+
+
 int cmdNoDataTransfer (int cmd) {
     if ( (cmdTransferToController(cmd) == 0) && (cmdTransferToHost(cmd)==0) ) return 1;
     return 0;
@@ -163,64 +231,69 @@ static int wd_dma_from_mem (wd_regs_t * wd, UINT8 * buf, int len) {
     return 1;
 }
 
-static int wd_img_read (wd_regs_t * wd, UINT32 blk, UINT8 * buf, UINT32 nblk) {
-    if (!wd->img) return 0;
-    if (blk + nblk > wd->imgBlocks) {
-        msgout (MSGC_ERR,MYSELF,MSG_NONE,"read past end of image, block %u count %u, image has %u",blk,nblk,wd->imgBlocks);
+static int wd_img_read (wd_regs_t * wd, int unit, UINT32 blk, UINT8 * buf, UINT32 nblk) {
+    if (!wd->units[unit].img) return 0;
+    if (blk + nblk > wd->units[unit].imgBlocks) {
+        msgout (MSGC_ERR,MYSELF,MSG_NONE,"read past end of image, unit %d, block %u count %u, image has %u",unit,blk,nblk,wd->units[unit].imgBlocks);
         return 0;
     }
-    if (fseek(wd->img,(long)blk * WD_SECTOR_SIZE,SEEK_SET) != 0) return 0;
-    if (fread(buf,WD_SECTOR_SIZE,nblk,wd->img) != nblk) return 0;
+    if (fseek(wd->units[unit].img,(long)blk * WD_SECTOR_SIZE,SEEK_SET) != 0) return 0;
+    if (fread(buf,WD_SECTOR_SIZE,nblk,wd->units[unit].img) != nblk) return 0;
     return 1;
 }
 
-static int wd_img_write (wd_regs_t * wd, UINT32 blk, UINT8 * buf, UINT32 nblk) {
-    if (!wd->img) return 0;
-    if (wd->imgReadonly) {
-        msgout (MSGC_ERR,MYSELF,MSG_NONE,"write to read only image rejected");
+static int wd_img_write (wd_regs_t * wd, int unit, UINT32 blk, UINT8 * buf, UINT32 nblk) {
+    if (!wd->units[unit].img) return 0;
+    if (wd->units[unit].imgReadonly) {
+        msgout (MSGC_ERR,MYSELF,MSG_NONE,"write to read only image for unit %d rejected",unit);
         return 0;
     }
-    if (blk + nblk > wd->imgBlocks) {
-        msgout (MSGC_ERR,MYSELF,MSG_NONE,"write past end of image, block %u count %u, image has %u",blk,nblk,wd->imgBlocks);
+    if (blk + nblk > wd->units[unit].imgBlocks) {
+        msgout (MSGC_ERR,MYSELF,MSG_NONE,"write past end of image, unit %d, block %u count %u, image has %u",unit,blk,nblk,wd->units[unit].imgBlocks);
         return 0;
     }
-    if (fseek(wd->img,(long)blk * WD_SECTOR_SIZE,SEEK_SET) != 0) return 0;
-    if (fwrite(buf,WD_SECTOR_SIZE,nblk,wd->img) != nblk) return 0;
-    fflush(wd->img);
+    if (fseek(wd->units[unit].img,(long)blk * WD_SECTOR_SIZE,SEEK_SET) != 0) return 0;
+    if (fwrite(buf,WD_SECTOR_SIZE,nblk,wd->units[unit].img) != nblk) return 0;
+    fflush(wd->units[unit].img);
     return 1;
 }
 
-int wd_attach_image (int unit, const char * name) {
+int wd_attach_image (int wdn, int unit, const char * name) {
     wd_regs_t * wd;
     long sz;
 
-    if ((unit < 0) || (unit >= WD_MAX)) return 0;
-    wd = &wdr[unit];
-    if (wd->img) { fclose(wd->img); wd->img = NULL; }
-    wd->imgReadonly = 0;
-    wd->img = fopen(name,"r+b");
-    if (!wd->img) {
-        wd->img = fopen(name,"rb");
-        if (wd->img) wd->imgReadonly = 1;
+    if ((wdn < 0) || (wdn >= WD_MAX)) return 0;
+    if ((unit < 0) || (unit >= WD_MAX_UNITS)) return 0;
+    wd = &wdr[wdn];
+    if (wd->units[unit].img) { fclose(wd->units[unit].img); wd->units[unit].img = NULL; wd->units[unit].imgBlocks = 0; }
+    if (!name) return 1;
+    wd->units[unit].imgReadonly = 0;
+    wd->units[unit].img = fopen(name,"r+b");
+    if (!wd->units[unit].img) {
+        wd->units[unit].img = fopen(name,"rb");
+        if (wd->units[unit].img) wd->units[unit].imgReadonly = 1;
     }
-    if (!wd->img) {
+    if (!wd->units[unit].img) {
         printf("wd%d: cannot open '%s'\n",unit,name);
         return 0;
     }
-    fseek(wd->img,0,SEEK_END);
-    sz = ftell(wd->img);
-    if (sz <= 0) { printf("wd%d: '%s' is empty\n",unit,name); fclose(wd->img); wd->img=NULL; return 0; }
-    wd->imgBlocks = (UINT32)(sz / WD_SECTOR_SIZE);
-    strncpy(wd->imgName,name,sizeof(wd->imgName)-1);
-    printf("wd%d: attached '%s', %u blocks (%.1f MB)%s\n",unit,name,wd->imgBlocks,
-            (double)wd->imgBlocks * WD_SECTOR_SIZE / 1048576.0,
-            wd->imgReadonly ? " read only" : "");
+    fseek(wd->units[unit].img,0,SEEK_END);
+    sz = ftell(wd->units[unit].img);
+    if (sz <= 0) { printf("wd%d,%d: '%s' is empty\n",wdn,unit,name); fclose(wd->units[unit].img); wd->units[unit].img=NULL; return 0; }
+    wd->units[unit].imgBlocks = (UINT32)(sz / WD_SECTOR_SIZE);
+    strncpy(wd->units[unit].imgName,name,sizeof(wd->units[unit].imgName)-1);
+    printf("wd%d,%d: attached '%s', %u blocks (%.1f MB)%s\n",wdn,unit,name,wd->units[unit].imgBlocks,
+            (double)wd->units[unit].imgBlocks * WD_SECTOR_SIZE / 1048576.0,
+            wd->units[unit].imgReadonly ? " read only" : "");
     return 1;
 }
 
+
 int wd_units_ready (void) {
-    int i, n = 0;
-    for (i = 0; i < WD_MAX; i++) if (wdr[i].installed && wdr[i].img) n++;
+    int i, n = 0, unit = 0;
+    for (i = 0; i < WD_MAX; i++)
+		for(unit=0; unit < WD_MAX_UNITS; unit++)
+			if (wdr[i].installed && wdr[i].units[unit].img) n++;
     return n;
 }
 
@@ -271,6 +344,7 @@ static void wd_raise_complete (wd_regs_t * wd) {
     wd->intPending = 1;
     wd_update_irq(wd);
 }
+
 
 void processScsiNextPhase (wd_regs_t * wd) {
     int unit = (wd->scsiBuf[1] >> 5) & 0x07;
@@ -357,7 +431,7 @@ void processScsiNextPhase (wd_regs_t * wd) {
         return;
     }
 
-    msgout (MSGC_FUNC,MYSELF,MSG_NONE,"Executing scsi command %02x unit %d blocks %d (%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x)",wd->scsiBuf[0] & 0x1f,unit,numBlocks,
+    msgout (MSGC_FUNC,MYSELF,MSG_NONE,"Executing scsi command %02x (%s) unit %d blocks %d (%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x)",wd->scsiBuf[0] & 0x3f,scsiCommandNames[wd->scsiBuf[0] & 0x3f],unit,numBlocks,
                 wd->scsiBuf[0],wd->scsiBuf[1],wd->scsiBuf[2],wd->scsiBuf[3],wd->scsiBuf[4],wd->scsiBuf[5],wd->scsiBuf[6],wd->scsiBuf[7],wd->scsiBuf[8],wd->scsiBuf[9]);
     wd->scsiCheck = 0;
     wd->readInpReg = 0x00;
@@ -365,7 +439,7 @@ void processScsiNextPhase (wd_regs_t * wd) {
     wd->replyBytesLeft = 0;             /* only set for byte at a time data in */
     memset(wd->replyBuffer,0,sizeof(wd->replyBuffer));
     class = (wd->scsiBuf[0] >> 5) & 0x07;
-    cmd = wd->scsiBuf[0] & 0x1f;
+    cmd = wd->scsiBuf[0] & 0x3f;        /* AD: why was that 1f, SCSI_VERIFY is 2f */
     wd->statusByte = 0x00;              /* 0 good, 2 check condition */
     dmaOn = (wd->ctlReg2 & WD_CTL_SEQEN) ? 1 : 0;
     if (class > 1) {
@@ -377,7 +451,7 @@ void processScsiNextPhase (wd_regs_t * wd) {
         return;
     }
 
-    if ((unit > 0) || (!wd->img)) {
+    if ((unit >= WD_MAX_UNITS) || (!wd->units[unit].img)) {
         /* only unit 0 exists, and only if an image has been attached */
         if (cmd != SCSI_REQUESTSENSE) {
             msgout (MSGC_INFO,MYSELF,MSG_NONE,"command %02x for unit %d rejected, no drive there",cmd,unit);
@@ -425,7 +499,7 @@ void processScsiNextPhase (wd_regs_t * wd) {
                         while (done < numBlocks) {
                             chunk = numBlocks - done;
                             if (chunk > sizeof(wd->dataBuf)/WD_SECTOR_SIZE) chunk = sizeof(wd->dataBuf)/WD_SECTOR_SIZE;
-                            if (!wd_img_read(wd,lba+done,wd->dataBuf,chunk)) {
+                            if (!wd_img_read(wd,unit,lba+done,wd->dataBuf,chunk)) {
                                 wd->statusByte = 0x02; wd->sense[0] = 0x14; break;
                             }
                             if (!dmaOn) {
@@ -455,7 +529,7 @@ void processScsiNextPhase (wd_regs_t * wd) {
                             if (!wd_dma_from_mem(wd,wd->dataBuf,chunk*WD_SECTOR_SIZE)) {
                                 wd->statusByte = 0x02; wd->sense[0] = 0x11; break;
                             }
-                            if (!wd_img_write(wd,lba+done,wd->dataBuf,chunk)) {
+                            if (!wd_img_write(wd,unit,lba+done,wd->dataBuf,chunk)) {
                                 wd->statusByte = 0x02; wd->sense[0] = 0x14; break;
                             }
                             done += chunk;
@@ -499,12 +573,12 @@ void processScsiNextPhase (wd_regs_t * wd) {
                         memset(wd->dataBuf,0,sizeof(wd->dataBuf));
                         wd->dataBuf[0] = 0;                                 /* reserved */
                         wd->dataBuf[1] = 0;                                 /* medium type */
-                        wd->dataBuf[2] = wd->imgReadonly ? 0x80 : 0x00;     /* WP */
+                        wd->dataBuf[2] = wd->units[unit].imgReadonly ? 0x80 : 0x00;     /* WP */
                         wd->dataBuf[3] = 8;                                 /* block descriptor length */
                         wd->dataBuf[4] = 0;                                 /* density */
-                        wd->dataBuf[5] = (wd->imgBlocks >> 16) & 0xff;
-                        wd->dataBuf[6] = (wd->imgBlocks >> 8) & 0xff;
-                        wd->dataBuf[7] =  wd->imgBlocks & 0xff;
+                        wd->dataBuf[5] = (wd->units[unit].imgBlocks >> 16) & 0xff;
+                        wd->dataBuf[6] = (wd->units[unit].imgBlocks >> 8) & 0xff;
+                        wd->dataBuf[7] =  wd->units[unit].imgBlocks & 0xff;
                         wd->dataBuf[9]  = (WD_SECTOR_SIZE >> 16) & 0xff;
                         wd->dataBuf[10] = (WD_SECTOR_SIZE >> 8) & 0xff;
                         wd->dataBuf[11] =  WD_SECTOR_SIZE & 0xff;
@@ -513,7 +587,7 @@ void processScsiNextPhase (wd_regs_t * wd) {
                                 wd->statusByte = 0x02; wd->sense[0] = 0x11; break;
                             }
                         }
-                        msgout (MSGC_FUNC,MYSELF,MSG_NONE,"MODE SENSE, %d bytes, %u blocks of %d",len,wd->imgBlocks,WD_SECTOR_SIZE);
+                        msgout (MSGC_FUNC,MYSELF,MSG_NONE,"MODE SENSE, %d bytes, %u blocks of %d",len,wd->units[unit].imgBlocks,WD_SECTOR_SIZE);
                         break;
 
         case SCSI_MODESELECT:
@@ -524,12 +598,23 @@ void processScsiNextPhase (wd_regs_t * wd) {
                                 wd->statusByte = 0x02; wd->sense[0] = 0x11; break;
                             }
                         }
+
                         msgout (MSGC_FUNC,MYSELF,MSG_NONE,"MODE SELECT, %d bytes accepted and ignored",len);
+                        if (len == 22) {
+							// AD: looks like we dont have the correct data here ?
+							int blockSize = (int)wd->dataBuf[9] << 16;
+							blockSize += (int)wd->dataBuf[10] << 8;
+							blockSize += (int)wd->dataBuf[11];
+							int cylinderCount = (int)wd->dataBuf[13] << 8 + wd->dataBuf[14];
+							int heads = wd->dataBuf[15];
+							msgout (MSGC_FUNC,MYSELF,MSG_NONE,"MODE SELECT, blockSize: %d, cylinders; %d, heads: %d",blockSize,cylinderCount,heads);
+
+                        }
                         break;
 
         case SCSI_READCAPACITY:
                         memset(wd->dataBuf,0,sizeof(wd->dataBuf));
-                        lba = wd->imgBlocks ? wd->imgBlocks - 1 : 0;
+                        lba = wd->units[unit].imgBlocks ? wd->units[unit].imgBlocks - 1 : 0;
                         wd->dataBuf[0] = (lba >> 24) & 0xff;
                         wd->dataBuf[1] = (lba >> 16) & 0xff;
                         wd->dataBuf[2] = (lba >> 8) & 0xff;
@@ -937,26 +1022,30 @@ void wd_write_word(unsigned int address, unsigned int value, int flags) {
 
 
 void wd_pulse_reset(void) {
-    int i;
-    FILE * keepImg[WD_MAX];
-    char   keepName[WD_MAX][FILENAME_MAX+1];
-    UINT32 keepBlocks[WD_MAX];
-    int    keepRo[WD_MAX];
+    int i,unit;
+    FILE * keepImg[WD_MAX][WD_MAX_UNITS];
+    char   keepName[WD_MAX][WD_MAX_UNITS][FILENAME_MAX+1];
+    UINT32 keepBlocks[WD_MAX][WD_MAX_UNITS];
+    int    keepRo[WD_MAX][WD_MAX_UNITS];
 
     /* a reset must not throw away an attached disk */
     for (i=0;i<WD_MAX;i++) {
-        keepImg[i]    = wdr[i].img;
-        keepBlocks[i] = wdr[i].imgBlocks;
-        keepRo[i]     = wdr[i].imgReadonly;
-        strncpy(keepName[i],wdr[i].imgName,FILENAME_MAX);
-        keepName[i][FILENAME_MAX] = 0;
+		for (unit=0; unit < WD_MAX_UNITS; unit++) {
+			keepImg[i][unit]    = wdr[i].units[unit].img;
+			keepBlocks[i][unit] = wdr[i].units[unit].imgBlocks;
+			keepRo[i][unit]     = wdr[i].units[unit].imgReadonly;
+			strncpy(keepName[i][unit],wdr[i].units[unit].imgName,FILENAME_MAX);
+			keepName[i][unit][FILENAME_MAX] = 0;
+		}
     }
     memset(&wdr,0,sizeof(wdr));
     for (i=0;i<WD_MAX;i++) {
-        wdr[i].img         = keepImg[i];
-        wdr[i].imgBlocks   = keepBlocks[i];
-        wdr[i].imgReadonly = keepRo[i];
-        strncpy(wdr[i].imgName,keepName[i],FILENAME_MAX);
+		for (unit=0; unit < WD_MAX_UNITS; unit++) {
+			wdr[i].units[unit].img         = keepImg[i][unit];
+			wdr[i].units[unit].imgBlocks   = keepBlocks[i][unit];
+			wdr[i].units[unit].imgReadonly = keepRo[i][unit];
+			strncpy(wdr[i].units[unit].imgName,keepName[i][unit],FILENAME_MAX);
+		}
     }
     for (i=0;i<WD_MAX;i++) {
         wdr[i].statusReg = 0xC2; /*(1 << WD_STAT_OUTEMPTY) | (1 << WD_STAT_OPCOMP);*/
@@ -986,7 +1075,7 @@ int  wd_irq_ack(int level) {
  ******************************************************************************/
 
 void wd_showRegs (int numArgs, struct args_t *args) {
-    int i;
+    int i,unit;
     char tx[255];
     char tx2[255];
 
@@ -995,17 +1084,19 @@ void wd_showRegs (int numArgs, struct args_t *args) {
             decodeStatusReg(wdr[i].statusReg,tx);
             decodeCtlReg(wdr[i].ctlReg2,tx2);
             printf("wd%d    status: %02x %s\n" \
-               "        image: %s (%u blocks)\n" \
                "       vector: %02x  DMA-address: %06x = %08x\n" \
                "     selected: %02x  ReadInpReg: %02x    HostWrite: %02x\n" \
                " stateCounter: %02d       state: %02x\n" \
                "      ctlReg2: %02x %s\n",
                 i,wdr[i].statusReg,tx,
-                wdr[i].img ? wdr[i].imgName : "<none>",wdr[i].imgBlocks,
+
                 wdr[i].intVector,wdr[i].dmaAddress,(~wdr[i].dmaAddress) & 0xffffff,
                 wdr[i].selected,wdr[i].readInpReg,wdr[i].hostWriteReg,
                 wdr[i].stateCounter,wdr[i].state,
                 wdr[i].ctlReg2,tx2);
+			for (unit=0; unit < WD_MAX_UNITS; unit++)
+				printf("      image %d: %s (%u blocks)\n",unit,
+					wdr[i].units[unit].img ? wdr[i].units[unit].imgName : "<none>",wdr[i].units[unit].imgBlocks);
         }
     }
 }
@@ -1013,23 +1104,39 @@ void wd_showRegs (int numArgs, struct args_t *args) {
 void wd_help (int numArgs, struct args_t *args);
 
 void wd_image (int numArgs, struct args_t *args) {
+    int wdn = 0;
     int unit = 0;
 
     if (numArgs < 1) {
         int i;
         for (i=0;i<WD_MAX;i++)
             if (wdr[i].installed)
-                printf("wd%d image: %s (%u blocks)\n",i,
-                        wdr[i].img ? wdr[i].imgName : "<none>",wdr[i].imgBlocks);
+				for (unit=0; unit < WD_MAX_UNITS; unit++)
+					printf("wd%d,%d image: %s (%u blocks)\n",i,unit,
+                        wdr[i].units[unit].img ? wdr[i].units[unit].imgName : "<none>",wdr[i].units[unit].imgBlocks);
         return;
     }
     if (numArgs > 1) unit = args[1].value;
-    wd_attach_image(unit,args[0].txt);
+    if (numArgs > 2) wdn = args[2].value;
+    if (!wd_attach_image(wdn,unit,args[0].txt)) printf("unable to attach image\n");
 }
+
+
+void wd_imageRemove (int numArgs, struct args_t *args) {
+    int wdn = 0;
+    int unit = 0;
+
+    if (numArgs > 0) unit = args[0].value;
+    if (numArgs > 1) wdn = args[1].value;
+    if (!wd_attach_image(wdn,unit,NULL)) printf("unable to detach image\n");
+}
+
+
 
 struct cmds_t wdCmds[] =
 {
-    { "image",      wd_image,       0,2,0,"image <file> [unit] - attach a raw 512 byte per block disk image"},
+    { "image",      wd_image,       0,3,0,"image <file> [unit] [wdnum] - attach a raw 512 byte per block disk image"},
+    { "detach",     wd_imageRemove, 0,2,0,"detach [unit] [wdnum] - remove an attached disk image"},
 	{ "registers",	wd_showRegs,    0,0,0,"show wd registers"},
 	{ "?",			wd_help,        0,0,0,"show this help"},
 	{ "help",		wd_help,        0,0,0,"show this help"},

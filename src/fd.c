@@ -66,7 +66,7 @@ void decode_optionsLatch (char *dst, UINT8 value) {
 
 // Status Transfer Control (13L) (read)
 void decode_flpstat (char *dst, UINT8 value) {
-    sprintf(dst,"BUSY: %d IDX: %d ENINTR: %d ENDRQ: %d INTRA: %d DRQA: %d 6(n/c): %d RST: %d", 
+    sprintf(dst,"BUSY: %d IDX: %d ENINTR: %d ENDRQ: %d INTRA: %d DRQA: %d 6(n/c): %d RST: %d",
         (value >> FLPSTAT_BUSY) & 1,
         (value >> FLPSTAT_IDXA) & 1,
         (value >> FLPSTAT_ENINTR) & 1,
@@ -80,7 +80,7 @@ void decode_flpstat (char *dst, UINT8 value) {
 int fd_getIndexPulse() {
 	// only if a drive is selected and motor is on
 	UINT8 c;
-	
+
 	int drive = -1;
 	c = FLPCONT_SEL0 | FLPCONT_MOTOR0;
 	if ((fd.flpcont_13K & c) == c) drive = 0;
@@ -94,6 +94,19 @@ int fd_getIndexPulse() {
 	return ((m68k_instruction_count & 0x07ff0) > 0);
 }
 
+/*
+   BFSID8079A
+   Figure 10-2 Logic Diagram, Central Microprocessor Board (Sheet 47 of 58)
+   Bit 0 = Busy
+       1 = Index - A
+       2 = ENBINTR+
+       3 = ENBDRQ+
+       4 = INTR+A
+       5 = DRQ+A (Data ReQuest) 
+           DRQ+A is asserted when the floppy disk controller chip is ready to transfer a byte of data to or from the buffer.
+       6 = N/C
+       7 = PRST-
+*/
 
 UINT8 fd_getFlpStat13L() {
 	UINT8 status;
@@ -113,13 +126,17 @@ unsigned int fd_read_byte(unsigned int address, int flags) {
 	int regNum;
     char s[255];
     UINT8 flpstat_13L;
-	
+
 	switch FD_AREA(address) {
 		case FD_FLPOPT:	MSG (MSGC_ERR+MSGC_BREAK,MYSELF,MSG_WRITEB,"read of write only addr %08x (Floppy option latch)",address);
 						return 0xff;
 		case FD_STAT:   flpstat_13L = fd_getFlpStat13L();
-		                decode_flpstat (s,flpstat_13L);	
-                        MSG (MSGC_INFO,MYSELF,MSG_READB," %08x (Floppy status) %s",address,flpstat_13L,s);
+						// TODO: Busy flag seems to be missing here
+						if (fd.regs[WD1793_R_STAT] & FLG_BUSY) flpstat_13L |= FLG_BUSY; // to pass Test 5
+						// no fdc or diskette is wite protected
+						//if (!fd.regs[WD1793_R_STAT] & FLG_BUSY) flpstat_13L &= 4;
+		                decode_flpstat (s,flpstat_13L);
+                        MSG (MSGC_INFO,MYSELF,MSG_READB," %08x (Floppy status) %02x %s",address,flpstat_13L,s);
 						return flpstat_13L;
 		case FD_CONT:	MSG (MSGC_ERR+MSGC_BREAK,MYSELF,MSG_WRITEB,"read of write only addr %08x (Floppy control latch)",address);
 						return 0xff;
@@ -145,14 +162,14 @@ void fd_write_cmd (UINT8 value) {
 
   params[0] = 0;   /* type 3 commands never filled this in, uninitialised %s below */
   char cmdName[20];  // AD 23.10.2020, was to small
-  
+
   fd.regs[WD1793_R_CMD] = value;
   int cmd = value & 0xf0;
   int type = 1;
   if ((cmd & 0xf0) == 0xd0) type = 4;
   else if (cmd >= 0xc0) type = 3;
   else if (cmd >= 0x80) type = 2;
-  
+
   switch (type) {
 	case 1: {
 		switch (cmd & 0x03) {
@@ -181,7 +198,7 @@ void fd_write_cmd (UINT8 value) {
       case 0xF0 : { strcpy(cmdName,"Write Track"); break; }
       case 0xD0 : { strcpy(cmdName,"Force Interrupt"); break; }
   }
-  
+
   if (cmdName[0] == 0) {
 	  cmd = value & 0xe0;
 	  switch (cmd) {
@@ -200,12 +217,12 @@ void fd_exec_command(UINT8 cmd) {
     fd_write_cmd(cmd);
     switch(cmd & 0xf0) {
 		case WD179X_RESTORE:
-		case WD179X_SEEK:      
-		case WD179X_STEP:      
-		case WD179X_STEP_U:    
-		case WD179X_STEP_IN:   
-		case WD179X_STEP_IN_U: 
-		case WD179X_STEP_OUT:  
+		case WD179X_SEEK:
+		case WD179X_STEP:
+		case WD179X_STEP_U:
+		case WD179X_STEP_IN:
+		case WD179X_STEP_IN_U:
+		case WD179X_STEP_OUT:
 		case WD179X_STEP_OUT_U:
             fd.regs[WD1793_R_STAT] = FLG_BUSY | FLG_HEADLOAD;
             fd_setContinueCounter (FD_SEEK_EXEC_TIME);
@@ -213,17 +230,17 @@ void fd_exec_command(UINT8 cmd) {
 			MSG (MSGC_FUNC,MYSELF,MSG_NONE,"started seek %02x (wd1793)",cmd);
 			fd_genInterrupt (WD1793_CMD_START);      // in case this int is enabled
 			break;
-		case WD179X_FORCE_INTR:                      // aborts currrent command and resets busy status as well
+		case WD179X_FORCE_INTR:                      // aborts current command and resets busy status as well
 			fd.intFlags = cmd & 0x0f;
 			fd.cmdRunning = 0;                       // abort command
 			fd.regs[WD1793_R_STAT] &= ~FLG_BUSY;     // no longer busy
 			if (fd.intFlags & WD1793_INT_IMMEDIATE)  // and gen int if requested
 				fd_genInterrupt (WD1793_IMMEDIATE);
 			break;
-            
+
     default: MSG (MSGC_NOTIMP+MSGC_BREAK,MYSELF,MSG_NONE,"cmd %02x (wd1793)",cmd);
     }
-  
+
 }
 
 
@@ -238,7 +255,7 @@ void fd_write_byte(unsigned int address, unsigned int value, int flags) {
 		case FD_FLPOPT: decode_optionsLatch (&st[0],value);
 			// AD 23.10.2020: removed break here
                         MSG (MSGC_INFO /*+MSGC_BREAK */,MYSELF,MSG_WRITEB,"%02x (%s) to %08x (Floppy option latch)",value,st,address);
-                        fd.flpopt_13J = value;  
+                        fd.flpopt_13J = value;
                         if (!(value & (1 >> FLPOPT_FRES))) { // FRES=0 perform reset, rampos and 13k
 						  fd.bufferPos = 0;
 						  fd.flpcont_13K = 0xff;
@@ -250,7 +267,7 @@ void fd_write_byte(unsigned int address, unsigned int value, int flags) {
 						return;
 		case FD_STAT:	MSG (MSGC_ERR,MYSELF,MSG_WRITEB,"Write %02x to read only register %08x (Floppy status)",value,address);
 						return;
-		case FD_CONT:   decode_controlLatch(&st[0],value);	
+		case FD_CONT:   decode_controlLatch(&st[0],value);
                         MSG (MSGC_INFO,MYSELF,MSG_WRITEB,"%02x (%s) to %08x (Floppy contol latch)",value,st,address);
                         fd.flpcont_13K = value;
 						return;
@@ -284,7 +301,7 @@ void fd_pulse_reset(void) {
 void fd_genInterrupt(int kind) {
 	// TODO: generate interrupt if enabled
 	// m68k_pulse_interrupt (FD_INTNO);
-	/* 
+	/*
 	 // Status Transfer Control (13L)
 #define FD_ADDR_FLPSTAT 0x720000
 #define FLPSTAT_ENINTR 2
@@ -293,7 +310,7 @@ void fd_genInterrupt(int kind) {
 #define FLPSTAT_DRQA 5     ?????
 // bit 6 is NC
 #define FLPSTAT_FRST 7
-	 * 
+	 *
 */
     // TODO: check if ints are enabled on CMB - Status Transfer Control (13L)
     // if not, exit here
@@ -374,7 +391,7 @@ void fd_processContinue(void) {  /* called after n instructions if a ws1793 comm
                         if (fd.currTrack > 0) fd.currTrack--;
                         if (cmd != WD179X_STEP_OUT_U) fd.regs[WD1793_R_TRACK] = fd.currTrack;
                         fd.lastStepDirection = -1;
-                        break;    
+                        break;
                 }
 
                 if (fd.currTrack == 0) {

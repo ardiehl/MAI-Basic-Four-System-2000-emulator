@@ -29,8 +29,18 @@
 
 /*
  70XXXX WRITE Floppy address counter reset (13J)
+        latches the control bit pattern from the byte-wide I/O data bus that determines the direction of data
+        flow in the floppy sector buffer state machine. Floppy drive recording density and encoding format 
+        also are chosen here.
+
  72XXXX READ Floppy status (read only)
- 76XXXX WRITE Floppy control latch WRITE
+        this latch receives information from the floppy disk controller section and then drives that
+        information on the byte-wide I/O data bus. Thus the latch provides the system software with a "snapshot" of
+        the floppy disk controller section status.
+
+ 76XXXX WRITE Floppy control latch WRITE (13K)
+        the floppy control latch that holds control signals for the drive. (Refer to the CMB Logic Diagram, sheet 47.)
+
  78XXXX Both Floppy controller chip select
  7AXXXX Both Floppy buffer READ/WRITE
  * */
@@ -118,7 +128,7 @@ typedef struct {
     INT8   lastStepDirection;  // 0 -1 or +1
     UINT8  currTrack;
 	UINT8  intFlags;
-    
+
     UINT32 dummy2;
     UINT32 dummy3;
     UINT32 dummy4;
@@ -170,8 +180,8 @@ typedef struct {
 #define WD1793_INT_IMMEDIATE         (1 << 3)
 
 // exec times
-#define FD_SEEK_EXEC_TIME 10
-#define FD_RW_EXEC_TIME 10
+#define FD_SEEK_EXEC_TIME 100
+#define FD_RW_EXEC_TIME 100
 
 // bit positions in cmd
 #define WS1793_CF_VERIFY 2
@@ -199,7 +209,7 @@ typedef struct {
                              // Type-2 and Type-3 command status
 #define FLG_DRQ      0x02    // Data request pending
 #define FLG_LOSTDATA 0x04    // Data has been lost (missed DRQ)
- 
+
 #define FLG_ERRCODE  0x18    // Error code bits
 #define FLG_BADDATA  0x08    // 1 = bad data CRC
 #define FLG_NOTFOUND 0x10    // 2 = sector not found

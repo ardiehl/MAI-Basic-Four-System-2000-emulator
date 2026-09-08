@@ -32,7 +32,7 @@
 
 #define WD0_ADDR		0xCC0000
 #define WD1_ADDR		0xCD0000
-#define WD_ADDR_MASK		0xFFFF0000
+#define WD_ADDR_MASK	0xFFFF0000
 
 
 #define WD0_INSTALLED   1
@@ -40,6 +40,8 @@
 #define WD_MAX          2
 #define WD_SCSICMD_MAX  255
 #define WD_SECTOR_SIZE  512
+// max units (drives) per wd
+#define WD_MAX_UNITS    2
 
 #define ADDR_IS_WD0(ADDR) ((ADDR & WD_ADDR_MASK) == WD0_ADDR)
 #define ADDR_IS_WD1(ADDR) ((ADDR & WD_ADDR_MASK) == WD1_ADDR)
@@ -120,6 +122,16 @@
 #define SCSI_VERIFY         0x2F
 #define SCSI_SEARCH         0x31
 
+
+/* for each unit = disk attached to one wd */
+typedef struct {
+	/* disk image backing store, added to make the drive real */
+    FILE * img;
+    char   imgName[FILENAME_MAX+1];
+    UINT32 imgBlocks;      /* size of the image in 512 byte blocks */
+    int    imgReadonly;
+} wd_unitRegs_t;
+
 /* controller registers */
 typedef struct {
     UINT32 dmaAddress;
@@ -148,15 +160,10 @@ typedef struct {
     UINT32 replyBytesLeft;
     UINT32 replyBytePos;
     UINT8  replyBuffer[WD_SECTOR_SIZE];
-    /* disk image backing store, added to make the drive real */
-    FILE * img;
-    char   imgName[FILENAME_MAX+1];
-    UINT32 imgBlocks;      /* size of the image in 512 byte blocks */
-    int    imgReadonly;
+    wd_unitRegs_t units[WD_MAX_UNITS];
     UINT8  sense[4];       /* sense bytes returned by REQUEST SENSE  */
     UINT8  statusByte;     /* SCSI status handed over in the status phase */
     UINT8  dataBuf[WD_SECTOR_SIZE*8];
-
 } wd_regs_t;
 
 typedef enum {
@@ -186,7 +193,7 @@ void wd_write_byte(unsigned int address, unsigned int value, int flags);
 void wd_write_word(unsigned int address, unsigned int value, int flags);
 void wd_pulse_reset(void);
 int wd_dbgCmd(int numArgs, struct args_t * args);
-int wd_attach_image(int unit, const char * name);
+int wd_attach_image (int unit, int device, const char * name);
 int wd_units_ready(void);
 void wd_processContinue(void);  /* called each n instructions */
 int  wd_irq_ack(int level);

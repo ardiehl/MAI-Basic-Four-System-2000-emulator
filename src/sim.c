@@ -982,8 +982,8 @@ void dbgCmd_mbrk(int numArgs, struct args_t *args) {
 
 void dbgCmd_dup(int numArgs, struct args_t *args) {
 	if (numArgs < 1) {
-		printf("Duplicate Messages %s\n",g_breakOnBusError ? "on" : "off");
-	} else setOnOff(&g_showDuplicateMessages,args[0].txt);
+		printf("Duplicate Messages %s\n",g_showDuplicateMessages ? "on" : "off");
+	} else 	setOnOff(&g_showDuplicateMessages,args[0].txt);
 }
 
 
@@ -1959,7 +1959,10 @@ void dbgCmd_color (int numArgs, struct args_t *args) {
 			if (strcmp(args[1].txt,colorsNames[i]) == 0)
 				color = i;
 		if (color < 0) {
-			printf("invalid color name\n");
+			printf("invalid color name, valid colors are");
+			for (i=0; i<=boldwhite; i++)
+				printf("%c%s",i ? ',' : ' ',colorsNames[i]);
+			printf("\n");
 			return;
 		}
 		classColors[msgClass] = color;
