@@ -105,9 +105,9 @@ void wdc_statValuesReset();  // clear recorded status data
 uint8_t wd_writeCmdAndRecordStatus (uint8_t * address, uint8_t cmdByte, uint8_t expectedStatus, int timeout, char * msg);
 void wdc_reset(int timeout);
 uint8_t wdc_select(uint8_t sel);  // 0=deselect, 1=select
-uint8_t wd_writeCmdAndRecordStatus (uint8_t * address, uint8_t cmdByte, uint8_t expectedStatus, int timeout, char * msg);
 
 void wdc_sense (int timeout);
 void wdc_rezeroUnit (int timeout);
+
 
 #endif // WD_H_INCLUDED

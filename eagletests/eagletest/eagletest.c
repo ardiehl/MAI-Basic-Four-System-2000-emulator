@@ -141,13 +141,14 @@ void cmd_whread (int numArgs, struct args_t *args) {
 	}
 }
 
-// for testing status after scsi command buffer send for differnt commands
+// for testing status after scsi command buffer send for different commands
 void cmd_wwbytes (int numArgs, struct args_t *args) {
 	int i;
 	uint8_t cmdByte;
 	int timeout = exprparseFindSymbol ("wwrtimeout", NULL);
 	if (timeout < 1) timeout = 250;
 	printf("timeout: %d\n",timeout);
+	wdc_statValuesReset();
 
 	for (i=0;i<numArgs;i++) {
 		cmdByte = args[i].value;
@@ -158,11 +159,42 @@ void cmd_wwbytes (int numArgs, struct args_t *args) {
 	puts("");
 }
 
+// the real machine is checking the data while it receives it. I send the block
+// size as 00 00 ff instead of 00 01 ff and it stopped accepting data and
+// changed to status cc - further check in emu with diag required
+uint8_t modeSelCmdBytes[] = { 0x15, 0x00, 0x00, 0x00, 0x16, 0x00, // CDB
+	                       0x00, 0x00, 0x00, 0x08, // mode select parameter list, length must be 8
+						   0x00, 0x00, 0x00, 0x00, 0x00, // must be 0
+						   0x00, 0x01, 0xff,       // block size 512
+						   0x01,  // list format code, must be 1
+						   0x03, 0x3e,    // cylinder count 830=33e (Micropolis 50MB)
+						   6, // heads
+						   0x1,0x90, // reduced write 0x190 = 400
+						   0x1,0x90,  // write comp cyl
+						   0,0 };
+
+void cmd_modeSel (int numArgs, struct args_t *args) {
+	int i;
+	uint8_t cmdByte;
+	int timeout = exprparseFindSymbol ("wwrtimeout", NULL);
+	if (timeout < 1) timeout = 250;
+	printf("timeout: %d\n",timeout);
+	wdc_statValuesReset();
+
+	for (i=0; i<sizeof(modeSelCmdBytes); i++) {
+		cmdByte = modeSelCmdBytes[i];
+		printf("%02x ",cmdByte);
+		wd_writeCmdAndRecordStatus (wd0_hostwrite, cmdByte, 0xff, timeout, NULL);
+		printf("[%02x]  ",*wd0_status);
+	}
+	printf("\n");
+}
 
 struct cmds_t cmds[] =
 {
 	{ "expr"		, cmd_expr		, "iiiiiiiiii"	,"show result of an expression"		,""},
 	{ "functions"	, cmd_functions	, ""    		,"show defined functions",""},
+	{ "modesel"     , cmd_modeSel   , "i"           ,"send modeselect","" },
 	{ "whread"		, cmd_whread  	, "i"   		,"read 1 or more bytes from host input reg","whread [num bytes]"},
 	{ "wstatus"		, cmd_status	, "iiiiiiiiii"	,"show or decode status register value(s)",""},
 	{ "wlstatus"	, cmd_lstatus	, "i"			,"show or decode status register or status value (detailed view)",""},

@@ -25,7 +25,7 @@ void wdc_failAlloc(int bytes) {
 
 
 #define MAX_STATUS_COUNT 10
-#define MAX_STATUS_COMMANDS 16
+#define MAX_STATUS_COMMANDS 64
 
 typedef struct {
 	char rw;
@@ -51,7 +51,7 @@ void wdc_statValuesReset() {
 }
 
 void wdc_statValuesNext() {
-	if (statValuesCount < MAX_STATUS_COMMANDS) statValuesCount++;
+	if (statValuesCount < MAX_STATUS_COMMANDS-1) statValuesCount++;
 }
 
 uint8_t wd_writeCmdAndRecordStatus (uint8_t * address, uint8_t cmdByte, uint8_t expectedStatus, int timeout, char * msg) {
@@ -386,3 +386,6 @@ void wdc_rezeroUnit (int timeout) {
 
 	wdc_cmdFree(&t);
 }
+
+
+
