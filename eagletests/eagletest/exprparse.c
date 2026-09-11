@@ -178,7 +178,7 @@ func_t * exprparseFindFunction (char * name) {
 }
 
 
-void exprparseAddFunction (char *name, funcPtr_t func) {
+void exprparseAddFunction (char *name, funcPtr_t func, char * description) {
 	func_t * f;
 
 	if (exprparseFindFunction(name)) {
@@ -196,6 +196,7 @@ void exprparseAddFunction (char *name, funcPtr_t func) {
 	}
 	f->functionName = name;
 	f->f = func;
+	f->desc = description;
 	return;
 }
 
@@ -208,7 +209,7 @@ void expparseListFunctions () {
 
 	if (! symbols) return;
 
-	printf("Function            Description\n");
+	printf("Function             Description\n");
 	for (int i=0;i<78;i++) putchar('-');
 	      //12345678901234567890 123456789
 	putchar('\r'); putchar('\n');
@@ -437,7 +438,8 @@ void getTokenName (char * name, TokenType tkType){
 
 int match (exprparse_t * ex, TokenType tkType) {
 char * exName[20];
-//char * currName[20];
+
+	if (ex->type == ERROR || ex->type == EOL) return 0;
 
 	if(ex->type == tkType){
 		getToken(ex);
@@ -463,7 +465,11 @@ char * exName[20];
 
 
 int expr (exprparse_t * ex) {
+	if (ex->type == ERROR || ex->type == EOL) return 0;
+	DBGPRINTF("\t EXPR S f is %s\n",ex->f ? "SET" : "NULL");
+
 	int result = term(ex);
+
 
 	while (ex->type == PLUS || ex->type == MINUS || ex->type == AND || ex->type == OR) {
 		if(ex->type == PLUS) {
@@ -476,7 +482,7 @@ int expr (exprparse_t * ex) {
 			if (match(ex, OR)) result |= power(ex);
 		}
 	}
-	DBGPRINTF("%d\t EXPR \n", result);
+	DBGPRINTF("%d\t EXPR E f is %s\n", result,ex->f ? "SET" : "NULL");
 	return result;
 }
 
@@ -487,13 +493,21 @@ int factor1(exprparse_t * ex) {
 	int result;
 	int params[MAXARGS+1];
 	int paramCount=0;
+	func_t * funcSave;
+
+	if (ex->type == ERROR || ex->type == EOL) return 0;
+
+	DBGPRINTF("\t EXPR1 S f is %s\n", ex->f ? "SET" : "NULL");
 
 	if(ex->type == FUNCT)  {
-		DBGPRINTF("%d\t EXPR FUNC S\n", result);
+		DBGPRINTF("\t EXPR FUNC S f is %s\n", ex->f ? "SET" : "NULL");
+		funcSave = ex->f;
 		getToken(ex);
+		if (ex->type == ERROR || ex->type == EOL) return 0;
 		if (! match(ex, LPAREN)) return 0;
 		if (ex->type != RPAREN) {
 			do {
+				if (ex->type == ERROR || ex->type == EOL) return 0;
 				if(paramCount>0)
 					if(ex->type == COMMA) getToken(ex);
 				params[paramCount]=expr(ex);
@@ -504,12 +518,14 @@ int factor1(exprparse_t * ex) {
 					return 0;
 				}
 			} while (ex->type == COMMA);
-			result = ex->f->f(paramCount,params);
+			//printf("call\n");
+			//printf ("call %s\n",funcSave->functionName);
+			result = funcSave->f(paramCount,params);
 			if (! match(ex, RPAREN)) return 0;
 		} else {
 			result = ex->f->f(0,params);	// function w/o params
 		}
-		DBGPRINTF("%d\t EXPR FUNC E\n", result);
+		DBGPRINTF("%d\t EXPR FUNC E f is %s\n", result, ex->f ? "SET" : "NULL");
 	} else
 	if(ex->type == LPAREN){
 		if (! match(ex, LPAREN)) return 0;
@@ -520,14 +536,18 @@ int factor1(exprparse_t * ex) {
 		getToken(ex);
 		result=ex->ival;
 	}
+	DBGPRINTF("%d\t EXPR1 E f is %s\n", result, ex->f ? "SET" : "NULL");
 	return result;
 }
 
 /******************************************************************************/
 
 int factor (exprparse_t * ex) {
-	int result;
+	int result = 0;
 
+	if (ex->type == ERROR || ex->type == EOL) return 0;
+
+	DBGPRINTF("%d\t FACTOR S f is %s\n", result,ex->f ? "SET" : "NULL");
 	if(ex->type == MINUS){
 		if (! match(ex, MINUS)) return 0;
 		result=(-1)*factor1(ex);
@@ -535,7 +555,7 @@ int factor (exprparse_t * ex) {
 	}
 
 	result=factor1(ex);
-	DBGPRINTF("%d\t FACTOR \n", result);
+	DBGPRINTF("%d\t FACTOR E f is %s\n", result,ex->f ? "SET" : "NULL");
 	return result;
 }
 
@@ -558,21 +578,27 @@ int ipow (int base, int exp)
 /******************************************************************************/
 
 int power (exprparse_t * ex) {
-int result = factor(ex);
+	if (ex->type == ERROR || ex->type == EOL) return 0;
+	DBGPRINTF("\t POWER S f is %s\n", ex->f ? "SET" : "NULL");
+
+	int result = factor(ex);
+
 
 	if (ex->type == POWER) {
 		if (match(ex, POWER)) return ipow(result,power(ex));
 		return 0;
 	}
-	DBGPRINTF("%d\t POWER \n", result);
+	DBGPRINTF("%d\t POWER E f is %s\n", result,ex->f ? "SET" : "NULL");
 	return result;
 }
 
 /******************************************************************************/
 
 int term (exprparse_t * ex) {
+	if (ex->type == ERROR || ex->type == EOL) return 0;
 	int result = power(ex);
 
+	DBGPRINTF("%d\t TERM S f is %s\n", result,ex->f ? "SET" : "NULL");
 	while (ex->type == MULT || ex->type == DIVIDE || ex->type == REMAINDER)
 	{
 		if(ex->type == MULT) {
@@ -583,7 +609,7 @@ int term (exprparse_t * ex) {
 			if (match(ex, REMAINDER)) result = result % power(ex);
 		}
 	}
-	DBGPRINTF("%d\t TERM \n", result);
+	DBGPRINTF("%d\t TERM E f is %s\n", result,ex->f ? "SET" : "NULL");
 	return result;
 }
 
@@ -594,6 +620,7 @@ int term (exprparse_t * ex) {
 
 // initialize
 void exprparseInit (exprparse_t * ex, char * exprString) {
+	//printf("expParseInit '%s'\n",exprString);
 	ex->currpos=0;
 	ex->errpos=-1;
 	ex->inputStr=exprString;
@@ -605,7 +632,8 @@ void exprparseInit (exprparse_t * ex, char * exprString) {
 // parse
 int exprparse (exprparse_t * ex) {
 	getToken(ex);
-	ex->result = expr(ex);
+	if (ex->type != ERROR && ex->type != EOL)
+		ex->result = expr(ex);
 	DBGPRINTF("%d\t RESULT errpos=%d\n", ex->result,ex->errpos);
 	return(ex->errpos == -1);		// return true on success
 }

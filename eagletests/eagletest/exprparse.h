@@ -60,7 +60,7 @@ int exprparseFindSymbol (char * name, symbol_t ** sym);  // -1=not found else va
 void expparseListSymbols ();
 
 //void exprparseAddFunction (char *name, int *(int argc, int argv[]) );
-void exprparseAddFunction (char *name, funcPtr_t);
+void exprparseAddFunction (char *name, funcPtr_t func, char * description);
 
 // initialize exprparse_T struct
 void exprparseInit (exprparse_t * ex, char * exprString);

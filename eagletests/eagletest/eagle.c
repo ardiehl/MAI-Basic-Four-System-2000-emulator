@@ -28,7 +28,7 @@ void outstr (char *c) {
 
 void _exit (int rc)
 {
-	asm ("trap #0x0f");  // drop to the internal debugger
+	asm ("trap #0x0e");  // drop to the internal debugger
   	while (1);
 }
 

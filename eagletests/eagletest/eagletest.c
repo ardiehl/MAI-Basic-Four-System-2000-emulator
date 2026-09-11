@@ -13,8 +13,8 @@
 
 
 
-#define PROMPT "tests> "
-#define PROMPTLENGTH 7
+#define PROMPT "tests>"
+#define PROMPTLENGTH 6
 
 
 int numArgs;
@@ -81,14 +81,15 @@ void valueRequired(int arg) {
 
 
 
-void cmd_expr (int numArgs, struct args_t *args) {
+void cmd_print (int numArgs, struct args_t *args) {
 	//printf("cmd_dummy %d args\n",numArgs);
 	for (int i=0;i<numArgs;i++) {
 		if (args[i].isValue)
-			printf("#%i: value   #%d (%x)\n",i,args[i].value,args[i].value);
+			printf("#%d (%x) \n",args[i].value,args[i].value);
 		else
-		    printf("#%i: string '%s'\n",i,args[i].txt);
+		    printf("'%s' ",args[i].txt);
 	}
+	puts("");
 }
 
 void cmd_symlist (int numArgs, struct args_t *args) { expparseListSymbols (); }
@@ -165,7 +166,7 @@ void cmd_wwbytes (int numArgs, struct args_t *args) {
 uint8_t modeSelCmdBytes[] = { 0x15, 0x00, 0x00, 0x00, 0x16, 0x00, // CDB
 	                       0x00, 0x00, 0x00, 0x08, // mode select parameter list, length must be 8
 						   0x00, 0x00, 0x00, 0x00, 0x00, // must be 0
-						   0x00, 0x01, 0xff,       // block size 512
+						   0x00, 0x02, 0x00,       // block size 512
 						   0x01,  // list format code, must be 1
 						   0x03, 0x3e,    // cylinder count 830=33e (Micropolis 50MB)
 						   6, // heads
@@ -190,9 +191,18 @@ void cmd_modeSel (int numArgs, struct args_t *args) {
 	printf("\n");
 }
 
+/*
+void cmd_mt (int numArgs, struct args_t *args) {
+	char * m1 = calloc(1,512); printf("m1 @ %08lx\n",(uint32_t) m1);
+	char * m2 = calloc(1,2048); printf("m2 @ %08lx\n",(uint32_t) m2);
+	free(m1);
+	free(m2);
+}
+*/
+
 struct cmds_t cmds[] =
 {
-	{ "expr"		, cmd_expr		, "iiiiiiiiii"	,"show result of an expression"		,""},
+	{ "print"		, cmd_print 	, "iiiiiiiiii"	,"show result of an expression"		,""},
 	{ "functions"	, cmd_functions	, ""    		,"show defined functions",""},
 	{ "modesel"     , cmd_modeSel   , "i"           ,"send modeselect","" },
 	{ "whread"		, cmd_whread  	, "i"   		,"read 1 or more bytes from host input reg","whread [num bytes]"},
@@ -209,7 +219,7 @@ struct cmds_t cmds[] =
 	{ "symlist"  	, cmd_symlist	, ""    		,"show symbols"			,"List all defined symbols"},
 	{ "symadd"   	, cmd_symadd	, "SI"  		,"add/change symbol"	,"<symbolname> <symbolvalue"},
 	{ "symdel"   	, cmd_symdel	, "S"   		,"delete symbol"		,"<symbolname>"},
-
+    //{ "mt"			, cmd_mt		, ""	   		,"malloc test"		,""},
 	{ "?"		 	, cmd_help		, "s"   		,"show this help or help for a command",""},
 	{ "help"		, cmd_help		, "s"   		,"show this help or help for a command",""},
 	{ "quit"		, NULL			, ""			,"terminate to internal debugger",""},
@@ -494,9 +504,56 @@ void setVectors() {
 int b_func(int argc, int args[]) {
 	printf("func B, %d args ",argc);
 	for (int i=0;i<argc;i++) printf(" %d:%d",i,args[i]);
-	printf("\n");
+	puts("");
 	return 5;
 }
+
+char oneArgRequired [] = "one address required, returning 0";
+
+int memb_func (int argc, int args[]) {
+
+	if(argc != 1) {
+		puts(oneArgRequired);
+		return 0;
+	}
+#ifdef EAGLE
+	uint8_t *b;
+	b = (uint8_t *)args[0];
+	return *b;
+#else
+	return 0x42;
+#endif
+}
+
+int memw_func (int argc, int args[]) {
+
+	if(argc != 1) {
+		puts(oneArgRequired);
+		return 0;
+	}
+#ifdef EAGLE
+	uint16_t *b;
+	b = (uint16_t *)args[0];
+	return *b;
+#else
+	return 0x4242;
+#endif
+}
+
+int meml_func (int argc, int args[]) {
+	if(argc != 1) {
+		puts(oneArgRequired);
+		return 0;
+	}
+#ifdef EAGLE
+	uint32_t *b;
+	b = (uint32_t *)args[0];
+	return *b;
+#else
+	return 0x42424242;
+#endif
+}
+
 
 /*
 void test() {
@@ -551,7 +608,10 @@ int main ()
   //testReadStr();
 
   initSymbols ();
-  exprparseAddFunction ("b",&b_func);
+  exprparseAddFunction ("b",&b_func,"test");
+  exprparseAddFunction ("memb",&memb_func,"read 8bit from memory");
+  exprparseAddFunction ("memw",&memw_func,"read 16bit from memory");
+  exprparseAddFunction ("meml",&meml_func,"read 32bit from memory");
 //test();
   //printf("Here we are\n");
   puts("eagletest v0.1 "__DATE__ " " __TIME__);
