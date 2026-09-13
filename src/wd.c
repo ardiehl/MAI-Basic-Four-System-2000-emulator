@@ -18,6 +18,7 @@
 #include "wd.h"
 #include "sim.h"
 #include "memory.h"
+#include "eagle_superblock.h"
 
 int installedWds[WD_MAX] = {WD0_INSTALLED,WD1_INSTALLED};
 
@@ -1328,13 +1329,33 @@ void wd_decodeStatus (int numArgs, struct args_t *args) {
 
 }
 
+void wd_superblock (int numArgs, struct args_t *args) {
+	int wdn = 0;
+    int unit = 0;
+    int res;
+    eagle_superbock_t sb;
+
+    if (numArgs > 0) unit = args[0].value;
+    if (numArgs > 1) wdn = args[1].value;
+
+    if (unit > 1) return;
+    if (wdn > WD_MAX-1) return;
+
+    if (wdr[wdn].units[unit].img) {
+		res = sb_read (wdr[wdn].units[unit].img, &sb);
+		if (res > 0) sb_show (&sb);
+		else printf("failed to read superblock\n");
+    }
+}
+
 
 struct cmds_t wdCmds[] =
 {
     { "image",      wd_image,       0,3,0,"image <file> [unit] [wdnum] - attach a raw 512 byte per block disk image"},
-    { "detach",     wd_imageRemove, 0,2,0,"detach [unit] [wdnum] - remove an attached disk image"},
+    { "detach",     wd_imageRemove, 1,2,0,"detach [unit] [wdnum] - remove an attached disk image"},
 	{ "registers",	wd_showRegs,    0,0,0,"show wd registers"},
 	{ "des",        wd_decodeStatus,1,1,1,"decode status" },
+	{ "superblock", wd_superblock  ,0,2,1,"show superblock [unit] [wdnum]" },
 	{ "?",			wd_help,        0,0,0,"show this help"},
 	{ "help",		wd_help,        0,0,0,"show this help"},
     { "",  NULL, 0,0,0,""}

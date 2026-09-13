@@ -119,7 +119,7 @@ BUILD_TYPE	?=	debug
 TARGET		=	eagleemu
 
 # source files that produce object files
-SRC			=	cmb.c load.c memory.c nvram.c scc.c sim.c util.c wd.c pit.c fd.c cs.c m68k.c mmu.c fourway.c esc_sequences.c socket_connections.c
+SRC			=	cmb.c load.c memory.c nvram.c scc.c sim.c util.c wd.c pit.c fd.c cs.c m68k.c mmu.c fourway.c esc_sequences.c socket_connections.c eagle_superblock.c
 SRC			+=	musashi/m68kcpu.c musashi/m68kdasm.c musashi/m68kops.c
 SRC			+=  vtparse/vtparse.c vtparse/vtparse_table.c charringbuffer.c
 
