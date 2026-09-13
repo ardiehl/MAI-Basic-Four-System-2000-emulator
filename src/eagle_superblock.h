@@ -22,6 +22,7 @@
 #define EAGLE_SUPERBLOCK_H_INCLUDED
 
 #include <stdint.h>
+#include <endian.h>
 
 typedef struct {
 	uint32_t partStart;
@@ -33,7 +34,6 @@ typedef struct {
 	uint32_t   numberOfPartitions;
 	uint32_t   modifyTime;
 	char       diskLabel[92];
-
 	uint32_t   unknown1[6];
 
 	uint32_t   capacity;		// this is whole disk minus diag part minus some reserved (config record ?)
@@ -43,7 +43,8 @@ typedef struct {
 	uint32_t   sectorSize;
 	uint32_t   cylinder_rwc;
 	uint32_t   cylinder_wpc;
-	uint32_t   unknown4[23];
+	char       creationFileName[20];
+	uint32_t   unknown4[18];
 	eagle_partition_t partitions[33];
 } eagle_superbock_t;
 

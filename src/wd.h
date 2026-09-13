@@ -2,7 +2,7 @@
  *   wd.h
  *
  *  Created: Nov, 22 2011
- *  Changed: Dec, 25 2020
+
  *  Armin Diehl <ad@ardiehl.de>
  ****************************************************************************/
 /*
@@ -161,6 +161,9 @@ typedef struct {
     int    cylinders;         /* set by mode select, required for formatting */
     int    sectors;
     int    heads;
+    int    cylinder_rwc;
+	int    cylinder_wpc;
+    int    capacity;          /* blocks as in superblock (excluding diag and config record) */
 } wd_unitRegs_t;
 
 /* controller registers */

@@ -314,30 +314,45 @@ static int wd_img_write (wd_regs_t * wd, int unit, UINT32 blk, UINT8 * buf, UINT
 int wd_attach_image (int wdn, int unit, const char * name) {
     wd_regs_t * wd;
     long sz;
+    eagle_superbock_t sb;
+    wd_unitRegs_t *wdu;
 
     if ((wdn < 0) || (wdn >= WD_MAX)) return 0;
     if ((unit < 0) || (unit >= WD_MAX_UNITS)) return 0;
     wd = &wdr[wdn];
-    if (wd->units[unit].img) { fclose(wd->units[unit].img); wd->units[unit].img = NULL; wd->units[unit].imgBlocks = 0; }
+    wdu = &wdr[wdn].units[unit];
+
+    if (wdu->img) { fclose(wd->units[unit].img); wd->units[unit].img = NULL; wd->units[unit].imgBlocks = 0; wdu->capacity = 0; }
     if (!name) return 1;
-    wd->units[unit].imgReadonly = 0;
-    wd->units[unit].img = fopen(name,"r+b");
-    if (!wd->units[unit].img) {
-        wd->units[unit].img = fopen(name,"rb");
-        if (wd->units[unit].img) wd->units[unit].imgReadonly = 1;
+    wdu->imgReadonly = 0;
+    wdu->img = fopen(name,"r+b");
+    if (!wdu->img) {
+        wdu->img = fopen(name,"rb");
+        if (wdu->img) wdu->imgReadonly = 1;
     }
-    if (!wd->units[unit].img) {
+    if (!wdu->img) {
         printf("wd%d: cannot open '%s'\n",unit,name);
         return 0;
+    } else {
+    	if (sb_read(wdu->img,&sb) > 0) {
+    		wdu->capacity = be32toh(sb.capacity);
+			wdu->cylinders = be32toh(sb.cylinders);
+			wdu->cylinder_rwc = be32toh(sb.cylinder_rwc);
+			wdu->cylinder_wpc = be32toh(sb.cylinder_wpc);
+			wdu->heads = be32toh(sb.heads);
+			wdu->sectors = be32toh(sb.sectors);
+			msgout (MSGC_FUNC | MSGC_NOPC,MYSELF,MSG_NONE,"(%d,%d) found valid superblock, capacity: %d, cylinders: %d, heads: %d, sectors: %d",wdn,unit,wdu->capacity,wdu->cylinders,wdu->heads,wdu->sectors);
+    	} else
+			printf ("no valid superblock found in image, needs to be formatted with dutil\n");
     }
-    fseek(wd->units[unit].img,0,SEEK_END);
-    sz = ftell(wd->units[unit].img);
-    if (sz <= 0) { printf("wd%d,%d: '%s' is empty\n",wdn,unit,name); fclose(wd->units[unit].img); wd->units[unit].img=NULL; return 0; }
-    wd->units[unit].imgBlocks = (UINT32)(sz / WD_SECTOR_SIZE);
-    strncpy(wd->units[unit].imgName,name,sizeof(wd->units[unit].imgName)-1);
-    printf("wd%d,%d: attached '%s', %u blocks (%.1f MB)%s\n",wdn,unit,name,wd->units[unit].imgBlocks,
-            (double)wd->units[unit].imgBlocks * WD_SECTOR_SIZE / 1048576.0,
-            wd->units[unit].imgReadonly ? " read only" : "");
+    fseek(wdu->img,0,SEEK_END);
+    sz = ftell(wdu->img);
+    if (sz <= 0) { printf("wd%d,%d: '%s' is empty\n",wdn,unit,name); fclose(wdu->img); wdu->img=NULL; return 0; }
+    wdu->imgBlocks = (UINT32)(sz / WD_SECTOR_SIZE);
+    strncpy(wdu->imgName,name,sizeof(wdu->imgName)-1);
+    printf("wd%d,%d: attached '%s', %u blocks (%.1f MB)%s\n",wdn,unit,name,wdu->imgBlocks,
+            (double)wdu->imgBlocks * WD_SECTOR_SIZE / 1048576.0,
+            wdu->imgReadonly ? " read only" : "");
     return 1;
 }
 
@@ -405,6 +420,10 @@ void processScsiNextPhase (wd_regs_t * wd) {
     int class;
     int cmd, dmaOn, len;
     UINT32 lba = 0, numBlocks = 0, done, chunk;
+    wd_unitRegs_t *wdu;
+    int modesenseImageBlocks;
+
+    wdu = &wd->units[unit];
 
     if (wd->state == SCSI_S_IDLE) return;
 
@@ -507,7 +526,7 @@ void processScsiNextPhase (wd_regs_t * wd) {
         return;
     }
 
-    if ((unit >= WD_MAX_UNITS) || (!wd->units[unit].img)) {
+    if ((unit >= WD_MAX_UNITS) || (!wdu->img)) {
         /* only unit 0 exists, and only if an image has been attached */
         if (cmd != SCSI_REQUESTSENSE) {
             msgout (MSGC_INFO,MYSELF,MSG_NONE,"command %02x for unit %d rejected, no drive there",cmd,unit);
@@ -636,6 +655,8 @@ void processScsiNextPhase (wd_regs_t * wd) {
 						/* FIXME:
 						   Test 23 -->  Mode sense
                            Modesense data from format doesnt match Superblock  */
+						modesenseImageBlocks = wdu->imgBlocks;
+						if (wdu->capacity > 0) modesenseImageBlocks = wdu->capacity; /* from superblock */
 
                         /* twelve byte descriptor: 4 header, 8 extent */
                         len = wd->scsiBuf[4];
@@ -644,22 +665,33 @@ void processScsiNextPhase (wd_regs_t * wd) {
                         memset(wd->dataBuf,0,sizeof(wd->dataBuf));
                         wd->dataBuf[0] = 0;                                 /* reserved */
                         wd->dataBuf[1] = 0;                                 /* medium type */
-                        wd->dataBuf[2] = wd->units[unit].imgReadonly ? 0x80 : 0x00;     /* WP */
+                        wd->dataBuf[2] = wdu->imgReadonly ? 0x80 : 0x00;     /* WP AD: why, according to the docs this is reserved and 0 */
                         wd->dataBuf[3] = 8;                                 /* block descriptor length */
                         wd->dataBuf[4] = 0;                                 /* density */
-                        wd->dataBuf[5] = (wd->units[unit].imgBlocks >> 16) & 0xff;
-                        wd->dataBuf[6] = (wd->units[unit].imgBlocks >> 8) & 0xff;
-                        wd->dataBuf[7] =  wd->units[unit].imgBlocks & 0xff;
+                        wd->dataBuf[5] = (modesenseImageBlocks >> 16) & 0xff; /* the docs state reserved, why has enrique put it in here, let's leave is as it is for now */
+                        wd->dataBuf[6] = (modesenseImageBlocks >> 8) & 0xff;
+                        wd->dataBuf[7] =  modesenseImageBlocks & 0xff;
                         wd->dataBuf[9]  = (WD_SECTOR_SIZE >> 16) & 0xff;
                         wd->dataBuf[10] = (WD_SECTOR_SIZE >> 8) & 0xff;
                         wd->dataBuf[11] =  WD_SECTOR_SIZE & 0xff;
+                        wd->dataBuf[12] = 1;                                 /* list format code = 01 */
+                        wd->dataBuf[13] = (wdu->cylinders >> 8) & 0xff;      /* cylinder count */
+                        wd->dataBuf[14] = wdu->cylinders & 0xff;
+                        wd->dataBuf[15] = wdu->heads;
+                        wd->dataBuf[16] = (wdu->cylinder_rwc >> 8) & 0xff;   /* reduced write current cylinder */
+                        wd->dataBuf[17] = wdu->cylinder_rwc & 0xff;
+                        wd->dataBuf[18] = (wdu->cylinder_wpc >> 8) & 0xff;   /* write precompensation cylinder */
+                        wd->dataBuf[19] = wdu->cylinder_wpc & 0xff;
+                        wd->dataBuf[20] = 0;                                 /* landing zone position, - is this in the superblock as well ? */
+                        wd->dataBuf[21] = 0;                                 /* step pulse output rate code - is this in the superblock as well ? */
+
                         if (dmaOn) {
                             if (!wd_dma_to_mem(wd,wd->dataBuf,(len+1) & ~1)) {
                                 wd->statusByte = 0x02; wd->sense[0] = 0x11; break;
 							}
                         } else
 							wd->replyBytesLeft = len;
-                        msgout (MSGC_FUNC,MYSELF,MSG_NONE,"MODE SENSE, %d bytes, %u blocks of %d",len,wd->units[unit].imgBlocks,WD_SECTOR_SIZE);
+                        msgout (MSGC_FUNC,MYSELF,MSG_NONE,"MODE SENSE, %d bytes, %u blocks of %d",len,wdu->imgBlocks,WD_SECTOR_SIZE);
                         break;
 
         case SCSI_MODESELECT:
@@ -697,12 +729,12 @@ void processScsiNextPhase (wd_regs_t * wd) {
                                 errs++;
 							}
 							if (len > 12) {
-                                wd->units[unit].cylinders = ((int)wd->dataBuf[13] << 8) + wd->dataBuf[14];
-                                if (wd->units[unit].cylinders < 1 || wd->units[unit].cylinders > 2048) errs++;
-                                wd->units[unit].heads = wd->dataBuf[15];
-                                if (wd->units[unit].heads < 1 || wd->units[unit].heads > 16) errs++;
+                                wdu->cylinders = ((int)wd->dataBuf[13] << 8) + wd->dataBuf[14];
+                                if (wdu->cylinders < 1 || wdu->cylinders > 2048) errs++;
+                                wdu->heads = wd->dataBuf[15];
+                                if (wdu->heads < 1 || wdu->heads > 16) errs++;
 
-                                msgout (MSGC_DEV,MYSELF,MSG_NONE,"MODE SELECT, blockSize: %d, cylinders; %d, heads: %d, errs: %d",blockSize,wd->units[unit].cylinders,wd->units[unit].heads,errs);
+                                msgout (MSGC_DEV,MYSELF,MSG_NONE,"MODE SELECT, blockSize: %d, cylinders; %d, heads: %d, errs: %d",blockSize,wdu->cylinders,wdu->heads,errs);
 							}
 
 							if (errs) {
@@ -716,7 +748,7 @@ void processScsiNextPhase (wd_regs_t * wd) {
 
         case SCSI_READCAPACITY:
                         memset(wd->dataBuf,0,sizeof(wd->dataBuf));
-                        lba = wd->units[unit].imgBlocks ? wd->units[unit].imgBlocks - 1 : 0;
+                        lba = wdu->imgBlocks ? wdu->imgBlocks - 1 : 0;
                         wd->dataBuf[0] = (lba >> 24) & 0xff;
                         wd->dataBuf[1] = (lba >> 16) & 0xff;
                         wd->dataBuf[2] = (lba >> 8) & 0xff;

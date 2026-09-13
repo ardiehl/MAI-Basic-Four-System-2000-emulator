@@ -21,10 +21,10 @@
 
 #include <stdio.h>
 #include "eagle_superblock.h"
-#include <endian.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <assert.h>
 
 int sb_read (FILE *f, eagle_superbock_t *sb) {
 	if (fseek (f,0x800, SEEK_SET) != 0) return -1;
@@ -54,18 +54,26 @@ static void pr32(char *name, uint32_t value) {
 
 // show the superblock in the same format as usb on the real machine
 void sb_show(eagle_superbock_t *sb) {
-	char * disklabel;
-	int i,partEnd;
+	char * s;
+	int i,partEnd,last=0;
+	float mb;
 
 //	printf("size: %ld\n",sizeof(eagle_superbock_t));
+	assert(sizeof(eagle_superbock_t) == 512);
 
-	disklabel = calloc(1,100);
-	memcpy(disklabel, sb->diskLabel, sizeof(sb->diskLabel));
-	printf("volume id: \"%s\"\n",disklabel);
-	free(disklabel);
+	s = calloc(1,100);
+	memcpy(s, sb->diskLabel, sizeof(sb->diskLabel));
+	printf("volume id: \"%s\"\n",s);
+	free(s);
 
 	time_t t = be32toh(sb->modifyTime);
 	printf("last revised on %s",ctime(&t));
+
+	s = calloc(1,100);
+	memcpy(s, sb->creationFileName,sizeof(sb->creationFileName));
+	printf("device type: %s\n",s);
+	free(s);
+
 
 	printf("       capacity: %d\n",be32toh(sb->capacity));
 	printf("       number of cylinders: %d\n",be32toh(sb->cylinders));
@@ -79,8 +87,21 @@ void sb_show(eagle_superbock_t *sb) {
 	for (i=1; i <= be32toh(sb->numberOfPartitions); i++) {
 		partEnd = be32toh(sb->partitions[i].partStart) + be32toh(sb->partitions[i].partLength);
 		// same as usb on boss/ix (not 1024)
-		float mb = be32toh(sb->partitions[i].partLength) * 512;
+		mb = be32toh(sb->partitions[i].partLength) * 512;
 		mb = mb /1000 /1000;
-		printf("partition:%3d    start:%7d    end:%7d    length:%7d  (%3.2f Mb)\n",i-1,be32toh(sb->partitions[i].partStart),partEnd,be32toh(sb->partitions[i].partLength),mb);
+		printf("partition:%3d    start:%7d    end:%7d    length:%7d  (%6.2f Mb)\n",i-1,be32toh(sb->partitions[i].partStart),partEnd,be32toh(sb->partitions[i].partLength),mb);
+		last = partEnd;
 	}
+	if (last < be32toh(sb->capacity)) {
+		int len = be32toh(sb->capacity) - last;
+		mb = len * 512;
+		mb = mb /1000 /1000;
+		printf(" <unused>:       start:%7d    end:%7d    length:%7d  (%6.2f Mb)\n",last,be32toh(sb->capacity),len,mb);
+	}
+
+#if 0
+	for (i=0;i<22;i++) {
+		pr32("",sb->unknown4[i]);
+	}
+#endif
 }
