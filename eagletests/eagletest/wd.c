@@ -143,10 +143,14 @@ uint8_t wd_writeCmdAndRecordStatus (uint8_t * address, uint8_t cmdByte, uint8_t 
 
 void wd_printRecordedStatus() {
 	int i;
-	puts("## RW    address preStatus Exp Count*status ...");
+	char valueStr[10];
+	puts("## RW     address preStatus Exp Count*status ...");
 	puts("----------------------------------------------------------------");
 	for (i=0;i<statValuesCount;i++) {
-		printf("%2d  %c %10p        %02x  %02x",i,statValues[i].rw,statValues[i].address,statValues[i].initialStatus, statValues[i].expectedStatus);
+		//if (statValues[i].rw == 'W') sprintf(valueStr,"%02x",statValues[i].commandByte);
+		//else strcpy(valueStr,"  ");
+		sprintf(valueStr,"%02x",statValues[i].commandByte);
+		printf("%2d  %c %s%10p       %02x  %02x",i,statValues[i].rw,valueStr,statValues[i].address,statValues[i].initialStatus, statValues[i].expectedStatus);
 		for (int j=0; j<statValues[i].count; j++) {
 			printf(" #%d*%02x",statValues[i].statusValueCount[j],statValues[i].statusValue[j]);
 		}
@@ -298,7 +302,14 @@ char * wdc_errtxt10_1F[] = {
 	NULL,							// 1B
 	"UNFORMATTED",					// 1C
 	"SELF TEST FAILED",				// 1D
-	"DEFECTIVE TRACK"				// 1E
+	"DEFECTIVE TRACK",				// 1E
+	NULL,
+	"INVALID COMMAND",              // 20
+	"INV BLOCK ADDRESS",
+	NULL,
+	"VOLUME OVERFLOW",
+	"BAD ARGUMENT",
+	"INVALID LUN"                  // 25
 };
 
 
@@ -333,7 +344,7 @@ void wdc_sense (int timeout) {
 		errcode = (uint8_t) t.receiveData[0] & 0x7f;
 		errtxt = NULL;
 		if (errcode <= 6) errtxt = wdc_errtxt00_06[errcode]; else
-		if ((errcode >= 0x10) && (errcode <= 0x1e)) errtxt = wdc_errtxt10_1F[errcode-0x10];
+		if ((errcode >= 0x10) && (errcode <= 0x25)) errtxt = wdc_errtxt10_1F[errcode-0x10];
 		if (errtxt == NULL) errtxt = &null;
 		printf("Error code: 0x%02x %s\n",errcode,errtxt);
 
@@ -388,4 +399,23 @@ void wdc_rezeroUnit (int timeout) {
 }
 
 
+void wdc_modesel (int cylinders, int heads, int rwc, int steprate) {
+	wd_command_t t;
+	int res;
 
+	wdc_cmdInit (&t);
+	wdc_cmdAddByte  (&t,0x15);	// modelsel
+	wdc_cmdAddBytes (&t,0,4);	// 3 bytes reserved
+	wdc_cmdAddByte  (&t,0x08);	// length of extend descriptor list
+	wdc_cmdAddBytes (&t,0,6);	// Densitiy code + 4x reserved + block size MSB
+	wdc_cmdAddByte  (&t,0x01);	// block size 512
+	wdc_cmdAddByte  (&t,0x00);	// block size 512
+	wdc_cmdAddByte  (&t,0x01);	// List format code
+	wdc_cmdAddByte  (&t,cmylinders >> 8);	// Cylinder count msb
+	wdc_cmdAddByte  (&t,cmylinders & 0x0f);	// Cylinder count lsb
+	wdc_cmdAddByte  (&t,rwc >> 8);		// reduced write current Cylinder msb
+	wdc_cmdAddByte  (&t,rwc & 0x0f);	// reduced write current Cylinder lsb
+	wdc_cmdAddBytes (&t,0,3);	// write precomp: ignored by controller, landing zone position
+	wdc_cmdAddBytes (&t,0,steprate);
+
+}

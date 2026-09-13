@@ -33,6 +33,13 @@ void initSymbols() {
         exprparseAddSymbol("WD0sel",(uint32_t) wd0_select,"wd0 select",0);
         exprparseAddSymbol("WD0hr",(uint32_t) wd0_hostread,"wd0 Host Read Input Register",0);
         exprparseAddSymbol("WD0clr",(uint32_t) wd0_clearerr,"wd0 Host Clears Bus Error Latch",0);
+
+        // wd format, defaults to Maxtor 140 MB
+        exprparseAddSymbol("cylinders",918,"",0);
+        exprparseAddSymbol("cylrwc",919,"",0);
+        exprparseAddSymbol("heads",15,"",0);
+        exprparseAddSymbol("steprate",0,"",0);
+
 }
 
 char * statusNames[8] = {"MYBERR+","PIOINM+","OPCCMP+","PIOUTF+","SRESET+","MSG+","BUSY+","CMD+"};
@@ -614,7 +621,7 @@ int main ()
   exprparseAddFunction ("meml",&meml_func,"read 32bit from memory");
 //test();
   //printf("Here we are\n");
-  puts("eagletest v0.1 "__DATE__ " " __TIME__);
+  puts("eagletest v0.2 "__DATE__ " " __TIME__);
   commandHandler(NULL);
   return 0;
 

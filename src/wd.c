@@ -2,12 +2,12 @@
  *  wd.c
  *
  *  Created: Nov, 22 2011
- *  Changed: Dec, 21 2011
+ *  Changed: Sep, 13 2026
  *  Armin Diehl <ad@ardiehl.de>
  ****************************************************************************/
 /*
  * mai 2000/3000 winchester disk (wd) controller definitions
- * see M8158A '5 1/4" Winchester Disk Drive Controller Service Manual'
+ * see M8158A '5 1/4" Winchester Disk Drive Controller Service Manual
  */
 
 #include <stdio.h>
@@ -85,7 +85,7 @@ int cmdTransferToController (int cmd) {
         //case SCSI_TRANSLATE     : return 1;
         case SCSI_WRITEBUF      : return 1;
         //case SCSI_READBUFRAM    : return 1;
-        //case SCSI_MODESELECT    : return 1;
+        case SCSI_MODESELECT    : return 1;
         //case SCSI_MODESENSE     : return 1;
         //case SCSI_STARTSTOP     : return 1;
         //case SCSI_RECDIAG       : return 1;
@@ -117,11 +117,11 @@ char * scsiCommandNames[] = {
 	"invalid",
 	"invalid",
 	"invalid",
+	"SCSI_TRANSLATE",
 	"invalid",
 	"invalid",
 	"invalid",
-	"invalid",
-	"SCSI_WRITEBUF",     // 0x13
+	"SCSI_WRITEBUFRAM",     // 0x13
 	"SCSI_READBUFRAM",     // 0x14
 	"SCSI_MODESELECT",     // 0x15
 	"invalid",
@@ -167,6 +167,58 @@ char * scsiCommandNames[] = {
 	"invalid",
 	"invalid"
 };
+
+char * scsiStatusNames[] = {
+	"NO SENSE", // 00
+	"NO INDEX SIGNAL",		// 01
+	"NO SEEK COMPLETE",		// 02
+	"WRITE FAULT",			// 03
+	"DRIVE NOT READY",		// 04
+	"?", 					// 05
+	"NO TRACK ZERO",		// 06
+	"?", 					// 07
+	"?", 					// 08
+	"?", 					// 09
+	"?", 					// 0A
+	"?", 					// 0B
+	"?", 					// 0C
+	"?", 					// 0D
+	"?", 					// 0E
+	"?", 					// 0F
+	"ID CRC ERROR",			// 0x10
+	"UNCORRECTABLE DATA ERROR",
+	"ID ADDRESS MARK NOr FOUND",
+	"DATA ADDRESS MARK NOT FOUND",
+	"RECORD NOT FOUND",
+	"SEEK ERROR",                 // 15
+	"?",
+	"?",
+	"DATA CHECK IN NO RETRY IDDE",
+	"ECC ERROR DURING VERIFY",		// 19
+	"INTERLEAVE ERROR",				// 1A
+	"?",							// 1B
+	"UNFORMATTED",					// 1C
+	"SELF TEST FAILED",				// 1D
+	"DEFECTIVE TRACK",				// 1E
+	"?",
+	"INVALID COMMAND",              // 20
+	"INV BLOCK ADDRESS",
+	"?",
+	"VOLUME OVERFLOW",
+	"BAD ARGUMENT",             // 24
+	"INVALID LUN", 				// 25
+	"?", 					// 26
+	"?", 					// 27
+	"?", 					// 28
+	"?", 					// 29
+	"?", 					// 2A
+	"?", 					// 2B
+	"?", 					// 2C
+	"?", 					// 2D
+	"?", 					// 2E
+	"?" 					// 2F
+};
+
 
 
 int cmdNoDataTransfer (int cmd) {
@@ -346,6 +398,7 @@ static void wd_raise_complete (wd_regs_t * wd) {
 }
 
 
+
 void processScsiNextPhase (wd_regs_t * wd) {
     int unit = (wd->scsiBuf[1] >> 5) & 0x07;
     int class;
@@ -431,8 +484,10 @@ void processScsiNextPhase (wd_regs_t * wd) {
         return;
     }
 
-    msgout (MSGC_FUNC,MYSELF,MSG_NONE,"Executing scsi command %02x (%s) unit %d blocks %d (%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x)",wd->scsiBuf[0] & 0x3f,scsiCommandNames[wd->scsiBuf[0] & 0x3f],unit,numBlocks,
-                wd->scsiBuf[0],wd->scsiBuf[1],wd->scsiBuf[2],wd->scsiBuf[3],wd->scsiBuf[4],wd->scsiBuf[5],wd->scsiBuf[6],wd->scsiBuf[7],wd->scsiBuf[8],wd->scsiBuf[9]);
+    dmaOn = (wd->ctlReg2 & WD_CTL_SEQEN) ? 1 : 0;
+
+    msgout (MSGC_DEV,MYSELF,MSG_NONE,"Executing scsi command %02x (%s) unit %d blocks %d (%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x), dmaOn: %d",wd->scsiBuf[0] & 0x3f,scsiCommandNames[wd->scsiBuf[0] & 0x3f],unit,numBlocks,
+                wd->scsiBuf[0],wd->scsiBuf[1],wd->scsiBuf[2],wd->scsiBuf[3],wd->scsiBuf[4],wd->scsiBuf[5],wd->scsiBuf[6],wd->scsiBuf[7],wd->scsiBuf[8],wd->scsiBuf[9],dmaOn);
     wd->scsiCheck = 0;
     wd->readInpReg = 0x00;
     wd->replyBytePos = 0;
@@ -441,7 +496,7 @@ void processScsiNextPhase (wd_regs_t * wd) {
     class = (wd->scsiBuf[0] >> 5) & 0x07;
     cmd = wd->scsiBuf[0] & 0x3f;        /* AD: why was that 1f, SCSI_VERIFY is 2f */
     wd->statusByte = 0x00;              /* 0 good, 2 check condition */
-    dmaOn = (wd->ctlReg2 & WD_CTL_SEQEN) ? 1 : 0;
+
     if (class > 1) {
         msgout (MSGC_ERR,MYSELF,MSG_NONE,"invalid class %d in scsi command byte %02x",class,wd->scsiBuf[0]);
         wd->statusByte = 0x02;
@@ -485,7 +540,7 @@ void processScsiNextPhase (wd_regs_t * wd) {
                             memcpy(wd->replyBuffer,wd->sense,4);
                             wd->replyBytesLeft = len;
                         }
-                        msgout (MSGC_FUNC,MYSELF,MSG_NONE,"REQUEST SENSE, %d bytes, sense %02x",len,wd->sense[0]);
+                        msgout (MSGC_FUNC,MYSELF,MSG_NONE,"REQUEST SENSE, %d bytes, sense %02x (%s)",len,wd->sense[0],scsiStatusNames[wd->sense[0]]);
                         memset(wd->sense,0,sizeof(wd->sense));
                         break;
 
@@ -503,8 +558,19 @@ void processScsiNextPhase (wd_regs_t * wd) {
                                 wd->statusByte = 0x02; wd->sense[0] = 0x14; break;
                             }
                             if (!dmaOn) {
-                                msgout (MSGC_ERR,MYSELF,MSG_NONE,"READ without DMA enabled is not supported");
-                                wd->statusByte = 0x02; wd->sense[0] = 0x20; break;
+                                //msgout (MSGC_ERR,MYSELF,MSG_NONE,"READ without DMA enabled is not supported");
+                                //wd->statusByte = 0x02; wd->sense[0] = 0x20; break;
+
+                                /* for Test 20 -->  Read disk
+                                   numBlocks was 17 therefore the reply buffer is now larger */
+
+                                if (numBlocks * WD_SECTOR_SIZE > sizeof(wd->replyBuffer)) {
+									msgout (MSGC_ERR,MYSELF,MSG_NONE,"READ nonDma lba %u numBlocks: %d, max supported num blocks: %d",lba,numBlocks,sizeof(wd->replyBuffer) / WD_SECTOR_SIZE);
+                                }
+                                memcpy(wd->replyBuffer,wd->dataBuf,numBlocks * WD_SECTOR_SIZE);
+								wd->replyBytesLeft = numBlocks * WD_SECTOR_SIZE;
+								msgout (MSGC_FUNC,MYSELF,MSG_NONE,"READ nonDma lba %u numBlocks: %d",lba,numBlocks);
+								break;
                             }
                             if (!wd_dma_to_mem(wd,wd->dataBuf,chunk*WD_SECTOR_SIZE)) {
                                 wd->statusByte = 0x02; wd->sense[0] = 0x11; break;
@@ -566,6 +632,10 @@ void processScsiNextPhase (wd_regs_t * wd) {
                         break;
 
         case SCSI_MODESENSE:
+						/* FIXME:
+						   Test 23 -->  Mode sense
+                           Modesense data from format doesnt match Superblock  */
+
                         /* twelve byte descriptor: 4 header, 8 extent */
                         len = wd->scsiBuf[4];
                         if (len == 0) len = 12;
@@ -585,30 +655,61 @@ void processScsiNextPhase (wd_regs_t * wd) {
                         if (dmaOn) {
                             if (!wd_dma_to_mem(wd,wd->dataBuf,(len+1) & ~1)) {
                                 wd->statusByte = 0x02; wd->sense[0] = 0x11; break;
-                            }
-                        }
+							}
+                        } else
+							wd->replyBytesLeft = len;
                         msgout (MSGC_FUNC,MYSELF,MSG_NONE,"MODE SENSE, %d bytes, %u blocks of %d",len,wd->units[unit].imgBlocks,WD_SECTOR_SIZE);
                         break;
 
         case SCSI_MODESELECT:
                         len = wd->scsiBuf[4];
+                        msgout (MSGC_ERR,MYSELF,MSG_NONE,"MODE SELECT dma: %d, len: %d",dmaOn,len);
                         if (len > (int)sizeof(wd->dataBuf)) len = sizeof(wd->dataBuf);
-                        if (dmaOn && len) {
-                            if (!wd_dma_from_mem(wd,wd->dataBuf,(len+1) & ~1)) {
-                                wd->statusByte = 0x02; wd->sense[0] = 0x11; break;
+                        if (len) {
+							if (dmaOn) {
+								if (!wd_dma_from_mem(wd,wd->dataBuf,(len+1) & ~1)) {
+									wd->statusByte = 0x02; wd->sense[0] = 0x11; break;
+								}
+                            } else {
+                                if (wd->dataIdx != len) {
+                                    msgout (MSGC_ERR,MYSELF,MSG_NONE,"MODE SELECT in non dma mode, expected %d, got %d bytes",len,wd->dataIdx);
+                                    wd->statusByte = 0x02; wd->sense[0] = SENSE_BAD_ARGUMENT; break;
+                                }
                             }
                         }
 
-                        msgout (MSGC_FUNC,MYSELF,MSG_NONE,"MODE SELECT, %d bytes accepted and ignored",len);
-                        if (len == 22) {
-							// AD: looks like we dont have the correct data here ?
+                        if (len == 22 || len == 12) {
+							// 00 00 00 08 00 00 00 00 00 00 02 00 01 03 3e 06 01 90 01 90 00 00
+							int errs = 0;
+							if (wd->dataBuf[3] != 8) errs++;
+							if (wd->dataBuf[4] != 0) errs++;
+							if (wd->dataBuf[5] != 0) errs++;
+							if (wd->dataBuf[6] != 0) errs++;
+							if (wd->dataBuf[7] != 0) errs++;
+							if (wd->dataBuf[8] != 0) errs++;
+
 							int blockSize = (int)wd->dataBuf[9] << 16;
 							blockSize += (int)wd->dataBuf[10] << 8;
 							blockSize += (int)wd->dataBuf[11];
-							int cylinderCount = (int)wd->dataBuf[13] << 8 + wd->dataBuf[14];
-							int heads = wd->dataBuf[15];
-							msgout (MSGC_FUNC,MYSELF,MSG_NONE,"MODE SELECT, blockSize: %d, cylinders; %d, heads: %d",blockSize,cylinderCount,heads);
+							if (blockSize != 512) {
+                                msgout (MSGC_FUNC,MYSELF,MSG_NONE,"MODE SELECT, requested blockSize is %d but we only support 512",blockSize);
+                                errs++;
+							}
+							if (len > 12) {
+                                wd->units[unit].cylinders = ((int)wd->dataBuf[13] << 8) + wd->dataBuf[14];
+                                if (wd->units[unit].cylinders < 1 || wd->units[unit].cylinders > 2048) errs++;
+                                wd->units[unit].heads = wd->dataBuf[15];
+                                if (wd->units[unit].heads < 1 || wd->units[unit].heads > 16) errs++;
 
+                                msgout (MSGC_DEV,MYSELF,MSG_NONE,"MODE SELECT, blockSize: %d, cylinders; %d, heads: %d, errs: %d",blockSize,wd->units[unit].cylinders,wd->units[unit].heads,errs);
+							}
+
+							if (errs) {
+                                wd->statusByte = 0x02; wd->sense[0] = SENSE_BAD_ARGUMENT; break;
+							}
+                        } else {
+                            msgout (MSGC_ERR,MYSELF,MSG_NONE,"MODE SELECT, got %d bytes but only 12 or 22 are valid",len);
+                            wd->statusByte = 0x02; wd->sense[0] = SENSE_BAD_ARGUMENT; break;
                         }
                         break;
 
@@ -624,17 +725,60 @@ void processScsiNextPhase (wd_regs_t * wd) {
                         if (dmaOn) {
                             if (!wd_dma_to_mem(wd,wd->dataBuf,8)) {
                                 wd->statusByte = 0x02; wd->sense[0] = 0x11; break;
-                            }
+                            } else
+								wd->replyBytesLeft = 8;
                         }
                         msgout (MSGC_FUNC,MYSELF,MSG_NONE,"READ CAPACITY, last block %u",lba);
                         break;
 
         case SCSI_FORMAT:
-                        msgout (MSGC_FUNC,MYSELF,MSG_NONE,"FORMAT UNIT accepted, image left untouched");
+
+                        msgout (MSGC_DEV,MYSELF,MSG_NONE,"FORMAT UNIT accepted, image left untouched");
                         wd->sense[0] = 0;
                         break;
 
-        default:        msgout (MSGC_WARN,MYSELF,MSG_NONE,"scsi command %02x not implemented",cmd);
+		case SCSI_WRITEBUF:
+						/* Test 17 -->  Write WDC ram, pass
+						   in non dma mode, we already have the data in dataBuf, test 17 does not use dma */
+						if (dmaOn) {
+                            if (!wd_dma_from_mem(wd,wd->dataBuf,1024)) {
+                                wd->statusByte = 0x02; wd->sense[0] = 0x11; break;
+                            }
+                            wd->dataIdx = 1024;
+                        }
+                        if (wd->dataIdx != 1024) {
+							wd->statusByte = 0x02; wd->sense[0] = SENSE_BAD_ARGUMENT; break;
+                        }
+                        wd->sense[0] = 0;
+                        break;
+
+		case SCSI_READBUFRAM:
+						/* Test 18 -->  Write-Read WDC ram, pass */
+						if (dmaOn) {
+                            if (!wd_dma_to_mem(wd,wd->dataBuf,1024)) {
+                                wd->statusByte = 0x02; wd->sense[0] = SENSE_BAD_ARGUMENT; break;
+                            }
+                        } else {
+                            memcpy(wd->replyBuffer,wd->dataBuf,1024);
+                            wd->replyBytesLeft = 1024;
+                        }
+						wd->sense[0] = 0;
+                        break;
+		case SCSI_TRANSLATE:
+						/* Test 19 -->  Translate, pass
+						   for now return all 0 */
+						// TODO: calculate if values for cylinders / heads are set
+						if (dmaOn) {
+                            if (!wd_dma_to_mem(wd,wd->dataBuf,8)) {
+                                wd->statusByte = 0x02; wd->sense[0] = SENSE_BAD_ARGUMENT; break;
+                            }
+                        } else {
+                            wd->replyBytesLeft = 8;
+                        }
+						wd->sense[0] = 0;
+                        break;
+
+        default:        msgout (MSGC_WARN,MYSELF,MSG_NONE,"scsi command %02x (%s) not implemented, dmaOn: %d",cmd,scsiCommandNames[cmd & 0x3f],dmaOn);
                         wd->statusByte = 0x02;
                         wd->sense[0] = 0x20;    /* invalid command */
     }
@@ -644,21 +788,46 @@ void processScsiNextPhase (wd_regs_t * wd) {
 
 }
 
+char * commandName (CMD_S command) {
+    switch (command) {
+        case CMD_RESET: return "CMD_RESET";
+        case CMD_SCSIRESET: return "CMD_SCSIRESET";
+        case CMD_RESET_OUTREGFULL: return "CMD_RESET_OUTREGFULL";
+        case CMD_INFORMATION_TRANSFER: return "CMD_INFORMATION_TRANSFER";
+        case CMD_PROCESS_SCSICMD: return "CMD_PROCESS_SCSICMD";
+        case CMD_SET_INPFULL: return "CMD_SET_INPFULL";
+        default: return "?";
+    }
+}
+
 int processScsiCommand(wd_regs_t * wd);
 
 void processCommand(wd_regs_t * wd) {
-    msgout (MSGC_FUNC,MYSELF,MSG_NONE,"end of command %02x, replyBytesLeft:%d",wd->currCommand,wd->replyBytesLeft);
+    msgout (MSGC_INFO,MYSELF,MSG_NONE,"start of command %02x (%s), replyBytesLeft:%d, statusReg: %02x",wd->currCommand,commandName(wd->currCommand),wd->replyBytesLeft,wd->statusReg);
     switch (wd->currCommand) {
         case CMD_RESET     :        //wd->statusReg &= ~(WD_STAT_BUSY);
                                     wd->statusReg = 0; /* expected by test 5 */
                                     break;
         case CMD_SCSIRESET :        wd->statusReg &= ~(WD_STAT_SRESET);
                                     break;
+/*
+        case CMD_TRANSFER_PARAM_START:
+                                    wd->statusReg &= ~(WD_STAT_SCMD);
+                                    wd->currCommand = CMD_RESET_OUTREGFULL;
+                                    break; */
+
         case CMD_RESET_OUTREGFULL : wd->statusReg |= WD_STAT_OUTEMPTY;
-                                    wd->currCommand = CMD_PROCESS_SCSICMD;
-                                    wd->cmdCounter = 2;
+        /* CMD_RESET_OUTREGFULL was is called before CMD_PROCESS_SCSICMD therefore we have invalid status
+           is "c2 #2*c0 #9*c2 #240*42", should be "c2 #37*c0 #4*40 #210*42"
+           FIXED:
+           After changing to CMD_PROCESS_SCSICMD first:  "c2 #2*c0 #6*40 #243*42"
+           hope we are not to fast in resetting WD_STAT_SCMD */
+                                    //wd->currCommand = CMD_PROCESS_SCSICMD;
+                                    //wd->cmdCounter = WD_CMD_COUNT;
                                     break;
-        case CMD_PROCESS_SCSICMD:   processScsiCommand(wd);
+        case CMD_PROCESS_SCSICMD:   wd->currCommand = CMD_RESET_OUTREGFULL;  // show empty after processing not before
+                                    wd->cmdCounter = WD_CMD_COUNT;
+                                    processScsiCommand(wd);
                                     break;
         case CMD_SET_INPFULL:       if (wd->replyBytesLeft) wd->statusReg |= WD_STAT_INPFULL;
                                     else {
@@ -670,16 +839,10 @@ void processCommand(wd_regs_t * wd) {
                                         else
                                             msgout (MSGC_ERR|MSGC_BREAK,MYSELF,MSG_NONE,"Invalid state %d",wd->state);
                                     }
-#if 0
-                                    //else wd->statusReg = 0xcc; // test12:0xcc(0x03 sense), test14:0xe8(0x00 testready)
-                                    else if (cmdTransferToHost(wd->scsiBuf[0] & 0x1f)) wd->statusReg = 0xCC; // test12: 0x03,sense
-                                    else
-                                    if (cmdNoDataTransfer(wd->scsiBuf[0] & 0x1f)) wd->statusReg = 0xE8; // test14: 0x00,testready
-                                    else msgout (MSGC_ERR|MSGC_BREAK,MYSELF,MSG_NONE,"dont know required status");
-#endif
                                     break;
 
     }
+    msgout (MSGC_INFO,MYSELF,MSG_NONE,"end, next command %02x (%s), replyBytesLeft:%d, statusReg: %02x",wd->currCommand,commandName(wd->currCommand),wd->replyBytesLeft,wd->statusReg);
 }
 
 
@@ -691,9 +854,49 @@ void wd_processContinue(void) {  /* called each n instructions */
 }
 
 
+// number of remaining bytes expeced from host in non dma mode
+int numNonDmaBytesToBeTransferedFromHost (wd_regs_t * wd) {
+    int cmd,dataLen=0;
+	// when dma is disabled we need to get the data via the host write register
+	int dmaOn = (wd->ctlReg2 & WD_CTL_SEQEN) ? 1 : 0;
+	if (dmaOn) return 0;
+
+    cmd = wd->scsiBuf[0] & 0x1f;
+    switch (cmd) {
+        case SCSI_FORMAT:
+            /* defect list not yet supported
+               Byte 01 is used to indicate if a list of defect locations is appended and whether a
+               unique fill character is required. Bit 04 indicates that defect data is appended */
+            break;
+        case SCSI_WRITE:
+            dataLen = wd->scsiBuf[4] * WD_SECTOR_SIZE;
+            if (dataLen > WD_DATABUF_LEN_MAX) dataLen = 0;
+            break;
+        case SCSI_WRITEBUF:
+            dataLen = 1024;
+            break;
+        case SCSI_MODESELECT:
+            dataLen = wd->scsiBuf[4];
+            break;
+        case SCSI_SENDDIAG:
+            dataLen = ((((UINT32)wd->scsiBuf[3]) << 8) | (UINT32)wd->scsiBuf[4]);
+            if (dataLen > WD_DATABUF_LEN_MAX) dataLen = 0;
+            break;
+        case SCSI_WRITE2:
+        case SCSI_WRITEVERIFY:
+            dataLen = ((((UINT32)wd->scsiBuf[7]) << 8) | (UINT32)wd->scsiBuf[8]);
+            if (dataLen > WD_DATABUF_LEN_MAX) dataLen = 0;
+            break;
+
+        default:
+            break;
+    }
+    return dataLen;
+}
+
 
 int processScsiCommand(wd_regs_t * wd) {
-    int class,len;
+    int class,len,dataLen = 0;
 
     if (wd->scsiIdx < 6) return 0;
     class = (wd->scsiBuf[0] >> 5) & 0x07;
@@ -703,13 +906,39 @@ int processScsiCommand(wd_regs_t * wd) {
         default: msgout (MSGC_ERR,MYSELF,MSG_NONE,"invalid scsi command class %d (cmd=%02x)",class,wd->scsiBuf[0]);
                  return 0;
     }
+
+    if (wd->scsiIdx > len) {  // data in non dma mode
+        dataLen = numNonDmaBytesToBeTransferedFromHost (wd) - wd->dataIdx;
+        if (dataLen) {
+            wd->dataBuf[wd->dataIdx] = wd->scsiBuf[wd->scsiIdx-1];
+            wd->dataIdx++;
+            dataLen--;
+            //printf("------------ got data %d, dataLen: %d\n",wd->dataIdx,dataLen);
+            if (dataLen == 0) {
+                wd->state = SCSI_S_MESSAGE;  /* transferring message to scsi drive */
+                wd->statusReg |= 0x20;       /* bus in message phase */
+                wd->stateCounter = WD_PHASE_COUNT;
+            }
+        } else {
+            wd->state = SCSI_S_MESSAGE;  /* transferring message to scsi drive */
+            wd->statusReg |= 0x20;       /* bus in message phase */
+            wd->stateCounter = WD_PHASE_COUNT;
+        }
+    }
+
     if (wd->scsiIdx == len) {
         //printf("--------- got scsi command\n");
-        wd->state = SCSI_S_MESSAGE;  /* transfering message to scsi drive */
+        dataLen = numNonDmaBytesToBeTransferedFromHost (wd);
+        if (dataLen) {
+            // state from cmd | busy to busy
+            wd->cmdCounter = WD_CMD_COUNT*2;
+            wd->statusReg &= ~(WD_STAT_SCMD);
+            return 0;
+        }
+		wd->state = SCSI_S_MESSAGE;  /* transferring message to scsi drive */
         wd->statusReg |= 0x20;       /* bus in message phase */
         wd->stateCounter = WD_PHASE_COUNT;
     }
-        //wd->statusReg = WD_STAT_SBUSY | WD_STAT_INPFULL;   /* data available */
 
     return 0;
 }
@@ -730,6 +959,8 @@ void decodeCtlReg (UINT8 ctlReg, char * tx) {
         sprintf(tx,"[%s]",txt);
     }
 }
+
+
 
 void decodeStatusReg(UINT8 statusReg, char * tx) {
     char txt[255];
@@ -769,21 +1000,14 @@ unsigned int wd_read_byte(unsigned int address, int flags) {
         if (!(wd->installed)) { BUSERROR(flags,address,MSG_READB); }
         else
         switch (regNo) {             /* not sure if DMA and INTVEC regs are readable -> 01/2021: tested on real hw, they are not, always FF */
-            case WD_REG_DMA_HI		: //value = ((wd->dmaAddress >> 16) & 0xff);
-                                      //msgout (MSGC_INFO,MYSELF,MSG_READB,"%08x returning DMA H %02x",address,value);
-                                      //return value;
-                                      msgout (MSGC_ERR,MYSELF,MSG_READB,"%08x attempt ro read write only reg DMA HI",address);
+#if 0
+            case WD_REG_DMA_HI		: msgout (MSGC_ERR,MYSELF,MSG_READB,"%08x attempt ro read write only reg DMA HI",address);
                                       break;
-            case WD_REG_DMA_MID		: //value = ((wd->dmaAddress >> 8) & 0xff);
-                                      //msgout (MSGC_INFO,MYSELF,MSG_READB,"%08x returning DMA M %02x",address,value);
-                                      //return value;
-                                      msgout (MSGC_ERR,MYSELF,MSG_READB,"%08x attempt ro read write only reg DMA MID",address);
+            case WD_REG_DMA_MID		: msgout (MSGC_ERR,MYSELF,MSG_READB,"%08x attempt ro read write only reg DMA MID",address);
                                       break;
-            case WD_REG_DMA_LOW		: //value = (wd->dmaAddress & 0xff);
-                                      //msgout (MSGC_INFO,MYSELF,MSG_READB,"%08x returning DMA L %02x",address,value);
-                                      //return value;
-                                      msgout (MSGC_ERR,MYSELF,MSG_READB,"%08x attempt ro read write only reg DMA LO",address);
+            case WD_REG_DMA_LOW		: msgout (MSGC_ERR,MYSELF,MSG_READB,"%08x attempt ro read write only reg DMA LO",address);
                                       break;
+#endif
             case WD_REG_INTVEC		: value = wd->intVector;
                                       msgout (MSGC_INFO,MYSELF,MSG_READB,"%08x returning int vector %02x",address,value);
                                       return value;
@@ -793,22 +1017,15 @@ unsigned int wd_read_byte(unsigned int address, int flags) {
                                       return value;
             case WD_REG_CTL2        : value = wd->ctlReg2;
                                       decodeCtlReg(value,tx);
-                                      msgout (MSGC_WARN,MYSELF,MSG_READB,"%08x returning control reg2 %02x %s",address,value,tx);
+                                      msgout (MSGC_INFO,MYSELF,MSG_READB,"%08x returning control reg2 %02x %s",address,value,tx);
                                       return value;
             case WD_HOST_WRITE		: msgout (MSGC_ERR,MYSELF,MSG_READB,"%08x attempt ro read write only reg HOST WRITE",address);
                                       break;
-            case WD_REG_STAT		: //if (wd->selected) value = wd->statusReg; else value = 0;
-									  value = wd->statusReg;
+            case WD_REG_STAT		: value = wd->statusReg;
                                       if (wd->ctlReg2 & WD_CTL_SRST) {
                                         //printf("WD_CTL_SRST active, returning 0x10 %02x %02x\n",wd->ctlReg2,wd->ctlReg2 & WD_CTL_SRST);
 										value = 0x10 | (wd->statusReg & WD_STAT_BUSERR); /* 0x10 during reset line active, bus err flag expected by test 7 */
 									  }
-
-
-                                      /*if ((wd->scsiCheck) && (value == 0x01)) {
-                                          wd->scsiCheck=0;
-                                          wd->statusReg=0;
-                                      }*/
 
                                       decodeStatusReg(value,tx);
                                       msgout (MSGC_INFO,MYSELF,MSG_READB,"%08x returning statusReg %02x %s (ctlReg2: %02x, selected:%d)",address,value,tx,wd->ctlReg2,wd->selected);
@@ -831,7 +1048,6 @@ unsigned int wd_read_byte(unsigned int address, int flags) {
                                       break;
             case WD_REG_READINP		: if (!(wd->selected)) {
                                             // 0002 moved DMA test read to not selected only
-                                            //wd->statusReg &= ~WD_STAT_INPFULL;   /* test 12 */
                                             if (wd->dmaTestCount == 2) {
                                                 value = (wd->dmaTestWordRead >> 8) & 0xff;
                                                 wd->dmaTestCount--;
@@ -846,12 +1062,13 @@ unsigned int wd_read_byte(unsigned int address, int flags) {
 
                                       } else {
                                         wd->scsiIdx=0; /* for test 6 */
+                                        wd->dataIdx=0;
                                         if (wd->replyBytesLeft) {
                                            value = wd->replyBuffer[wd->replyBytePos];
                                            wd->replyBytesLeft--;
                                            wd->replyBytePos++;
                                            wd->statusReg &= ~WD_STAT_INPFULL;
-                                           wd->cmdCounter = 2;
+                                           wd->cmdCounter = WD_CMD_COUNT;
                                            wd->stateCounter = 0;
                                            wd->currCommand=CMD_SET_INPFULL;
                                            if (wd->replyBytesLeft == 0)
@@ -860,7 +1077,7 @@ unsigned int wd_read_byte(unsigned int address, int flags) {
                                             value = wd->readInpReg;
                                             if (wd->state == SCSI_S_MESSAGEBYTE) {
                                                 wd->statusReg &= ~WD_STAT_INPFULL;
-                                                wd->cmdCounter = 2;
+                                                wd->cmdCounter = WD_CMD_COUNT;
                                                 wd->stateCounter = 0;
                                                 wd->currCommand = CMD_SET_INPFULL;
                                             }
@@ -906,54 +1123,44 @@ void wd_write_byte(unsigned int address, unsigned int value, int flags) {
             case WD_REG_DMA_HI		: tmp = value << 16;
                                       wd->dmaAddress &= 0x0ffff;
                                       wd->dmaAddress |= tmp;
-                                      msgout (MSGC_INFO,MYSELF,MSG_WRITEB,"%02x to %08x (DMA H), dmaReg:%06x (%06x)",value,address,~wd->dmaAddress,((~wd->dmaAddress) & 0xffffff)<<1);
+                                      msgout (MSGC_FUNC,MYSELF,MSG_WRITEB,"%02x to %08x (DMA H), dmaReg:%06x (%06x)",value,address,~wd->dmaAddress,((~wd->dmaAddress) & 0xffffff)<<1);
                                       wd->dmaTestCount = 0;
                                       return;
             case WD_REG_DMA_MID		: tmp = value << 8;
                                       wd->dmaAddress &= 0x0ff00ff;
                                       wd->dmaAddress |= tmp;
-                                      msgout (MSGC_INFO,MYSELF,MSG_WRITEB,"%02x to %08x (DMA M), dmaReg:%06x (%06x)",value,address,~wd->dmaAddress,((~wd->dmaAddress) & 0xffffff)<<1);
+                                      msgout (MSGC_FUNC,MYSELF,MSG_WRITEB,"%02x to %08x (DMA M), dmaReg:%06x (%06x)",value,address,~wd->dmaAddress,((~wd->dmaAddress) & 0xffffff)<<1);
                                       wd->dmaTestCount = 0;
                                       return;
             case WD_REG_DMA_LOW		: wd->dmaAddress &= 0x0ffff00;
                                       wd->dmaAddress |= value;
-                                      msgout (MSGC_INFO,MYSELF,MSG_WRITEB,"%02x to %08x (DMA L), dmaReg:%06x (%06x)",value,address,~wd->dmaAddress,((~wd->dmaAddress) & 0xffffff)<<1);
+                                      msgout (MSGC_FUNC,MYSELF,MSG_WRITEB,"%02x to %08x (DMA L), dmaReg:%06x (%06x)",value,address,~wd->dmaAddress,((~wd->dmaAddress) & 0xffffff)<<1);
                                       wd->dmaTestCount = 0;
                                       return;
             case WD_REG_INTVEC      : wd->intVector = value;
                                       msgout (MSGC_INFO,MYSELF,MSG_WRITEB,"%02x to %08x (int vector)",value,address);
-#if 0
-                                      if (!(wd->selected))
-                                        if (!(wd->ctlReg2 & WD_CTL_SEQEN))
-                    /* loop-test */       wd->intVectorError = value;  // loopback test, TODO: only in bus free phase and dma disabled
-#endif
                                       return;
-            case WD_REG_INTVEC2     : /*wd->intVectorError = value;*/
-                                      /* can this one be written and what it is used for ? */
+            case WD_REG_INTVEC2     : /* can this one be written and what it is used for ? */
                                       msgout (MSGC_INFO|MSGC_BREAK,MYSELF,MSG_WRITEB,"%02x to %08x (int vector error)",value,address);
                                       return;
             /* seems to be that this is the register described under WD_REG_CTL cc0007 */
             case WD_REG_CTL2        : decodeCtlReg(value,tx);
-                                      msgout (MSGC_WARN,MYSELF,MSG_WRITEB,"%02x %s to %08x ((R/W Ctrl Reg)",value,tx,address);
+                                      msgout (MSGC_INFO,MYSELF,MSG_WRITEB,"%02x %s to %08x ((R/W Ctrl Reg)",value,tx,address);
                                       if (value & WD_CTL_SRST) {
                                         //wd->statusReg |= WD_STAT_SRESET;  /* (0x10 on real machine) scsi bus reset in progress */
                                         //wd->statusReg = 0x10;     // 0001
-                                        wd->cmdCounter = 2;       // 0001
+                                        wd->cmdCounter = WD_CMD_COUNT;       // 0001
                                         wd->state = SCSI_S_IDLE;  // 0001
                                         wd->replyBytesLeft = 0;   // 0001
                                         wd->currCommand=CMD_RESET;
                                         wd->scsiIdx = 0;
+                                        wd->dataIdx = 0;
                                         wd->selected = 0;           // 0001 (0001 fails test 6)
                                         //msgout (MSGC_INFO,MYSELF,MSG_WRITEB,"%02x to %08x (R/W Ctrl Reg) statusReg: %02x",value,address,wd->statusReg);
                                       } //else
                                       //if (wd->ctlReg2 & WD_CTL_SRST)  // reset no longer active
                                       //      wd->statusReg = 0xc2;  // will fail test 5
-                                      #if 0
-                                      if (value == 0)  {
-                                          //wd->scsiIdx=0; /* for test 6 */
-                                          wd->statusReg &= ~WD_STAT_SBUSY; /* for test 13 */
-                                      }
-                                      #endif // 0
+
                                       /* if ints are enabled and the bus error flag is set, generate an interrupt (test 9) */
                                       if ( (value & WD_CTL_INTEN) && (!(wd->ctlReg2 & WD_CTL_INTEN)) && (wd->statusReg & WD_STAT_BUSERR) ) {
                                           msgout (MSGC_INFO,MYSELF,MSG_NONE,"Ints enabled while buserr active, raising interrupt");
@@ -969,10 +1176,12 @@ void wd_write_byte(unsigned int address, unsigned int value, int flags) {
                                           if (wd->scsiIdx < WD_SCSICMD_MAX) {
                                               wd->scsiBuf[wd->scsiIdx] = value;
                                               wd->scsiIdx++;
-                                              /*processScsiCommand(wd); do this after OUTREGFULL is cleared */
+                                              /* processScsiCommand(wd); do this after OUTREGFULL is cleared */
                                               /* Test 12 expects WD_STAT_OUTEMPTY to go to 0 */
-                                              wd->cmdCounter = 2;
-                                              wd->currCommand=CMD_RESET_OUTREGFULL;
+                                              wd->cmdCounter = WD_CMD_COUNT;
+                                              /* ad: if we set OUTEMPTY before processing we will get the wrong status for data after the command block */
+                                              //wd->currCommand=CMD_RESET_OUTREGFULL;
+                                              wd->currCommand=CMD_PROCESS_SCSICMD;
                                               wd->statusReg &= ~(WD_STAT_OUTEMPTY);
                                           } else
                                             msgout (MSGC_ERR,MYSELF,MSG_WRITEB,"scsi command buffer overflow");
@@ -998,6 +1207,7 @@ void wd_write_byte(unsigned int address, unsigned int value, int flags) {
                                       break;
             case WD_REG_SELECT      : wd->selected = value;
                                       wd->scsiIdx=0;
+                                      wd->dataIdx = 0;
                                       wd->statusReg = 0xc2;
                                       //wd->ctlReg2 |= WD_CTL_SRST; /* reset=inactive */
                                       wd->cmdCounter = 0;
@@ -1022,34 +1232,12 @@ void wd_write_word(unsigned int address, unsigned int value, int flags) {
 
 
 void wd_pulse_reset(void) {
-    int i,unit;
-    FILE * keepImg[WD_MAX][WD_MAX_UNITS];
-    char   keepName[WD_MAX][WD_MAX_UNITS][FILENAME_MAX+1];
-    UINT32 keepBlocks[WD_MAX][WD_MAX_UNITS];
-    int    keepRo[WD_MAX][WD_MAX_UNITS];
-
     /* a reset must not throw away an attached disk */
-    for (i=0;i<WD_MAX;i++) {
-		for (unit=0; unit < WD_MAX_UNITS; unit++) {
-			keepImg[i][unit]    = wdr[i].units[unit].img;
-			keepBlocks[i][unit] = wdr[i].units[unit].imgBlocks;
-			keepRo[i][unit]     = wdr[i].units[unit].imgReadonly;
-			strncpy(keepName[i][unit],wdr[i].units[unit].imgName,FILENAME_MAX);
-			keepName[i][unit][FILENAME_MAX] = 0;
-		}
-    }
-    memset(&wdr,0,sizeof(wdr));
-    for (i=0;i<WD_MAX;i++) {
-		for (unit=0; unit < WD_MAX_UNITS; unit++) {
-			wdr[i].units[unit].img         = keepImg[i][unit];
-			wdr[i].units[unit].imgBlocks   = keepBlocks[i][unit];
-			wdr[i].units[unit].imgReadonly = keepRo[i][unit];
-			strncpy(wdr[i].units[unit].imgName,keepName[i][unit],FILENAME_MAX);
-		}
-    }
-    for (i=0;i<WD_MAX;i++) {
+    for (int i=0;i<WD_MAX;i++) {
+        memset(&wdr[i],0,sizeof(wdr[i])-sizeof(wdr[i].units));
         wdr[i].statusReg = 0xC2; /*(1 << WD_STAT_OUTEMPTY) | (1 << WD_STAT_OPCOMP);*/
     }
+
     if (WD0_INSTALLED) wdr[0].installed = 1;
     if (WD1_INSTALLED) wdr[1].installed = 1;
 }
@@ -1085,8 +1273,8 @@ void wd_showRegs (int numArgs, struct args_t *args) {
             decodeCtlReg(wdr[i].ctlReg2,tx2);
             printf("wd%d    status: %02x %s\n" \
                "       vector: %02x  DMA-address: %06x = %08x\n" \
-               "     selected: %02x  ReadInpReg: %02x    HostWrite: %02x\n" \
-               " stateCounter: %02d       state: %02x\n" \
+               "     selected: %02x   ReadInpReg: %02x    HostWrite: %02x\n" \
+               " stateCounter: %02d        state: %02x\n" \
                "      ctlReg2: %02x %s\n",
                 i,wdr[i].statusReg,tx,
 
@@ -1132,12 +1320,21 @@ void wd_imageRemove (int numArgs, struct args_t *args) {
 }
 
 
+void wd_decodeStatus (int numArgs, struct args_t *args) {
+	char txt[100];
+
+	decodeStatusReg(args[0].value, txt);
+	printf("%s\n",txt);
+
+}
+
 
 struct cmds_t wdCmds[] =
 {
     { "image",      wd_image,       0,3,0,"image <file> [unit] [wdnum] - attach a raw 512 byte per block disk image"},
     { "detach",     wd_imageRemove, 0,2,0,"detach [unit] [wdnum] - remove an attached disk image"},
 	{ "registers",	wd_showRegs,    0,0,0,"show wd registers"},
+	{ "des",        wd_decodeStatus,1,1,1,"decode status" },
 	{ "?",			wd_help,        0,0,0,"show this help"},
 	{ "help",		wd_help,        0,0,0,"show this help"},
     { "",  NULL, 0,0,0,""}

@@ -38,7 +38,10 @@
 #define WD0_INSTALLED   1
 #define WD1_INSTALLED   0
 #define WD_MAX          2
-#define WD_SCSICMD_MAX  255
+// this is the size of the buffer ram of the wd/acb-4000
+#define WD_DATABUF_LEN_MAX 1024
+// as all incoming data is in scsiBuf as well we need this instead of 255
+#define WD_SCSICMD_MAX  WD_DATABUF_LEN_MAX + 20
 #define WD_SECTOR_SIZE  512
 // max units (drives) per wd
 #define WD_MAX_UNITS    2
@@ -50,6 +53,7 @@
 // tested on 2000, only the lower 4 bits will be decoded ccfff7 is equal to cc0007
 #define WD_ADDR_TO_REG(A)	(A & 0x0f)
 #define WD_PHASE_COUNT      5
+#define WD_CMD_COUNT        2
 
 /* dont know if it is 2 or 4 (both are vectored) */
 #define WD_INTNO            2
@@ -85,7 +89,7 @@
 #define WD_HOST_WRITE		0x08
 
 /* Status Read register */
-#define WD_REG_STAT		0x09
+#define WD_REG_STAT         0x09
 /* status bits */
 #define WD_STAT_BUSERR      0x01    /* + Bus error during wds's bus mastership */
 #define WD_STAT_OUTEMPTY    0x02    /* + Output data register empty */
@@ -122,18 +126,46 @@
 #define SCSI_VERIFY         0x2F
 #define SCSI_SEARCH         0x31
 
+#define SENSE_NONE              0x00
+#define SENSE_NO_INDEX          0x01
+#define SENSE_NO_SEEK_COMPLETE  0x02
+#define SENSE_WRITE_FAULT       0x03
+#define SENSE_NOT_READY         0x04
+#define SENSE_NO_TRACK0         0x06
+#define SENSE_ID_CRC            0x10
+#define SENSE_DATA              0x11
+#define SENSE_ADDRESS_MARK      0x12
+#define SENSE_DATA_ADDRESS_MARK 0x13
+#define SENSE_RECORD_NOT_FOUND  0x14
+#define SENSE_SEEK              0x15    /* Seek Error */
+#define SENSE_DATA_CHECK_NR     0x18    /* Data Check in No Retry Mode */
+#define SENSE_ECC_VERIFY        0x19    /* ECC Error During Verify */
+#define SENSE_INTERLEAVE        0x1A    /* Interleave Error */
+#define SENSE_UNFORMATTED       0x1C    /* Unformatted or Bad Format On Drive */
+#define SENSE_SELFTEST          0x1D    /* Self Test Failed */
+#define SENSE_INVALID_COMMAND   0x20
+#define SENSE_BLOCK_ADDRESS     0x21    /* Illegal Block Address */
+#define SENSE_VOLUME_OVERFLOW   0x23
+#define SENSE_BAD_ARGUMENT      0x24
+#define SENSE_LUN               0x25    /* Invalid Logical Unit Number */
+
+
 
 /* for each unit = disk attached to one wd */
 typedef struct {
 	/* disk image backing store, added to make the drive real */
     FILE * img;
     char   imgName[FILENAME_MAX+1];
-    UINT32 imgBlocks;      /* size of the image in 512 byte blocks */
+    UINT32 imgBlocks;         /* size of the image in 512 byte blocks */
     int    imgReadonly;
+    int    cylinders;         /* set by mode select, required for formatting */
+    int    sectors;
+    int    heads;
 } wd_unitRegs_t;
 
 /* controller registers */
 typedef struct {
+
     UINT32 dmaAddress;
     UINT8 intVector;
     //UINT8 intVectorError;
@@ -159,11 +191,13 @@ typedef struct {
     int    intAsserted;    /* current state of the request line   */
     UINT32 replyBytesLeft;
     UINT32 replyBytePos;
-    UINT8  replyBuffer[WD_SECTOR_SIZE];
-    wd_unitRegs_t units[WD_MAX_UNITS];
+    UINT8  replyBuffer[18*WD_SECTOR_SIZE];
     UINT8  sense[4];       /* sense bytes returned by REQUEST SENSE  */
     UINT8  statusByte;     /* SCSI status handed over in the status phase */
+    int dataIdx;
     UINT8  dataBuf[WD_SECTOR_SIZE*8];
+    /* --!! this has to be the last field in the struct and is not nulled on reset !!-- */
+    wd_unitRegs_t units[WD_MAX_UNITS];
 } wd_regs_t;
 
 typedef enum {
@@ -182,7 +216,9 @@ typedef enum {
     CMD_RESET=0,
     CMD_SCSIRESET=3,
     CMD_RESET_OUTREGFULL,
+    CMD_INFORMATION_TRANSFER,	// Information transfer phase when dma is off
     CMD_PROCESS_SCSICMD,
+    //CMD_TRANSFER_PARAM_START,   // start of transferring data from hosts after command block in non dma mode
     CMD_SET_INPFULL
 } CMD_S;
 

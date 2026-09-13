@@ -755,7 +755,8 @@ colors_t classColors[] = {
 	boldwhite,  // MSGC_WARN
 	none,       // MSGC_INFO
 	boldred,    // MSGC_FATAL
-	white       // MSGC_FUNC
+	white,      // MSGC_FUNC
+	boldcyan    // MSGC_DEV
 };
 
 
@@ -990,8 +991,8 @@ void dbgCmd_dup(int numArgs, struct args_t *args) {
 
 /* msg {source|all} {-|+|{+|-}warn | {+|-}err | {+|-}info} */
 
-char msgClasses[MSGC_MAX][10] = {"err","notimp","warn","info","fatal","func"};
-char msgSources[][10] = {"other","cpu","cmb","nv","fw","wd","scc","cs","pit","mem","fd",""};
+char *msgClasses[] = {"err","notimp","warn","info","fatal","func","dev"};
+char *msgSources[] = {"other","cpu","cmb","nv","fw","wd","scc","cs","pit","mem","fd",""};
 
 void listMsg(int msgSource) {
 	int i=0;
@@ -1626,6 +1627,7 @@ void dbgCmd_step (int numArgs, struct args_t *args) {
 		}
 		showInstruction(pc,changedRegs);
         prevShownPC = pc;
+        if (breakpointReached (pc)) return;
 	}
 }
 
@@ -1808,7 +1810,7 @@ void dbgCmd_exec (int numArgs, struct args_t *args) {
 
 // number of calls to sock_poll() after fork
 #define EXEC_NUMPOLLS 150
-#define EXEC_POLLDELAY 1000
+#define EXEC_POLLDELAY 10000
 void dbgCmd_exec (int numArgs, struct args_t *args) {
     char *a[MAXNUMARGS+1];
     int i;
@@ -1929,13 +1931,12 @@ void dbgCmd_int (int numArgs, struct args_t *args) {
 }
 
 
-char * msgClassNames[] = { "err","notimp","warn","info","fatal","func" };
 void dbgCmd_color (int numArgs, struct args_t *args) {
 	int i;
 
 	if (numArgs == 0) {
 		for (i=0; i<MSGC_MAX;i++)
-			printf("%-10s%s %s%s\n",msgClassNames[i],colors[classColors[i]],colorsNames[classColors[i]],colors[1]);
+			printf("%-10s%s %s%s\n",msgClasses[i],colors[classColors[i]],colorsNames[classColors[i]],colors[1]);
 		return;
 	}
 	if (numArgs == 1 && args[0].isValue && args[0].value == 0) {
@@ -1947,7 +1948,7 @@ void dbgCmd_color (int numArgs, struct args_t *args) {
 	if (numArgs == 2 && !args[0].isValue && !args[0].isValue) {
 		int msgClass = -1;
 		for (i=0; i<MSGC_MAX; i++)
-			if (strcmp(args[0].txt, msgClassNames[i]) == 0) msgClass = i;
+			if (strcmp(args[0].txt, msgClasses[i]) == 0) msgClass = i;
 		if (msgClass < 0) {
 			printf("invalid message class\n");
 			return;
@@ -1966,9 +1967,7 @@ void dbgCmd_color (int numArgs, struct args_t *args) {
 			return;
 		}
 		classColors[msgClass] = color;
-		printf("%s set to %s%s%s\n",msgClassNames[msgClass],colors[classColors[msgClass]],colorsNames[color],colors[1]);
-
-
+		printf("%s set to %s%s%s\n",msgClasses[msgClass],colors[classColors[msgClass]],colorsNames[color],colors[1]);
 	} else
 		printf("usage: color to list color 0 to disable, color err|notimp|warn|info|fatal|func colorName\n");
 }

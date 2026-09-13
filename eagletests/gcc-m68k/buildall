@@ -3,9 +3,10 @@
 
 # build binutils, gcc and newlib for compiling test programs
 # by default it will be installed in ~/gcc68k
-# you could add ~/gcc68k/bin to your path as well 
+# you could add ~/gcc68k/bin to your path as well
+# AD 9 Sep 2026, changed from ftp to https
 
-BASEURL=ftp://sourceware.org/pub
+BASEURL=https://sourceware.org/pub
 mkdir -p src
 SRCDIR=`readlink -f src`
 
@@ -92,7 +93,8 @@ function setup {
 [ -d src ] || mkdir src
 
 # 2.35 works, 2.35.1 does not work
-BVER=2.35
+#BVER=2.35
+BVER=2.46.1
 BNAME=binutils-$BVER
 BURL=$BASEURL/binutils/releases/$BNAME.tar.xz
 
@@ -104,7 +106,8 @@ setup "binutils" $BVER $BURL || exit 1
 #  6.5.0 works, text size 96562 
 #  8.4.0 works, text size 96038
 # 10.2.0 works, text size 94768
-GVER=10.2.0
+#GVER=10.2.0
+GVER=16.2.0
 #GVER=8.4.0
 #GVER=6.5.0
 #GVER=6.1.0
@@ -118,7 +121,8 @@ setup "gcc" $GVER $GURL $TCFLAGS || exit 1
 
 TCFLAGS="-DPREFER_SIZE_OVER_SPEED=1"
 CONF="$CONF --enable-newlib-reent-small --disable-newlib-fvwrite-in-streamio --disable-newlib-fseek-optimization --disable-newlib-wide-orient --enable-newlib-nano-malloc --disable-newlib-unbuf-stream-opt --disable-newlib-multithread --enable-lite-exit --enable-newlib-global-atexit --disable-newlib-io-float --enable-newlib-nano-formatted-io"
-NVER="4.1.0"
+#NVER="4.1.0"
+NVER="4.6.0.20260123" 
 NNAME="newlib-$NVER"
 NURL=$BASEURL/newlib/$NNAME.tar.gz
 

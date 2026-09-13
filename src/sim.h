@@ -6,13 +6,14 @@
 #define SCC_POLL_INSTRUCTIONS	100000
 #define FW_PENDING_INT_INSTRUCTIONS 200
 
-#define MSGC_MAX	6
+#define MSGC_MAX	7
 #define MSGC_ERR 0
 #define MSGC_NOTIMP 1
 #define MSGC_WARN 2
 #define MSGC_INFO 3
 #define MSGC_FATAL 4
 #define MSGC_FUNC 5
+#define MSGC_DEV  6
 /* adder */
 #define MSGC_BREAK 0x001000000
 #define MSGC_NOPC  0x002000000

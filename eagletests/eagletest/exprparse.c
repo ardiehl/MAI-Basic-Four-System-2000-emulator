@@ -133,7 +133,7 @@ void expparseListSymbols () {
 	if (! symbols) return;
 
 #if HEXDEFAULT == 1
-	printf("Name                     Value Description\n");
+	printf("Name                     Value             Description\n");
 	for (int i=0;i<78;i++) putchar('-');
 	      //12345678901234567890 123456789
 	putchar('\r'); putchar('\n');
@@ -142,7 +142,7 @@ void expparseListSymbols () {
 	while (s) {
 		desc = s->desc;
 		if(!desc) desc = &blank;
-		printf("%-20s %9x %s\n",s->name,s->value,desc);
+		printf("%-20s %9x #%-10d %s\n",s->name,s->value,s->value,desc);
 		s = s->next;
 	}
 #else

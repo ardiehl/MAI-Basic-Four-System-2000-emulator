@@ -1,2 +1,11 @@
-bin/
 lbin/
+bin/*.lst
+bin/eagletest
+bin/*.elf
+bin/*.lst
+bin/*.o
+bin/sendsrec
+bin/*.dis
+bin/*.hex
+bin/*.map
+
