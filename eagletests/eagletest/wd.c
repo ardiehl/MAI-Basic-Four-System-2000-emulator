@@ -25,7 +25,7 @@ void wdc_failAlloc(int bytes) {
 
 
 #define MAX_STATUS_COUNT 10
-#define MAX_STATUS_COMMANDS 64
+#define MAX_STATUS_COMMANDS 256
 
 typedef struct {
 	char rw;
@@ -124,6 +124,7 @@ uint8_t readResultAndRecordStatus (uint8_t * address, uint8_t * result, uint8_t 
 			}
 			if (*statusValueCountPtr < 0xffff) (*statusValueCountPtr)++;
 			timeout--;
+			//printf("Status %2x exp %2x timeout %d\n",status,expectedStatus,timeout);
 	} while ((status != expectedStatus) && (timeout));
 
 	statValues[statValuesCount].count = count;
@@ -243,19 +244,38 @@ int wdc_expectedStatus (char * msg, uint8_t status) {
 	return 0;
 }
 
-int wdc_writeCommand (wd_command_t * w, int timeout, uint8_t expectedStatusLast) {
+int wdc_write (uint8_t expectedStatus, wd_command_t * w, int timeout, uint8_t expectedStatusLast, char *s) {
 	int i;
-	uint8_t expectedStatus = 0xc2;
 
-	if (! wdc_expectedStatus("writeCommand", 0xc2)) return 0;
+	if (! wdc_expectedStatus(s, expectedStatus)) return 0;
 	wdc_statValuesReset();
 	for (i=0;i<w->byteCount;i++) {
 		if(i == (w->byteCount-1)) expectedStatus = expectedStatusLast; // 0x48;
-		if (!wd_writeCmdAndRecordStatus (wd0_hostwrite, w->data[i], expectedStatus, timeout,"writeCommand")) {
+		if (!wd_writeCmdAndRecordStatus (wd0_hostwrite, w->data[i], expectedStatus, timeout, s)) {
 			return 1;
 		}
 	}
 	return 0;
+}
+
+int wdc_writeCommand (wd_command_t * w, int timeout, uint8_t expectedStatusLast) {
+	int class = (w->data[0] >> 5) & 0x07;
+	int len;
+    switch (class) {
+        case 0: len = 6; break;
+        case 1: len = 10; break;
+        default: printf("wdc_writeCommand: invalid scsi command class %d (cmd=%02x)",class,w->data[0]);
+                 return 1;
+    }
+    if (len != w->byteCount) {
+    	printf("wdc_writeCommand: invalid command block length %d, expected %d\n",w->byteCount,len);
+		return 1;
+    }
+	return wdc_write(0xc2,w,timeout,expectedStatusLast,"writeCommand");
+}
+
+int wdc_writeData (wd_command_t * w, int timeout, uint8_t expectedStatusLast) {
+	return wdc_write(0x42,w,timeout,expectedStatusLast,"writeData");
 }
 
 
@@ -398,24 +418,130 @@ void wdc_rezeroUnit (int timeout) {
 	wdc_cmdFree(&t);
 }
 
+void printHexByte (uint8_t b) {
+	printf("%02x ",b);
+}
 
-void wdc_modesel (int cylinders, int heads, int rwc, int steprate) {
+void wdc_modesense (int timeout) {
+	wd_command_t t;
+	int res,i;
+
+	// command block
+	wdc_cmdInit (&t);
+	wdc_cmdAddByte  (&t,0x1a);	// modelsense
+	wdc_cmdAddByte (&t,0);      // upper 3 bit = lun
+	wdc_cmdAddBytes (&t,0,2);	// 2 bytes reserved
+	wdc_cmdAddByte (&t,22);     // number of bytes
+	wdc_cmdAddByte (&t,0);
+	res = wdc_writeCommand (&t,timeout,0x48); // [SBUSY+ INPFULL+]
+	wdc_cmdFree(&t);
+	if (res) {
+		puts("wdc_writeCommand failed");
+		return;
+	}
+
+	if (wdc_cmdAlloc (&t, 22) != 0) {
+		wdc_failAlloc(22);
+		wdc_cmdFree(&t);
+		return;
+	}
+
+	if (wdc_receiveBytes (&t, 22, timeout, 0x48) > 0) {
+		puts("wdc_receiveBytes failed");
+
+	} else {
+		for (i=0; i<22; i++) {
+			printHexByte (t.receiveData[i]);
+			if (i==3) puts("");
+			if (i==11) puts("");
+		}
+		puts("");
+		int pos = 0;
+		printf("3 bytes reserved %02x %02x %02x\n",t.receiveData[pos],t.receiveData[pos+1],t.receiveData[pos+2]);
+		pos += 3;
+		printf("8 %02x\n",t.receiveData[pos]); pos++;
+		printf("0 %02x\n",t.receiveData[pos]); pos++;
+		printf("4 bytes reserved %02x %02x %02x %02x\n",t.receiveData[pos],t.receiveData[pos+1],t.receiveData[pos+2],t.receiveData[pos+3]);
+		pos += 4;
+		// 3 bytes blocksize
+		uint32_t temp32 = (((uint32_t) t.receiveData[pos]) << 16) | (((uint32_t) t.receiveData[pos+1]) << 8) | t.receiveData[pos+2];
+
+		printf("BlockSize: %lu\n",temp32);
+		pos += 3;
+
+		printf("1 %02x\n",t.receiveData[pos]); pos++;
+		// 2 byte cylinder count
+		temp32 = (((uint32_t) t.receiveData[pos]) << 8) | t.receiveData[pos+1];
+		printf("Cylinders: %lu\n",temp32);
+		pos += 2;
+
+		printf("heads %d\n",t.receiveData[pos]); pos++;
+
+		// 2 byte rwc
+		temp32 = (((uint32_t) t.receiveData[pos]) << 8) | t.receiveData[pos+1];
+		printf("rwc: %lu\n",temp32);
+		pos += 2;
+
+		// 2 byte wpc
+		temp32 = (((uint32_t) t.receiveData[pos]) << 8) | t.receiveData[pos+1];
+		printf("wpc: %lu\n",temp32);
+		pos += 2;
+		printf("landing zone pos %02x\n",t.receiveData[pos]); pos++;
+		printf("Step pulse %02x\n",t.receiveData[pos]);
+
+
+	}
+
+
+}
+
+void wdc_modesel (int timeout, int cylinders, int heads, int rwc, int steprate) {
 	wd_command_t t;
 	int res;
 
+	// command block
 	wdc_cmdInit (&t);
 	wdc_cmdAddByte  (&t,0x15);	// modelsel
-	wdc_cmdAddBytes (&t,0,4);	// 3 bytes reserved
+	wdc_cmdAddByte (&t,0);      // upper 3 bit = lun
+	wdc_cmdAddBytes (&t,0,2);	// 2 bytes reserved
+	wdc_cmdAddByte (&t,22);     // number of bytes
+	wdc_cmdAddByte (&t,0);
+	res = wdc_writeCommand (&t,timeout,0x40);
+	wdc_cmdFree(&t);
+	if (res) {
+		puts("wdc_writeCommand failed");
+		return;
+	}
+
+	// parameter
+	wdc_cmdInit (&t);
+	wdc_cmdAddBytes (&t,0,3);   // 3 x reserved
 	wdc_cmdAddByte  (&t,0x08);	// length of extend descriptor list
+
 	wdc_cmdAddBytes (&t,0,6);	// Densitiy code + 4x reserved + block size MSB
-	wdc_cmdAddByte  (&t,0x01);	// block size 512
+	wdc_cmdAddByte  (&t,0x02);	// block size 512
 	wdc_cmdAddByte  (&t,0x00);	// block size 512
+
 	wdc_cmdAddByte  (&t,0x01);	// List format code
-	wdc_cmdAddByte  (&t,cmylinders >> 8);	// Cylinder count msb
-	wdc_cmdAddByte  (&t,cmylinders & 0x0f);	// Cylinder count lsb
+	wdc_cmdAddByte  (&t,cylinders << 8);	// Cylinder count msb
+	wdc_cmdAddByte  (&t,cylinders & 0x0f);	// Cylinder count lsb
+	wdc_cmdAddByte  (&t,heads);
 	wdc_cmdAddByte  (&t,rwc >> 8);		// reduced write current Cylinder msb
 	wdc_cmdAddByte  (&t,rwc & 0x0f);	// reduced write current Cylinder lsb
-	wdc_cmdAddBytes (&t,0,3);	// write precomp: ignored by controller, landing zone position
-	wdc_cmdAddBytes (&t,0,steprate);
 
+	wdc_cmdAddBytes (&t,0,3);	// write precomp: ignored by controller, landing zone position
+	wdc_cmdAddByte  (&t,steprate);
+
+	res = wdc_writeData (&t,timeout,0xcc);
+	wdc_cmdFree(&t);
+	if (res) {
+		puts("wdc_writeData failed");
+		return;
+	}
+
+	res = *wd0_hostread;
+	if (res != 0) {
+		wdc_select(1);
+		wdc_sense(timeout);
+	}
 }

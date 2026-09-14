@@ -109,5 +109,7 @@ uint8_t wdc_select(uint8_t sel);  // 0=deselect, 1=select
 void wdc_sense (int timeout);
 void wdc_rezeroUnit (int timeout);
 
+void wdc_modesel (int timeout, int cylinders, int heads, int rwc, int steprate);
+void wdc_modesense (int timeout);
 
 #endif // WD_H_INCLUDED

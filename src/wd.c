@@ -661,32 +661,32 @@ void processScsiNextPhase (wd_regs_t * wd) {
                         /* twelve byte descriptor: 4 header, 8 extent */
                         len = wd->scsiBuf[4];
                         if (len == 0) len = 12;
-                        if (len > (int)sizeof(wd->dataBuf)) len = sizeof(wd->dataBuf);
-                        memset(wd->dataBuf,0,sizeof(wd->dataBuf));
-                        wd->dataBuf[0] = 0;                                 /* reserved */
-                        wd->dataBuf[1] = 0;                                 /* medium type */
-                        wd->dataBuf[2] = wdu->imgReadonly ? 0x80 : 0x00;     /* WP AD: why, according to the docs this is reserved and 0 */
-                        wd->dataBuf[3] = 8;                                 /* block descriptor length */
-                        wd->dataBuf[4] = 0;                                 /* density */
-                        wd->dataBuf[5] = (modesenseImageBlocks >> 16) & 0xff; /* the docs state reserved, why has enrique put it in here, let's leave is as it is for now */
-                        wd->dataBuf[6] = (modesenseImageBlocks >> 8) & 0xff;
-                        wd->dataBuf[7] =  modesenseImageBlocks & 0xff;
-                        wd->dataBuf[9]  = (WD_SECTOR_SIZE >> 16) & 0xff;
-                        wd->dataBuf[10] = (WD_SECTOR_SIZE >> 8) & 0xff;
-                        wd->dataBuf[11] =  WD_SECTOR_SIZE & 0xff;
-                        wd->dataBuf[12] = 1;                                 /* list format code = 01 */
-                        wd->dataBuf[13] = (wdu->cylinders >> 8) & 0xff;      /* cylinder count */
-                        wd->dataBuf[14] = wdu->cylinders & 0xff;
-                        wd->dataBuf[15] = wdu->heads;
-                        wd->dataBuf[16] = (wdu->cylinder_rwc >> 8) & 0xff;   /* reduced write current cylinder */
-                        wd->dataBuf[17] = wdu->cylinder_rwc & 0xff;
-                        wd->dataBuf[18] = (wdu->cylinder_wpc >> 8) & 0xff;   /* write precompensation cylinder */
-                        wd->dataBuf[19] = wdu->cylinder_wpc & 0xff;
-                        wd->dataBuf[20] = 0;                                 /* landing zone position, - is this in the superblock as well ? */
-                        wd->dataBuf[21] = 0;                                 /* step pulse output rate code - is this in the superblock as well ? */
+                        if (len > (int)sizeof(wd->replyBuffer)) len = sizeof(wd->replyBuffer);
+
+                        wd->replyBuffer[0] = 0;                                 /* reserved */
+                        wd->replyBuffer[1] = 0;                                 /* medium type */
+                        wd->replyBuffer[2] = wdu->imgReadonly ? 0x80 : 0x00;     /* WP AD: why, according to the docs this is reserved and 0 */
+                        wd->replyBuffer[3] = 8;                                 /* block descriptor length */
+                        wd->replyBuffer[4] = 0;                                 /* density */
+                        //wd->replyBuffer[5] = (modesenseImageBlocks >> 16) & 0xff; /* the docs state reserved, why has enrique put it in here, let's leave is as it is for now */
+                        //wd->replyBuffer[6] = (modesenseImageBlocks >> 8) & 0xff;  /* tested on real machine, it is always 0 */
+                        //wd->replyBuffer[7] =  modesenseImageBlocks & 0xff;
+                        wd->replyBuffer[9]  = (WD_SECTOR_SIZE >> 16) & 0xff;
+                        wd->replyBuffer[10] = (WD_SECTOR_SIZE >> 8) & 0xff;
+                        wd->replyBuffer[11] =  WD_SECTOR_SIZE & 0xff;
+                        wd->replyBuffer[12] = 1;                                 /* list format code = 01 */
+                        wd->replyBuffer[13] = (wdu->cylinders >> 8) & 0xff;      /* cylinder count */
+                        wd->replyBuffer[14] = wdu->cylinders & 0xff;
+                        wd->replyBuffer[15] = wdu->heads;
+                        wd->replyBuffer[16] = (wdu->cylinder_rwc >> 8) & 0xff;   /* reduced write current cylinder */
+                        wd->replyBuffer[17] = wdu->cylinder_rwc & 0xff;
+                        wd->replyBuffer[18] = (wdu->cylinder_wpc >> 8) & 0xff;   /* write precompensation cylinder */
+                        wd->replyBuffer[19] = wdu->cylinder_wpc & 0xff;
+                        wd->replyBuffer[20] = 0;                                 /* landing zone position, - is this in the superblock as well ? */
+                        wd->replyBuffer[21] = 2;                                 /* step pulse output rate code - is this in the superblock as well ? */
 
                         if (dmaOn) {
-                            if (!wd_dma_to_mem(wd,wd->dataBuf,(len+1) & ~1)) {
+                            if (!wd_dma_to_mem(wd,wd->replyBuffer,(len+1) & ~1)) {
                                 wd->statusByte = 0x02; wd->sense[0] = 0x11; break;
 							}
                         } else
@@ -801,8 +801,29 @@ void processScsiNextPhase (wd_regs_t * wd) {
 						/* Test 19 -->  Translate, pass
 						   for now return all 0 */
 						// TODO: calculate if values for cylinders / heads are set
+						wd_cdb_lba(wd,&lba,&numBlocks);
+						int track = 0;
+						int sector = 0;
+						int head = 0;
+						if (wdu->cylinders && wdu->heads && wdu->sectors) {
+							track = lba / (wdu->heads * wdu->sectors);
+							sector = lba % wdu->sectors;
+							head = (lba / wdu->sectors) % wdu->sectors;
+						}
+
+						wd->replyBuffer[0] = (track >> 16) & 0xff;
+						wd->replyBuffer[1] = (track >> 8) & 0xff;
+						wd->replyBuffer[2] = track & 0xff;
+						wd->replyBuffer[3] = head & 0xff;
+
+						int bytesFromIndex = sector * WD_SECTOR_SIZE;
+						wd->replyBuffer[4] = (bytesFromIndex >> 24) & 0xff;
+						wd->replyBuffer[5] = (bytesFromIndex >> 16) & 0xff;
+						wd->replyBuffer[6] = (bytesFromIndex >> 8) & 0xff;
+						wd->replyBuffer[7] = bytesFromIndex & 0xff;
+
 						if (dmaOn) {
-                            if (!wd_dma_to_mem(wd,wd->dataBuf,8)) {
+                            if (!wd_dma_to_mem(wd,wd->replyBuffer,8)) {
                                 wd->statusByte = 0x02; wd->sense[0] = SENSE_BAD_ARGUMENT; break;
                             }
                         } else {
@@ -887,7 +908,7 @@ void wd_processContinue(void) {  /* called each n instructions */
 }
 
 
-// number of remaining bytes expeced from host in non dma mode
+// number of remaining bytes expected from host in non dma mode
 int numNonDmaBytesToBeTransferedFromHost (wd_regs_t * wd) {
     int cmd,dataLen=0;
 	// when dma is disabled we need to get the data via the host write register

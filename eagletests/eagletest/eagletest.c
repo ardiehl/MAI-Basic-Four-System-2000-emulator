@@ -40,6 +40,8 @@ void initSymbols() {
         exprparseAddSymbol("heads",15,"",0);
         exprparseAddSymbol("steprate",0,"",0);
 
+        exprparseAddSymbol("wwrtimeout",100,"",0);
+
 }
 
 char * statusNames[8] = {"MYBERR+","PIOINM+","OPCCMP+","PIOUTF+","SRESET+","MSG+","BUSY+","CMD+"};
@@ -198,6 +200,25 @@ void cmd_modeSel (int numArgs, struct args_t *args) {
 	printf("\n");
 }
 
+void cmd_wmodesel (int numArgs, struct args_t *args) {
+	int timeout = exprparseFindSymbol ("wwrtimeout", NULL);
+	if (timeout < 1) timeout = 250;
+	//printf("timeout: %d\n",timeout);
+	//wdc_statValuesReset();
+	int cylinders = exprparseFindSymbol ("cylinders", NULL);
+	int heads = exprparseFindSymbol ("heads", NULL);
+	int rwc = exprparseFindSymbol ("cylrwc", NULL);
+	int steprate = exprparseFindSymbol ("steprate", NULL);
+	wdc_modesel (timeout, cylinders, heads, rwc, steprate);
+}
+
+void cmd_wmodesense (int numArgs, struct args_t *args) {
+	int timeout = exprparseFindSymbol ("wwrtimeout", NULL);
+	printf("timeout: %d\n",timeout);
+	wdc_modesense(timeout);
+}
+
+
 /*
 void cmd_mt (int numArgs, struct args_t *args) {
 	char * m1 = calloc(1,512); printf("m1 @ %08lx\n",(uint32_t) m1);
@@ -220,8 +241,10 @@ struct cmds_t cmds[] =
 	{ "wreset"		, cmd_wreset	, "i"			,"wd reset"				,""},
 	{ "wwbytes"		, cmd_wwbytes	, "Iiiiiiiiii"	,"write bytes to host write register and record status","<value> [value ...] timeout can be set via variable 'wwrtimeout'" },
 	{ "wwstat"	 	, cmd_wwstat	, "IIIi"		,"write byte and record changes in status reg","<TargetAddress> <ValueToWrite> <expectedStatus> [timeout]"},
-	{ "wsense"	 	, cmd_wsense	, "i"			,"wd sense"				,"[timeout] execute scsi sense and show result"},
-	{ "wrezero"	 	, cmd_wrezero	, "i"			,"wd rezero"			,"[timeout] sets the selected drive to Track 0"},
+	{ "wsense"	 	, cmd_wsense	, "i"			,"wd sense"				,"timeout execute scsi sense and show result"},
+	{ "wmodesel"    , cmd_wmodesel  , "i"           ,"wd modesel"           ,"timeout parameter from symbols"},
+	{ "wmodesense"  , cmd_wmodesense, "i"           ,"wd modesense"         ,"timeout parameter from symbols"},
+	{ "wrezero"	 	, cmd_wrezero	, "i"			,"wd rezero"			,"timeout sets the selected drive to Track 0"},
 	{ "wselect"  	, cmd_wselect	, "i"			,"wd select"			,"[0|1] select (1 or no arg) or deselect(0) contoller"},
 	{ "symlist"  	, cmd_symlist	, ""    		,"show symbols"			,"List all defined symbols"},
 	{ "symadd"   	, cmd_symadd	, "SI"  		,"add/change symbol"	,"<symbolname> <symbolvalue"},
