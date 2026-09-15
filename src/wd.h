@@ -30,9 +30,9 @@
 
 //define WD_DISABLE
 
-#define WD0_ADDR		0xCC0000
-#define WD1_ADDR		0xCD0000
-#define WD_ADDR_MASK	0xFFFF0000
+#define WD0_ADDR        0xCC0000
+#define WD1_ADDR        0xCD0000
+#define WD_ADDR_MASK    0xFFFF0000
 
 
 #define WD0_INSTALLED   1
@@ -58,35 +58,56 @@
 /* dont know if it is 2 or 4 (both are vectored) */
 #define WD_INTNO            2
 
+/*
+WINCHESTER DISK CONTROLLER REGISTERS
+Address        76543210        TYPE    Command
+CX0000         DMA high        write   ldma
+     1         DMA               .      .
+     2         DMA               .      .
+     3         DMA low           .      .
+     4         VECTOR          write    vector
+     5         VECTOR          read     rvector
+     6         not used
+     7         CONTROL          w/r     control
+     8         DATA out        write    wdata
+     9         STATUS          read     status
+     A         SASI Select     write    select
+     B         DATA in         read     rdata
+     C         BERR clear      write    berrc
+
+              STATUS REG.                             CONTROL REG.
+  7   6   5   4   |   3   2   1   0         7   6   5   4   |   3   2   1   0
+|C/D|BSY|MSG|RST  |  IDA|DUN|OMT|BER|                       |  DMA|INT|LED|CLR|
+*/
 
 /* These registers are loaded one byte at a time, with the 1's complement
    of the system address, right shifted once */
-#define WD_REG_DMA_HI		0x01
-#define WD_REG_DMA_MID		0x02
-#define WD_REG_DMA_LOW		0x03
+#define WD_REG_DMA_HI   0x01
+#define WD_REG_DMA_MID  0x02
+#define WD_REG_DMA_LOW  0x03
 
 /* interrupt vector register */
-#define WD_REG_INTVEC		0x04
+#define WD_REG_INTVEC   0x04
 
-/* int vector register ?? Test reads from this port and requires value written to 0x04 ?? */
-#define WD_REG_INTVEC2      0x05
+/* int vector read register. Test reads from this port and requires value written to 0x04 */
+#define WD_REG_INTVEC2  0x05
 
 /* Read/Write Control Register */
-#define WD_REG_CTL2		0x07
+#define WD_REG_CTL2     0x07
 /* bits in control register */
 #define WD_CTL_SRST     0x01    /* SSRST+ Reset the wdc. Minimum 25 miliseconds, logical or'ed with POR and PFD */
-#define WD_CTL_LED      0x02	/* LED- */
+#define WD_CTL_LED      0x02    /* LED- */
 #define WD_CTL_INTEN    0x04    /* INTEN+ Enable operation complete and bus error interrupts */
 #define WD_CTL_SEQEN    0x08    /* SEQEN+ Enable DMA */
 #define WD_CTL_INTEND0  0x10    /* INTEND0+ Enable Drive 0 completion Interrupt */
-#define WD_CTL_INTEND1	0x20
-#define WD_CTL_INTD0	0x40    /* INTD0+ Enable Drive 0 seek completion interrupt */
-#define WD_CTL_INTD1	0x80
+#define WD_CTL_INTEND1  0x20
+#define WD_CTL_INTD0    0x40    /* INTD0+ Enable Drive 0 seek completion interrupt */
+#define WD_CTL_INTD1    0x80
 
 
 /* This address byte is written to by the host during I/O data transfer
    (Information transfer phase, host to controller) phase */
-#define WD_HOST_WRITE		0x08
+#define WD_HOST_WRITE       0x08
 
 /* Status Read register */
 #define WD_REG_STAT         0x09
@@ -100,9 +121,9 @@
 #define WD_STAT_SBUSY       0x40    /* + SCSI bus busy */
 #define WD_STAT_SCMD        0x80    /* + SCSI bus in command,status or message phase */
 
-#define WD_REG_SELECT		0x0A
-#define WD_REG_READINP		0x0B
-#define WD_REG_CLRBUSERR	0x0C
+#define WD_REG_SELECT       0x0A
+#define WD_REG_READINP      0x0B
+#define WD_REG_CLRBUSERR    0x0C
 
 #define SCSI_TESTREADY      0x00
 #define SCSI_REZEROUNIT     0x01
@@ -162,7 +183,7 @@ typedef struct {
     int    sectors;
     int    heads;
     int    cylinder_rwc;
-	int    cylinder_wpc;
+    int    cylinder_wpc;
     int    capacity;          /* blocks as in superblock (excluding diag and config record) */
 } wd_unitRegs_t;
 
@@ -219,7 +240,7 @@ typedef enum {
     CMD_RESET=0,
     CMD_SCSIRESET=3,
     CMD_RESET_OUTREGFULL,
-    CMD_INFORMATION_TRANSFER,	// Information transfer phase when dma is off
+    CMD_INFORMATION_TRANSFER,     // Information transfer phase when dma is off
     CMD_PROCESS_SCSICMD,
     //CMD_TRANSFER_PARAM_START,   // start of transferring data from hosts after command block in non dma mode
     CMD_SET_INPFULL

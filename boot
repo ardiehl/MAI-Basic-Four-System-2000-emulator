@@ -8,11 +8,16 @@ XT_FONTSIZE=12
 XT_BACKGROUND=black
 XT_FOREGROUND=white
 
-TELNET="-e telnet"
+TELNET="telnet"
 PORT_BASE=4000
 HOST=localhost
 
-XT1="xterm -fa $XT_FONT -fs $XT_FONTSIZE -bg $XT_BACKGROUND -fg $XT_FOREGROUND -geometry $XT_GEOMETRY"
+XT1="xterm -fa $XT_FONT -fs $XT_FONTSIZE -bg $XT_BACKGROUND -fg $XT_FOREGROUND -geometry $XT_GEOMETRY -T "
+XT2=" -e "
+GT1="gnome-terminal --geometry $XT_GEOMETRY -t "
+GT2=" -- "
+TERMCMD="$XT1"
+TERMEXEC="$XT2"
 # socket numbers to start
 SOCKNUMS=""
 
@@ -25,6 +30,7 @@ usage () {
     echo " -c  --cs        boot from cs0"
     echo " -f  --fd        boot from fd0"
     echo " -t, --telnet    telnet program to use"
+    echo " -gt,--gnome     use gnome-terminal instead of xterm"
     echo " -0              start first terminal -0 to -9 are supported"
     echo " -a, --all       start all terminals"
     echo " -g              go, start the emulation"
@@ -75,6 +81,11 @@ while [[ $# -gt 0 ]]; do
         ;;
         -g|--go)
             GO="g"
+            shift
+        ;;
+        -gt|--gnome)
+            TERMCMD="$GT1"
+            TERMEXEC="$GT2"
             shift
         ;;
         -t|--telnet)
@@ -132,7 +143,7 @@ for i in $SOCKNUMS; do
     else addarg "dev sock terminal $i 1"
     fi
     PORT=$((PORT_BASE + i))
-    addarg "exec $XT1 -T $TP $TELNET $HOST $PORT"
+    addarg "exec $TERMCMD $TP $TERMEXEC $TELNET $HOST $PORT"
 done
 
 #echo "$ARGS $POSITIONAL_ARGS $GO"
