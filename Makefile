@@ -130,7 +130,19 @@ SRC_TYPE	=	c
 EXT_OBJ		=
 # libraries to link in -- these will be specified as "-l" parameters, the -l
 # is prepended automatically
-LIB			=readline
+ifeq ($(PLATFORM),linux)
+LIB			= readline
+endif
+ifeq ($(PLATFORM),win64)
+STATICLIBS			= -Wl,--allow-multiple-definition -static-libgcc /usr/x86_64-w64-mingw32/sys-root/mingw/lib/libreadline.a /usr/x86_64-w64-mingw32/sys-root/mingw/lib/libtermcap.a
+STATIC			= -static
+LIB			+= ws2_32 msvcrt
+endif
+ifeq ($(PLATFORM),win32)
+LIB			+= ws2_32 msvcrt
+STATICLIBS			= -Wl,--allow-multiple-definition -static-libgcc /usr/x86_64-w64-mingw32/sys-root/mingw/lib/libreadline.a /usr/x86_64-w64-mingw32/sys-root/mingw/lib/libtermcap.a
+STATIC			= -static
+endif
 # library paths -- where to search for the above libraries
 LIBPATH		=
 # include paths -- where to search for #include files (in addition to the
@@ -179,8 +191,8 @@ MAKE	=	make
 CC	=	$(C_PREFIX)gcc
 CXX	=	$(C_PREFIX)g++
 #BITS    =	-m32
-CFLAGS	=	-Wall -pedantic -std=gnu99 $(EXT_CFLAGS) $(BITS)
-CXXFLAGS=	-Wall -pedantic -std=gnu++0x $(EXT_CXXFLAGS) $(BITS)
+CFLAGS	=	-Wall -pedantic -std=gnu99 $(STATIC) $(EXT_CFLAGS) $(BITS)
+CXXFLAGS=	-Wall -pedantic -std=gnu++0x $(STATIC) $(EXT_CXXFLAGS) $(BITS)
 LDFLAGS	=	$(BITS) $(EXT_LDFLAGS)
 RM		=	rm
 STRIP	=	$(C_PREFIX)strip
@@ -314,7 +326,7 @@ DEPFILES =	$(addprefix dep/, $(addsuffix .d, $(basename $(SRC))) $(EXT_OBJ)) $(a
 
 # path commands
 LIBLNK	+=	$(addprefix -l, $(LIB))
-LIBPTH	+=	$(addprefix -L, $(LIBPATH))
+LIBPTH	+=	$(addprefix -L, $(LIBPATH)) $(STATICLIBS)
 INCPTH	+=	$(addprefix -I, $(INCPATH))
 
 CPPFLAGS +=	$(INCPTH)
@@ -413,7 +425,7 @@ tidy:	cleandep clean-versioninfo
 $(TARGET):	$(OBJ) $(EXTDEP)
 ifeq ($(SRC_TYPE),c)
 	@echo "linking $(TARGET)"
-	@$(CC) $(CXXFLAGS) $(LDFLAGS) $(OBJ) $(LIBPTH) $(LIBLNK) -o $@
+	$(CC) $(CXXFLAGS) $(LDFLAGS) $(OBJ) $(LIBPTH) $(LIBLNK) -o $@
 else
 	@echo "linking $(TARGET)"
 	@$(CXX) $(CXXFLAGS) $(LDFLAGS) $(OBJ) $(LIBPTH) $(LIBLNK) -o $@

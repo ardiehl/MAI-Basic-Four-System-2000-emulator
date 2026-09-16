@@ -43,4 +43,8 @@ void sock_putstr(int portNum, char * data);
 
 int sock_dbgCmd(int numArgs, struct args_t * args);
 
+void sock_initialize();
+void sock_deinitialize();
+
+
 #endif // SOCKET_CONNECTIONS_H_INCLUDED

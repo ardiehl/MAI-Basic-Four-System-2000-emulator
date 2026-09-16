@@ -2,13 +2,11 @@
  *            util.c
  *
  *  Tue November 22 21:23:11 2011
- *  Copyright  2011  Armin Diehl
+ *  Armin Diehl
  *  <ad@ardiehl.de>
  ****************************************************************************/
 /*
  * util.c
- *
- * Copyright (C) 2011 - Armin Diehl
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +28,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #ifdef _WIN32
-äinclude <windows.h>
+#include <windows.h>
 #include <conio.h>
 #else
 #include <termios.h>
@@ -117,7 +115,7 @@ int getch_noecho(void)
     return c;
 }
 
-nt kbhit(void)
+int kbhit(void)
 {
     return _kbhit();
 }

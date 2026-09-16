@@ -2334,6 +2334,10 @@ void kbtest (void) {
 	exit(1);
 }
 
+#ifdef _WIN32
+
+#endif // _WIN32
+
 
 int main(int argc, char* argv[])
 {
@@ -2373,6 +2377,8 @@ int main(int argc, char* argv[])
     /* set the boot device in nvram to wd0, can be changed later via dev nv device */
     commandHandler("dev nv wd",0);
 
+    sock_initialize();
+
     for (i=1;i<argc;i++) {
         printf("%d: %s\n",i,argv[i]);
     }
@@ -2381,6 +2387,7 @@ int main(int argc, char* argv[])
 			printf ("usage: %s\n  --help\n",argv[0]);
 			printf("  --port or -p  starting tcp port number for terminal connections\n");
 			printf ("   or  %s \"Command\" \"Command\" ..\n",argv[0]);
+			sock_deinitialize();
 			exit(1);
 		}
 		if ((strcmp(argv[i],"-p") == 0) || (strcmp(argv[i],"--port") == 0)) {
@@ -2401,6 +2408,7 @@ int main(int argc, char* argv[])
 
 	commandHandler(NULL,1);
 	sock_deinit();
+	sock_deinitialize();
 	write_history (HISTORY_FILENAME);
 	return 0;
 }

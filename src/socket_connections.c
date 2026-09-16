@@ -6,13 +6,14 @@
  *  Armin Diehl <ad@ardiehl.de>
  ****************************************************************************
  * TCP telnet connections for the eagle emulator
-	TODO: connect to a used port will be accepted ?
  */
 
 #include <sys/types.h>
 #if defined(_WIN32) || defined(_WIN64)
-    #include <winsock2.h>
-    #include <ws2tcpip.h>
+	#define WIN32_LEAN_AND_MEAN
+	#include <windows.h>
+	#include <winsock2.h>
+	#include <ws2tcpip.h>
     typedef SOCKET socket_t;
     typedef WSAPOLLFD pollfd_t;
     #define poll_sockets WSAPoll
@@ -26,9 +27,6 @@
     #include <netinet/in.h>
 	#include <arpa/inet.h>
 #endif
-
-
-
 
 
 #include <unistd.h>
@@ -86,7 +84,7 @@ typedef struct {
 
 sock_t socks[SOCK_MAX];
 
-
+static int sock_initialize_done;
 
 // incoming key translation
 
@@ -457,6 +455,7 @@ void telnetClientInit(int fd) {
 }
 
 void sock_setupListen (int portNum, bool doClose) {
+	if (!sock_initialize_done) return;
 	assert(portNum >= 0 && portNum < SOCK_MAX);
 	if (doClose) { close(socks[portNum].fd); socks[portNum].fd = -1; }
 
@@ -475,6 +474,7 @@ void sock_setupListen (int portNum, bool doClose) {
 
 // check for incomping connections or data on all open ports and set the status field for each connection
 void sock_poll() {
+	if (!sock_initialize_done) return;
 	pollfd_t *pfds;
 	int i,fd,numFds=0,res;
 	int portIdx[SOCK_MAX];
@@ -908,4 +908,42 @@ int sock_dbgCmd(int numArgs, struct args_t * args) {
         return findAndExecCommand (args[0].txt,sockCmds,numArgs-1,&args[1]);
 }
 
+
+#ifndef _WIN32
+void sock_initialize() {};
+void sock_deinitialize() {};
+#else
+
+// winsock init
+void sock_initialize() {
+	WORD wVersionRequested;
+    WSADATA wsaData;
+    int err;
+
+     wVersionRequested = MAKEWORD(2, 2);
+
+    err = WSAStartup(wVersionRequested, &wsaData);
+    if (err != 0) {
+        printf("WSAStartup failed with error: %d\n", err);
+        return;
+    }
+
+    if (LOBYTE(wsaData.wVersion) != 2 || HIBYTE(wsaData.wVersion) != 2) {
+        /* Tell the user that we could not find a usable */
+        /* WinSock DLL.                                  */
+        printf("Could not find a usable version of Winsock.dll\n");
+        WSACleanup();
+        return;
+    }
+
+    sock_initialize_done = 1;
+};
+
+void sock_deinitialize() {
+	if (!sock_initialize_done) return;
+	WSACleanup();
+	sock_initialize_done = 0;
+};
+
+#endif // _WIN32
 
