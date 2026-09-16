@@ -159,7 +159,16 @@ ifeq ($(strip $(PLATFORM)),win32)
 	# windows executables have a .exe suffix
 	TARGET := $(addsuffix .exe,$(TARGET))
 	# console mode application
-	EXT_CFLAGS = -mconsole
+	EXT_CFLAGS = -mconsole -fno-builtin-stpcpy
+	C_PREFIX = i686-w64-mingw32-gcc-
+endif
+
+ifeq ($(strip $(PLATFORM)),win64)
+	# windows executables have a .exe suffix
+ 	TARGET := $(addsuffix .exe,$(TARGET))
+	# console mode application
+	EXT_CFLAGS = -mconsole -fno-builtin-stpcpy
+	C_PREFIX = x86_64-w64-mingw32-
 endif
 
 
@@ -167,14 +176,15 @@ endif
 # Tool setup
 ####
 MAKE	=	make
-CC	=	gcc
-CXX	=	g++
+CC	=	$(C_PREFIX)gcc
+CXX	=	$(C_PREFIX)g++
 #BITS    =	-m32
 CFLAGS	=	-Wall -pedantic -std=gnu99 $(EXT_CFLAGS) $(BITS)
 CXXFLAGS=	-Wall -pedantic -std=gnu++0x $(EXT_CXXFLAGS) $(BITS)
 LDFLAGS	=	$(BITS) $(EXT_LDFLAGS)
 RM		=	rm
-STRIP	=	strip
+STRIP	=	$(C_PREFIX)strip
+HOSTCC	=	gcc
 
 ###############################################################################
 # You should not need to touch anything below here, unless you're adding a new
@@ -186,7 +196,9 @@ STRIP	=	strip
 ####
 ifneq ($(PLATFORM),linux)
 ifneq ($(PLATFORM),win32)
-    $(error Platform '$(PLATFORM)' not supported. Supported platforms are: linux, win32)
+ifneq ($(PLATFORM),win64)
+    $(error Platform '$(PLATFORM)' not supported. Supported platforms are: linux, win32 or win64)
+endif
 endif
 endif
 
@@ -420,9 +432,15 @@ endif
 ####
 ## musashi build rules
 # 68k CPU builder
+
+obj/musashi/m68kmake.o:	src/musashi/m68kmake.c
+	@echo "compiling $@"
+	@mkdir -p $(dir $@) $(dir dep/$*.d)
+	@$(HOSTCC) -c $< -o $@
+
 obj/musashi/m68kmake:	obj/musashi/m68kmake.o
 	@echo "compiling $@"
-	@$(CC) $(CFLAGS) $(CPPFLAGS) obj/musashi/m68kmake.o -o $@
+	@$(HOSTCC) obj/musashi/m68kmake.o -o $@
 # 68k CPU sources
 src/musashi/m68kops.h src/musashi/m68kops.c:	obj/musashi/m68kmake src/musashi/m68k_in.c
 	@echo "generating m68 handler from m68k_in.c"

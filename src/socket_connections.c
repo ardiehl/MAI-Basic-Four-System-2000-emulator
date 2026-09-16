@@ -10,16 +10,34 @@
  */
 
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+#if defined(_WIN32) || defined(_WIN64)
+    #include <winsock2.h>
+    #include <ws2tcpip.h>
+    typedef SOCKET socket_t;
+    typedef WSAPOLLFD pollfd_t;
+    #define poll_sockets WSAPoll
+#else
+    #include <poll.h>
+    #include <sys/socket.h>
+    #include <unistd.h>
+    typedef int socket_t;
+    typedef struct pollfd pollfd_t;
+    #define poll_sockets poll
+    #include <netinet/in.h>
+	#include <arpa/inet.h>
+#endif
+
+
+
+
+
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <poll.h>
+
 #include "socket_connections.h"
 #include "sim.h"
 #include "telnetDefs.h"
@@ -45,7 +63,7 @@ enum sockstat_t {
 #define RECV_BUFFER_SIZE 256
 
 typedef struct {
-	int fd;
+	socket_t fd;
 	enum sockstat_t status;
 	int portNum;
 	int revents;
@@ -318,8 +336,8 @@ static void translateAndAdd (sock_t *sock, char *data, int size) {
 
 
 // returns listenfd or -1 on error
-int setupListenSocket(int portNum) {
-	int listenfd;
+socket_t setupListenSocket(int portNum) {
+	socket_t listenfd;
     int res=0;
     int on;
     struct sockaddr_in6 serv_addr;
@@ -457,7 +475,7 @@ void sock_setupListen (int portNum, bool doClose) {
 
 // check for incomping connections or data on all open ports and set the status field for each connection
 void sock_poll() {
-	struct pollfd  *pfds;
+	pollfd_t *pfds;
 	int i,fd,numFds=0,res;
 	int portIdx[SOCK_MAX];
 	char recvBuffer[RECV_BUFSIZE];
@@ -481,7 +499,7 @@ void sock_poll() {
 			fd++;
 		}
 	}
-	res = poll(pfds,numFds,0);
+	res = poll_sockets(pfds,numFds,0);
 	if (res < 0) {
 		fprintf(stderr,"poll returned %d, errno: %d %s\n",res,errno,strerror(errno));
 		return;
@@ -502,6 +520,14 @@ void sock_poll() {
 					close(socks[portIdx[i]].fd);
 					socks[portIdx[i]].fd = newFd;
 					socks[portIdx[i]].status = STAT_OPEN;
+					#ifndef _WIN32
+					int flags = fcntl( newFd, F_GETFL);
+					flags |= O_NONBLOCK;
+					fcntl(newFd, F_SETFL, flags);
+					#else
+					ULONG mode = 1;
+					ioctlsocket(newFd, FIONBIO, &mode);
+					#endif
 #ifdef SOCK_DEBUG
 					printf("%d is connected\n",portIdx[i]);
 #endif
@@ -524,7 +550,7 @@ void sock_poll() {
 			} else
 			if (socks[portIdx[i]].status == STAT_OPEN || socks[portIdx[i]].status == STAT_DATA_AVAILABLE) {
 				// receive the data here to get the full escape sequence and check for errors
-				ssize_t rc = recv(pfds[i].fd, &recvBuffer, sizeof(recvBuffer), MSG_DONTWAIT);
+				ssize_t rc = recv(pfds[i].fd, (char *)&recvBuffer, sizeof(recvBuffer), 0); //MSG_DONTWAIT);
 				if (rc > 0) {
 					socks[portIdx[i]].status = STAT_DATA_AVAILABLE;
 					if (socks[i].doInTranslation) {
@@ -576,12 +602,12 @@ void sock_putchar(int portNum, char data) {
 		if (socks[portNum].dumpIO_console) dumpChar('s',data);
 		int bufLen = bfseq_processChar (&socks[portNum].outSeqSta,data, outSeqBuffer, sizeof(outSeqBuffer));
 		if (bufLen) {
-			send(socks[portNum].fd,&outSeqBuffer,bufLen,MSG_DONTWAIT);
+			send(socks[portNum].fd,(char *)&outSeqBuffer,bufLen,0); //MSG_DONTWAIT);
 			//if (socks[portNum].dumpIO_console) dumpStr('s',outSeqBuffer);
 		}
 
 	} else {
-		send(socks[portNum].fd,&data,1,MSG_DONTWAIT);
+		send(socks[portNum].fd,&data,1,0); //MSG_DONTWAIT);
 	}
 }
 

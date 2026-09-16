@@ -52,13 +52,16 @@
 // the loader from the install tape accesses the controller e.g. via cc8007
 // tested on 2000, only the lower 4 bits will be decoded ccfff7 is equal to cc0007
 #define WD_ADDR_TO_REG(A)	(A & 0x0f)
-#define WD_PHASE_COUNT      5
-#define WD_CMD_COUNT        2
+#define WD_PHASE_COUNT        5
+#define WD_CMD_COUNT          2
+#define WD_INT_COMPLETE_COUNT 2
+#define WD_INT_SEEK_COUNT     6
 
-/* dont know if it is 2 or 4 (both are vectored) */
-#define WD_INTNO            2
+#define WD_INTNO              2
 
 /*
+from diskfs:
+
 WINCHESTER DISK CONTROLLER REGISTERS
 Address        76543210        TYPE    Command
 CX0000         DMA high        write   ldma
@@ -99,10 +102,10 @@ CX0000         DMA high        write   ldma
 #define WD_CTL_LED      0x02    /* LED- */
 #define WD_CTL_INTEN    0x04    /* INTEN+ Enable operation complete and bus error interrupts */
 #define WD_CTL_SEQEN    0x08    /* SEQEN+ Enable DMA */
-#define WD_CTL_INTEND0  0x10    /* INTEND0+ Enable Drive 0 completion Interrupt */
-#define WD_CTL_INTEND1  0x20
-#define WD_CTL_INTD0    0x40    /* INTD0+ Enable Drive 0 seek completion interrupt */
-#define WD_CTL_INTD1    0x80
+#define WD_CTL_INTEND0  0x10    /* INTEND0+ Enable Drive 0 seek completion Interrupt */
+#define WD_CTL_INTEND1  0x20    /* INTEND1+ Enable Drive 1 seek completion Interrupt */
+#define WD_CTL_INTD0    0x40    /* INTD0+ Drive 0 seek completion interrupt status (read only) */
+#define WD_CTL_INTD1    0x80    /* INTD0+ Drive 1 seek completion interrupt status (read only) */
 
 
 /* This address byte is written to by the host during I/O data transfer
@@ -184,12 +187,17 @@ typedef struct {
     int    heads;
     int    cylinder_rwc;
     int    cylinder_wpc;
+    int    lastScsiCmd;
     int    capacity;          /* blocks as in superblock (excluding diag and config record) */
+    int    intPendingSeek;    /* a seek completion interrupt is outstanding */
+                              /* we need it here as while seek is active, another seek or command on another unit could be started */
+	int    intPendingComplete;
+
 } wd_unitRegs_t;
 
 /* controller registers */
 typedef struct {
-
+    int wdIntAsserted;        /* int line is intAsserted */
     UINT32 dmaAddress;
     UINT8 intVector;
     //UINT8 intVectorError;
@@ -205,14 +213,14 @@ typedef struct {
     int installed;
     int state;
     int stateCounter;
+    int busErrorIntPending;
     /* non scsi commands */
     int cmdCounter;
     int currCommand;
     UINT16 dmaTestWordRead;
     UINT8  dmaTestCount;    /* 2=HI(dmaTestWordRead),1=LO, 0=none */
     UINT32 intCount;
-    int    intPending;     /* a completion interrupt is outstanding */
-    int    intAsserted;    /* current state of the request line   */
+    //int    intAsserted;    /* current state of the request line   */
     UINT32 replyBytesLeft;
     UINT32 replyBytePos;
     UINT8  replyBuffer[18*WD_SECTOR_SIZE];
@@ -242,7 +250,6 @@ typedef enum {
     CMD_RESET_OUTREGFULL,
     CMD_INFORMATION_TRANSFER,     // Information transfer phase when dma is off
     CMD_PROCESS_SCSICMD,
-    //CMD_TRANSFER_PARAM_START,   // start of transferring data from hosts after command block in non dma mode
     CMD_SET_INPFULL
 } CMD_S;
 

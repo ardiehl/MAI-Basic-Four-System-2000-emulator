@@ -22,10 +22,9 @@
 
 int installedWds[WD_MAX] = {WD0_INSTALLED,WD1_INSTALLED};
 
+int wdIntrCounter;        /* to raise outstanding interrupts */
 
 wd_regs_t wdr[WD_MAX];
-
-
 
 #define MYSELF MSG_WD
 
@@ -335,12 +334,12 @@ int wd_attach_image (int wdn, int unit, const char * name) {
         return 0;
     } else {
     	if (sb_read(wdu->img,&sb) > 0) {
-    		wdu->capacity = be32toh(sb.capacity);
-			wdu->cylinders = be32toh(sb.cylinders);
-			wdu->cylinder_rwc = be32toh(sb.cylinder_rwc);
-			wdu->cylinder_wpc = be32toh(sb.cylinder_wpc);
-			wdu->heads = be32toh(sb.heads);
-			wdu->sectors = be32toh(sb.sectors);
+    		wdu->capacity = be32_toh(sb.capacity);
+			wdu->cylinders = be32_toh(sb.cylinders);
+			wdu->cylinder_rwc = be32_toh(sb.cylinder_rwc);
+			wdu->cylinder_wpc = be32_toh(sb.cylinder_wpc);
+			wdu->heads = be32_toh(sb.heads);
+			wdu->sectors = be32_toh(sb.sectors);
 			msgout (MSGC_FUNC | MSGC_NOPC,MYSELF,MSG_NONE,"(%d,%d) found valid superblock, capacity: %d, cylinders: %d, heads: %d, sectors: %d",wdn,unit,wdu->capacity,wdu->cylinders,wdu->heads,wdu->sectors);
     	} else
 			printf ("no valid superblock found in image, needs to be formatted with dutil\n");
@@ -397,21 +396,135 @@ static void wd_cdb_lba (wd_regs_t * wd, UINT32 * lba, UINT32 * count) {
  * acknowledge cycle, using the request line rather than forcing an exception so
  * the CPU takes it only when its own mask allows.
  */
-static void wd_update_irq (wd_regs_t * wd) {
-    int assertIt = wd->intPending ? 1 : 0;
 
-    if (assertIt != wd->intAsserted) {
-        wd->intAsserted = assertIt;
-        m68k_set_int_line (WD_INTNO, assertIt ? ASSERT_LINE : CLEAR_LINE);
-    }
+
+static void wd_update_irq (wd_regs_t * wd, int assertIt) {
+	int i;
+    //int assertIt = wd->intPending ? 1 : 0;
+    int wdIntAsserted = 0;
+    for (i = 0; i < WD_MAX; i++)
+		if (wdr[i].installed)
+			wdIntAsserted += wdr[i].wdIntAsserted;
+
+    if (assertIt && wdIntAsserted) msgout (MSGC_ERR,MYSELF,MSG_NONE,"wd_update_irq called with present state of irq line (state: %d, requested: %d",wdIntAsserted,assertIt);
+
+    msgout (MSGC_INFO,MYSELF,MSG_NONE,"wd_update_irq %d",assertIt);
+    m68k_set_int_line (WD_INTNO, assertIt ? ASSERT_LINE : CLEAR_LINE);
+    wd->wdIntAsserted = assertIt;
 }
 
+
+static void wd_clear_outstanding_ints(wd_regs_t * wd) {
+	int unit;
+
+	if (wd->wdIntAsserted)
+		wd_update_irq (wd,0);
+
+	for (unit = 0; unit < WD_MAX_UNITS; unit++) {
+		wd->units[unit].intPendingSeek = 0;
+        wd->units[unit].intPendingComplete = 0;
+	}
+	wd->wdIntAsserted = 0;
+	wd->busErrorIntPending = 0;
+}
+
+
+/*
 static void wd_raise_complete (wd_regs_t * wd) {
     if (!(wd->ctlReg2 & WD_CTL_INTEN)) return;
     msgout (MSGC_INFO,MYSELF,MSG_NONE,"operation complete interrupt, vector %02x",wd->intVector);
     wd->intPending = 1;
     wd_update_irq(wd);
 }
+*/
+
+static void wd_buserr_int (wd_regs_t * wd) {
+	wd->busErrorIntPending = 1;
+	wd_update_irq (wd,1);
+}
+
+static void processPendingInterrupts() {
+	int i,u;
+    int wdIntAsserted = 0;
+
+    for (i = 0; i < WD_MAX; i++)
+		if (wdr[i].installed)
+			wdIntAsserted += wdr[i].wdIntAsserted;
+
+	if (wdIntAsserted) {	// int line asserted, we must wait
+		msgout (MSGC_ERR|MSGC_BREAK,MYSELF,MSG_INTR,"interrupt line is asserted, cannot clear");
+		wdIntrCounter = WD_INT_COMPLETE_COUNT;
+		return;
+	}
+
+
+	// buserror or outstanding completion interrupts first
+    for (i = 0; i < WD_MAX; i++) {
+        if (wdr[i].installed)
+			for (u = 0; u < WD_MAX_UNITS; u++) {
+				if (wdr[i].busErrorIntPending) {
+					wdr[i].busErrorIntPending = 0;
+					wd_update_irq (&wdr[i],1);	// set interrupt line
+					msgout (MSGC_INFO,MYSELF,MSG_INTR,"interrupt line set for bus error interrupt");
+					wdIntrCounter = WD_INT_COMPLETE_COUNT;
+					return;
+				}
+				if (wdr[i].units[u].intPendingComplete) {
+					wd_update_irq (&wdr[i],1);	// set interrupt line
+					msgout (MSGC_INFO,MYSELF,MSG_INTR,"interrupt line set for completion interrupt");
+					wdIntrCounter = WD_INT_COMPLETE_COUNT;
+					return;
+				}
+			}
+    }
+
+	// now seek complete interrupts
+    for (i = 0; i < WD_MAX; i++) {
+        if (wdr[i].installed)
+			for (u = 0; u < WD_MAX_UNITS; u++) {
+				if (wdr[i].units[u].intPendingSeek) {
+					wd_update_irq (&wdr[i],1);	// set interrupt line
+					msgout (MSGC_INFO,MYSELF,MSG_INTR,"interrupt line set for seek interrupt");
+					wdIntrCounter = WD_INT_COMPLETE_COUNT;
+					return;
+				}
+			}
+    }
+    //msgout (MSGC_INFO,MYSELF,MSG_INTR,"processPendingInterrupts, nothing to do");
+}
+
+
+
+/* set flags for outstanding interrupts, try to raise an int
+   If there is already an active int, do that later via wd_processContinue */
+
+static void wd_set_raise_flags (wd_regs_t * wd, int unit) {
+
+	wd_unitRegs_t * wdu = &wd->units[unit];
+	if (wd->ctlReg2 & WD_CTL_INTEN) {
+		wdu->intPendingComplete = 1;
+		if (!wdIntrCounter) wdIntrCounter = WD_INT_COMPLETE_COUNT;
+	}
+
+	int seekInterruptEnabled = 0;
+	if (wdu->lastScsiCmd == SCSI_SEEK) {
+
+		if (unit == 0) {
+			if (wd->ctlReg2 & WD_CTL_INTEND0) seekInterruptEnabled++;
+		} else {
+			if (wd->ctlReg2 & WD_CTL_INTEND1) seekInterruptEnabled++;
+		}
+		if (seekInterruptEnabled) {
+			wdu->intPendingSeek = 1;
+			if (!wdIntrCounter) wdIntrCounter = WD_INT_SEEK_COUNT;
+		}
+	}
+#if 0
+    msgout (MSGC_INFO,MYSELF,MSG_INTR,"wd_set_raise_flags, unit %d, pending: %d, seek: %d, ctlReg2: %02x, wd->ctlReg2 & WD_CTL_INTEND0: %02x, lastScsiCmd: %02x, seekInterruptEnabled: %d",
+			unit,wdu->intPendingComplete,wdu->intPendingSeek,wd->ctlReg2,wd->ctlReg2 & WD_CTL_INTEND0,wdu->lastScsiCmd,seekInterruptEnabled);
+#endif
+}
+
 
 
 
@@ -421,7 +534,7 @@ void processScsiNextPhase (wd_regs_t * wd) {
     int cmd, dmaOn, len;
     UINT32 lba = 0, numBlocks = 0, done, chunk;
     wd_unitRegs_t *wdu;
-    int modesenseImageBlocks;
+    //int modesenseImageBlocks;
 
     wdu = &wd->units[unit];
 
@@ -449,7 +562,8 @@ void processScsiNextPhase (wd_regs_t * wd) {
             wd->replyBytesLeft = 1;
             wd->statusReg = 0xcc;
             wd->state = SCSI_S_STATUS;
-            wd_raise_complete(wd);
+            //wd_raise_complete(wd);
+			wd_set_raise_flags (wd, unit);
         }
         return;
     } else
@@ -460,7 +574,8 @@ void processScsiNextPhase (wd_regs_t * wd) {
         wd->replyBytesLeft = 1;
         wd->statusReg = 0xcc;
         wd->state = SCSI_S_STATUS;
-        wd_raise_complete(wd);
+        //wd_raise_complete(wd);
+        wd_set_raise_flags (wd, unit);
         return;
     } else
     if (wd->state == SCSI_S_STATUS) {
@@ -497,7 +612,7 @@ void processScsiNextPhase (wd_regs_t * wd) {
     if (class == 1) {
         numBlocks = ((wd->scsiBuf[7] << 8) & 0xff00) | wd->scsiBuf[8];
     } else {
-        msgout (MSGC_ERR|MSGC_BREAK,MYSELF,MSG_NONE,"Invalid class %02x in scsi command, command byte: %02x",class,wd->scsiBuf[0]);
+        msgout (MSGC_ERR,MYSELF,MSG_NONE,"Invalid class %02x in scsi command, command byte: %02x",class,wd->scsiBuf[0]);
         wd->replyBytesLeft = 1; wd->replyBuffer[0] = 0x02;
         wd->state = SCSI_S_READRESULTS;
         processScsiNextPhase (wd);
@@ -516,6 +631,7 @@ void processScsiNextPhase (wd_regs_t * wd) {
     class = (wd->scsiBuf[0] >> 5) & 0x07;
     cmd = wd->scsiBuf[0] & 0x3f;        /* AD: why was that 1f, SCSI_VERIFY is 2f */
     wd->statusByte = 0x00;              /* 0 good, 2 check condition */
+    wdu->lastScsiCmd = cmd;
 
     if (class > 1) {
         msgout (MSGC_ERR,MYSELF,MSG_NONE,"invalid class %d in scsi command byte %02x",class,wd->scsiBuf[0]);
@@ -655,8 +771,8 @@ void processScsiNextPhase (wd_regs_t * wd) {
 						/* FIXME:
 						   Test 23 -->  Mode sense
                            Modesense data from format doesnt match Superblock  */
-						modesenseImageBlocks = wdu->imgBlocks;
-						if (wdu->capacity > 0) modesenseImageBlocks = wdu->capacity; /* from superblock */
+						//modesenseImageBlocks = wdu->imgBlocks;
+						//if (wdu->capacity > 0) modesenseImageBlocks = wdu->capacity; /* from superblock */
 
                         /* twelve byte descriptor: 4 header, 8 extent */
                         len = wd->scsiBuf[4];
@@ -864,11 +980,6 @@ void processCommand(wd_regs_t * wd) {
                                     break;
         case CMD_SCSIRESET :        wd->statusReg &= ~(WD_STAT_SRESET);
                                     break;
-/*
-        case CMD_TRANSFER_PARAM_START:
-                                    wd->statusReg &= ~(WD_STAT_SCMD);
-                                    wd->currCommand = CMD_RESET_OUTREGFULL;
-                                    break; */
 
         case CMD_RESET_OUTREGFULL : wd->statusReg |= WD_STAT_OUTEMPTY;
         /* CMD_RESET_OUTREGFULL was is called before CMD_PROCESS_SCSICMD therefore we have invalid status
@@ -891,7 +1002,7 @@ void processCommand(wd_regs_t * wd) {
                                             (wd->state == SCSI_S_COMPLETE))
                                                 processScsiNextPhase(wd);
                                         else
-                                            msgout (MSGC_ERR|MSGC_BREAK,MYSELF,MSG_NONE,"Invalid state %d",wd->state);
+                                            msgout (MSGC_ERR,MYSELF,MSG_NONE,"Invalid state %d",wd->state);
                                     }
                                     break;
 
@@ -905,6 +1016,7 @@ void wd_processContinue(void) {  /* called each n instructions */
   if (wdr[1].stateCounter) { wdr[1].stateCounter--; if (wdr[1].stateCounter==0) processScsiNextPhase(&wdr[1]); }
   if (wdr[0].cmdCounter) { wdr[0].cmdCounter--; if (wdr[0].cmdCounter==0) processCommand(&wdr[0]); }
   if (wdr[1].cmdCounter) { wdr[1].cmdCounter--; if (wdr[1].cmdCounter==0) processCommand(&wdr[1]); }
+  if (wdIntrCounter) { wdIntrCounter--; if (wdIntrCounter == 0) processPendingInterrupts(); }
 }
 
 
@@ -1070,6 +1182,10 @@ unsigned int wd_read_byte(unsigned int address, int flags) {
                                       msgout (MSGC_INFO,MYSELF,MSG_READB,"%08x returning error vector %02x",address,value);
                                       return value;
             case WD_REG_CTL2        : value = wd->ctlReg2;
+                                      value &= ~(WD_CTL_INTD0 | WD_CTL_INTD1);	// clear seek int pending
+                                      // and set them if we have not raised the seek complete int
+                                      if (wd->units[0].intPendingSeek) value |= WD_CTL_INTD0;
+                                      if (wd->units[1].intPendingSeek) value |= WD_CTL_INTD1;
                                       decodeCtlReg(value,tx);
                                       msgout (MSGC_INFO,MYSELF,MSG_READB,"%08x returning control reg2 %02x %s",address,value,tx);
                                       return value;
@@ -1195,10 +1311,11 @@ void wd_write_byte(unsigned int address, unsigned int value, int flags) {
                                       msgout (MSGC_INFO,MYSELF,MSG_WRITEB,"%02x to %08x (int vector)",value,address);
                                       return;
             case WD_REG_INTVEC2     : /* can this one be written and what it is used for ? */
-                                      msgout (MSGC_INFO|MSGC_BREAK,MYSELF,MSG_WRITEB,"%02x to %08x (int vector error)",value,address);
+                                      msgout (MSGC_ERR,MYSELF,MSG_WRITEB,"%02x to %08x (int vector error)",value,address);
                                       return;
             /* seems to be that this is the register described under WD_REG_CTL cc0007 */
-            case WD_REG_CTL2        : decodeCtlReg(value,tx);
+            case WD_REG_CTL2        : value &= ~(WD_CTL_INTD0 | WD_CTL_INTD1);	// clear seek int pending, they are read only and we are setting them on read register
+            	                      decodeCtlReg(value,tx);
                                       msgout (MSGC_INFO,MYSELF,MSG_WRITEB,"%02x %s to %08x ((R/W Ctrl Reg)",value,tx,address);
                                       if (value & WD_CTL_SRST) {
                                         //wd->statusReg |= WD_STAT_SRESET;  /* (0x10 on real machine) scsi bus reset in progress */
@@ -1210,6 +1327,7 @@ void wd_write_byte(unsigned int address, unsigned int value, int flags) {
                                         wd->scsiIdx = 0;
                                         wd->dataIdx = 0;
                                         wd->selected = 0;           // 0001 (0001 fails test 6)
+                                        wd_clear_outstanding_ints(wd);
                                         //msgout (MSGC_INFO,MYSELF,MSG_WRITEB,"%02x to %08x (R/W Ctrl Reg) statusReg: %02x",value,address,wd->statusReg);
                                       } //else
                                       //if (wd->ctlReg2 & WD_CTL_SRST)  // reset no longer active
@@ -1218,9 +1336,9 @@ void wd_write_byte(unsigned int address, unsigned int value, int flags) {
                                       /* if ints are enabled and the bus error flag is set, generate an interrupt (test 9) */
                                       if ( (value & WD_CTL_INTEN) && (!(wd->ctlReg2 & WD_CTL_INTEN)) && (wd->statusReg & WD_STAT_BUSERR) ) {
                                           msgout (MSGC_INFO,MYSELF,MSG_NONE,"Ints enabled while buserr active, raising interrupt");
-                                          //wd->intErrCount++;
-                                          wd->intPending = 1;
-                                          wd_update_irq(wd);
+                                          //wd->intPending = 1;
+                                          //wd_update_irq(1);
+                                          wd_buserr_int (wd);
                                       }
                                       wd->ctlReg2 = value & 0x3f;  // bit 6+7 are readonly
                                       return;
@@ -1286,8 +1404,10 @@ void wd_write_word(unsigned int address, unsigned int value, int flags) {
 
 
 void wd_pulse_reset(void) {
-    /* a reset must not throw away an attached disk */
+
+    /* a reset must not throw away an attached disks */
     for (int i=0;i<WD_MAX;i++) {
+		wd_clear_outstanding_ints(&wdr[i]);
         memset(&wdr[i],0,sizeof(wdr[i])-sizeof(wdr[i].units));
         wdr[i].statusReg = 0xC2; /*(1 << WD_STAT_OUTEMPTY) | (1 << WD_STAT_OPCOMP);*/
     }
@@ -1298,16 +1418,43 @@ void wd_pulse_reset(void) {
 
 
 int  wd_irq_ack(int level) {
-    int i;
+    int i,u;
 
     if (level != WD_INTNO) return M68K_INT_ACK_SPURIOUS;
+
+    // outstanding completion interrupts first
     for (i = 0; i < WD_MAX; i++) {
-        if ((wdr[i].installed) && (wdr[i].intPending)) {
-            wdr[i].intPending = 0;
-            wd_update_irq(&wdr[i]);
-            return wdr[i].intVector;
+        if (wdr[i].installed) {
+			if (wdr[i].busErrorIntPending) {
+				wdr[i].busErrorIntPending = 0;
+				wd_update_irq (&wdr[i],0);          // clear interrupt line
+				msgout (MSGC_INFO,MYSELF,MSG_INTR,"clear interrupt line (bus error), returning vector %02x",wdr[i].intVector);
+				return wdr[i].intVector;
+			}
+			for (u = 0; u < WD_MAX_UNITS; u++) {
+				if (wdr[i].units[u].intPendingComplete) {
+					wdr[i].units[u].intPendingComplete = 0;
+					wd_update_irq (&wdr[i],0);	// clear interrupt line
+					msgout (MSGC_INFO,MYSELF,MSG_INTR,"complete interrupt, clear interrupt line, returning vector %02x",wdr[i].intVector);
+					return wdr[i].intVector;
+				}
+			}
         }
     }
+
+	// now seek complete interrupts
+    for (i = 0; i < WD_MAX; i++) {
+        if (wdr[i].installed)
+			for (u = 0; u < WD_MAX_UNITS; u++) {
+				if (wdr[i].units[u].intPendingSeek) {
+					wdr[i].units[u].intPendingSeek = 0;
+					wd_update_irq (&wdr[i],0);	// clear interrupt line
+					msgout (MSGC_INFO,MYSELF,MSG_INTR,"seek complete interrupt, clear interrupt line, returning vector %02x",wdr[i].intVector);
+					return wdr[i].intVector;
+				}
+			}
+    }
+
     return M68K_INT_ACK_SPURIOUS;
 }
 

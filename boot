@@ -14,8 +14,10 @@ HOST=localhost
 
 XT1="xterm -fa $XT_FONT -fs $XT_FONTSIZE -bg $XT_BACKGROUND -fg $XT_FOREGROUND -geometry $XT_GEOMETRY -T "
 XT2=" -e "
+
 GT1="gnome-terminal --geometry $XT_GEOMETRY -t "
 GT2=" -- "
+
 TERMCMD="$XT1"
 TERMEXEC="$XT2"
 # socket numbers to start

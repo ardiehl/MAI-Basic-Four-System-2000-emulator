@@ -62,5 +62,9 @@ int is_directory(char * filename);
 /* -1 on error */
 int file_getSize(char * filename);
 
+#ifdef _WIN32
+char* stpcpy(char* dest, const char* src);
+#endif
+
 
 #endif

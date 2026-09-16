@@ -29,7 +29,12 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifdef _WIN32
+äinclude <windows.h>
+#include <conio.h>
+#else
 #include <termios.h>
+#endif
 #include <unistd.h>
 
 /*#include <stdlib.h>*/
@@ -38,54 +43,7 @@
 #include "util.h"
 
 
-/*
-int kbhit(void) {
-       struct termios term, oterm;
-       int fd = 0;
-       int c = 0;
-
-       tcgetattr(fd, &oterm);
-       memcpy(&term, &oterm, sizeof(term));
-       term.c_lflag = term.c_lflag & (!ICANON);
-       term.c_cc[VMIN] = 0;
-       term.c_cc[VTIME] = 0;
-       tcsetattr(fd, TCSANOW, &term);
-       c = getchar();
-       tcsetattr(fd, TCSANOW, &oterm);
-       if (c != -1)
-       ungetc(c, stdin);
-       return ((c != -1) ? 1 : 0);
-}*/
-#if 0
-int kbhit(void)
-{
-  struct termios oldt, newt;
-  int ch;
-  int oldf;
-  int fd = 0;
-
-  tcgetattr(fd, &oldt);
-  newt = oldt;
-  newt.c_lflag &= ~(ICANON | ECHO);
-  tcsetattr(fd, TCSANOW, &newt);
-  oldf = fcntl(fd, F_GETFL, 0);
-  fcntl(fd, F_SETFL, oldf | O_NONBLOCK);
-
-  ch = getchar();
-
-  tcsetattr(fd, TCSANOW, &oldt);
-  fcntl(fd, F_SETFL, oldf);
-
-  if(ch != EOF)
-  {
-    ungetc(ch, stdin);
-    return 1;
-  }
-
-  return 0;
-}
-
-#endif
+#ifndef _WIN32
 int getch_noecho(void)
 {
    static int ch = -1, fd = 0;
@@ -149,6 +107,74 @@ int getch(void)
 	if(c==10) c=13;
 	return c;
 }
+
+#else
+int getch_noecho(void)
+{
+    kb_raw();
+    char c = getch();
+    kb_normal();
+    return c;
+}
+
+nt kbhit(void)
+{
+    return _kbhit();
+}
+
+
+static int savedConsoleInputModeIsValid = 0;
+static DWORD savedConsoleInputMode = 0;
+
+
+void kb_raw(void)
+{
+    HANDLE hStdin;
+
+    hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    if (hStdin == INVALID_HANDLE_VALUE || hStdin == NULL) return;
+    if (!savedConsoleInputModeIsValid) {
+        if (!GetConsoleMode(hStdin, &savedConsoleInputMode)) return;
+        savedConsoleInputModeIsValid = 1;
+    }
+    DWORD newInputMode = savedConsoleInputMode;
+    newInputMode &= ~ENABLE_ECHO_INPUT;
+    newInputMode &= ~ENABLE_LINE_INPUT;
+    newInputMode &= ~ENABLE_PROCESSED_INPUT;
+    newInputMode |= ENABLE_VIRTUAL_TERMINAL_INPUT;
+    SetConsoleMode(hStdin, newInputMode);
+}
+
+void kb_normal(void)
+{
+    HANDLE hStdin;
+
+    hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    if (hStdin == INVALID_HANDLE_VALUE || hStdin == NULL) return;
+
+    if (!savedConsoleInputModeIsValid) return;
+    DWORD newInputMode = savedConsoleInputMode;
+    SetConsoleMode(hStdin, newInputMode);
+}
+
+int getch(void)
+{
+    HANDLE hStdin;
+    char c;
+    DWORD numRead;
+    hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    if (hStdin == INVALID_HANDLE_VALUE || hStdin == NULL)
+        return 0;
+    if (ReadConsole (hStdin,&c,1,&numRead,NULL) == 0) return 0;
+    if(c==10) c=13;
+    if (numRead) return c;
+    return 0;
+}
+
+#endif // _WIN32
+
+
+
 
 /* Input string from console, input terminated by
  * any char in exitChars */
@@ -245,3 +271,13 @@ int file_getSize(char * filename) {
 
     return status.st_size;
 }
+
+#ifdef _WIN32
+char* stpcpy(char* dest, const char* src) {
+    while ((*dest = *src) != '\0') {
+        dest++;
+        src++;
+    }
+    return dest;
+}
+#endif

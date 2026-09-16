@@ -102,7 +102,7 @@ int fd_getIndexPulse() {
        2 = ENBINTR+
        3 = ENBDRQ+
        4 = INTR+A
-       5 = DRQ+A (Data ReQuest) 
+       5 = DRQ+A (Data ReQuest)
            DRQ+A is asserted when the floppy disk controller chip is ready to transfer a byte of data to or from the buffer.
        6 = N/C
        7 = PRST-
@@ -128,7 +128,7 @@ unsigned int fd_read_byte(unsigned int address, int flags) {
     UINT8 flpstat_13L;
 
 	switch FD_AREA(address) {
-		case FD_FLPOPT:	MSG (MSGC_ERR+MSGC_BREAK,MYSELF,MSG_WRITEB,"read of write only addr %08x (Floppy option latch)",address);
+		case FD_FLPOPT:	MSG (MSGC_ERR,MYSELF,MSG_WRITEB,"read of write only addr %08x (Floppy option latch)",address);
 						return 0xff;
 		case FD_STAT:   flpstat_13L = fd_getFlpStat13L();
 						// TODO: Busy flag seems to be missing here
@@ -138,15 +138,15 @@ unsigned int fd_read_byte(unsigned int address, int flags) {
 		                decode_flpstat (s,flpstat_13L);
                         MSG (MSGC_INFO,MYSELF,MSG_READB," %08x (Floppy status) %02x %s",address,flpstat_13L,s);
 						return flpstat_13L;
-		case FD_CONT:	MSG (MSGC_ERR+MSGC_BREAK,MYSELF,MSG_WRITEB,"read of write only addr %08x (Floppy control latch)",address);
+		case FD_CONT:	MSG (MSGC_ERR,MYSELF,MSG_WRITEB,"read of write only addr %08x (Floppy control latch)",address);
 						return 0xff;
 		case FD_WD1793: regNum = (address >> 1) & 0x03;
 		                if (regNum == WD1793_STAT) regNum = WD1793_R_STAT;  // 0=stat(r) and cmd(w)
-		                MSG (MSGC_NOTIMP+MSGC_BREAK,MYSELF,MSG_READB,"%08x (wd1793) regNum %d (%s), returning 0x%02x",address,regNum,wd179x_regNames[regNum],fd.regs[regNum]);
+		                MSG (MSGC_NOTIMP,MYSELF,MSG_READB,"%08x (wd1793) regNum %d (%s), returning 0x%02x",address,regNum,wd179x_regNames[regNum],fd.regs[regNum]);
 						return fd.regs[regNum];
 		case FD_BUFF:	bufPos = address & FD_BUFFER_MASK;
 						return fd.flpBuf[bufPos];
-		default:		MSG (MSGC_ERR+MSGC_BREAK,MYSELF,MSG_READB,"%08x",address);
+		default:		MSG (MSGC_ERR,MYSELF,MSG_READB,"%08x",address);
 	}
 	return 0xff;
 }
@@ -209,7 +209,7 @@ void fd_write_cmd (UINT8 value) {
 		  case 0xA0 : { strcpy(cmdName,"Write Sector"); break; }
 	  }
   }
-  MSG (MSGC_FUNC,MYSELF,MSG_NONE+MSGC_BREAK,"cmd: 0x%02x (%s %s)\n",value,cmdName,params);
+  MSG (MSGC_FUNC,MYSELF,MSG_NONE,"cmd: 0x%02x (%s %s)\n",value,cmdName,params);
 }
 
 
@@ -238,7 +238,7 @@ void fd_exec_command(UINT8 cmd) {
 				fd_genInterrupt (WD1793_IMMEDIATE);
 			break;
 
-    default: MSG (MSGC_NOTIMP+MSGC_BREAK,MYSELF,MSG_NONE,"cmd %02x (wd1793)",cmd);
+    default: MSG (MSGC_NOTIMP,MYSELF,MSG_NONE,"cmd %02x (wd1793)",cmd);
     }
 
 }
@@ -276,13 +276,13 @@ void fd_write_byte(unsigned int address, unsigned int value, int flags) {
 		                if (regNum == WD1793_CMD) {
 							fd_exec_command(value);
 						} else {
-			                MSG (MSGC_NOTIMP+MSGC_BREAK,MYSELF,MSG_WRITEB,"%02x to %08x (wd1793) regNum %d",value,address,regNum);
+			                MSG (MSGC_NOTIMP,MYSELF,MSG_WRITEB,"%02x to %08x (wd1793) regNum %d",value,address,regNum);
 						}
 						return;
 		case FD_BUFF:	bufPos = address & FD_BUFFER_MASK;
 						fd.flpBuf[bufPos] = value;
 						return;
-		default:		MSG (MSGC_ERR+MSGC_BREAK,MYSELF,MSG_WRITEB,"%02x to %08x",value,address);
+		default:		MSG (MSGC_ERR,MYSELF,MSG_WRITEB,"%02x to %08x",value,address);
 	}
 }
 
@@ -319,25 +319,25 @@ void fd_genInterrupt(int kind) {
 	switch (kind) {
         case WD1793_CMD_START:
             if (fd.intFlags & WD1793_INT_NOTREADY) {
-                MSG (MSGC_INFO+MSGC_BREAK,MYSELF,MSG_NONE,"generating fd intr READY->NOT READY");
+                MSG (MSGC_INFO,MYSELF,MSG_NONE,"generating fd intr READY->NOT READY");
                 m68k_pulse_interrupt (FD_INTNO);
             }
         case WD1793_CMD_COMPLETE:
             if (fd.intFlags & WD1793_INT_READY) {
-                MSG (MSGC_INFO+MSGC_BREAK,MYSELF,MSG_NONE,"generating fd intr NOT READY->READY");
+                MSG (MSGC_INFO,MYSELF,MSG_NONE,"generating fd intr NOT READY->READY");
                 m68k_pulse_interrupt (FD_INTNO);
             }
             break;
         case WD1793_INDEX:
             // TODO: needed at all ?
             if (fd.intFlags & WD1793_INT_INDEX) {
-                MSG (MSGC_INFO+MSGC_BREAK,MYSELF,MSG_NONE,"generating fd intr INDEX");
+                MSG (MSGC_INFO,MYSELF,MSG_NONE,"generating fd intr INDEX");
                 m68k_pulse_interrupt (FD_INTNO);
             }
             break;
         case WD1793_IMMEDIATE:
             if (fd.intFlags & WD1793_INT_IMMEDIATE) {
-                MSG (MSGC_INFO+MSGC_BREAK,MYSELF,MSG_NONE,"generating fd intr IMMEDIATE");
+                MSG (MSGC_INFO,MYSELF,MSG_NONE,"generating fd intr IMMEDIATE");
                 m68k_pulse_interrupt (FD_INTNO);
             }
             break;
@@ -401,7 +401,7 @@ void fd_processContinue(void) {  /* called after n instructions if a ws1793 comm
                 MSG (MSGC_FUNC,MYSELF,MSG_NONE,"finished seek");
                 break;
 
-        default: MSG (MSGC_NOTIMP+MSGC_BREAK,MYSELF,MSG_NONE,"cmd %02x (wd1793)",cmd);
+        default: MSG (MSGC_NOTIMP,MYSELF,MSG_NONE,"cmd %02x (wd1793)",cmd);
         }
     }
 }

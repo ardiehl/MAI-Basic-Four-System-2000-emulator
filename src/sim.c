@@ -1820,6 +1820,7 @@ void dbgCmd_exec (int numArgs, struct args_t *args) {
         return;
     }
 
+#ifndef _WIN32
     for (i=0;i<numArgs;i++) {
         //printf("%d: isValue:%d value:%d txt: \"%s\"\n",i,args[i].isValue,args[i].value,&args[i].txt[0]);
         a[i] = &args[i].txt[0];
@@ -1842,6 +1843,9 @@ void dbgCmd_exec (int numArgs, struct args_t *args) {
             usleep(EXEC_POLLDELAY);
         }
     }
+#else
+#warning dbgCmd_exex, windows version to be created (CreateProcessA)
+#endif
 
 
 }
@@ -2321,9 +2325,9 @@ void kbtest (void) {
 	kb_raw();
 	while (c != 'x') {
 		if (kbhit() != 0) {
-			printf(".");
+			printf("."); fflush(stdout);
 			c = getch();
-			fprintf(stderr,"%02x ",c);
+			printf("%02x ",c); fflush(stdout);
 		}
 	}
 	kb_normal();

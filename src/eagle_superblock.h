@@ -22,7 +22,17 @@
 #define EAGLE_SUPERBLOCK_H_INCLUDED
 
 #include <stdint.h>
-#include <endian.h>
+
+
+#define _bswap32(x) ( (((x) >> 24) & 0x000000FF) | (((x) >> 8)  & 0x0000FF00) | (((x) << 8)  & 0x00FF0000) | (((x) << 24) & 0xFF000000) )
+
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+ #define h_tobe32(x) _bswap32 (x)
+ #define be32_toh(x) _bswap32 (x)
+#else
+ #define h_tobe32(x) (x)
+ #define be_32toh(x) (x)
+#endif
 
 typedef struct {
 	uint32_t partStart;
