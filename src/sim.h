@@ -72,6 +72,9 @@ void msgoutn(unsigned int msgClass,
 
 /* if that fails, use #define MSG msgout */
 /* #define MSG(CLASS,SRC,ROUTINE,arg...) if (messageIsEnabled (CLASS,SRC)) (msgout(CLASS,SRC,ROUTINE,arg)) */
+#ifdef MSG
+  #undef MSG
+#endif
 #define MSG msgout
 
 unsigned int sys_read_byte(unsigned int address, int memFlags);

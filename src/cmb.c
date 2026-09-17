@@ -30,47 +30,47 @@ unsigned int cmb_writeRegs;
  */
 unsigned int cmb_read_byte(unsigned int address) {
   switch (address & CMB_ADDR_REG_MASK) {
-	  case CMBW_TSTOL		: { msgout (MSGC_ERR,MSG_CMB,MSG_READB,"attempt to read write only port TSTOL"); break; }
-	  case CMBR_MEMPAR_HI	: { msgout (MSGC_INFO,MSG_CMB,MSG_READB,"read CMB_MEMPAR_HI, no fault latched"); return 0; }
-	  case CMBR_MEMPAR_HI+1	: { msgout (MSGC_INFO,MSG_CMB,MSG_READB,"read CMB_MEMPAR_HI low byte, no fault latched"); return 0; }
-	  case CMBR_MEMPAR_LO	: { msgout (MSGC_INFO,MSG_CMB,MSG_READB,"read CMB_MEMPAR_LO, no fault latched"); return 0; }
-	  case CMBR_MEMPAR_LO+1	: { msgout (MSGC_INFO,MSG_CMB,MSG_READB,"read CMB_MEMPAR_LO low byte, no fault latched"); return 0; }
-	  case CMBW_PARDATA		: { msgout (MSGC_ERR,MSG_CMB,MSG_READB,"attempt to read write only port PARDATA"); break; }
-	  case CMBW_INHSER		: { msgout (MSGC_ERR,MSG_CMB,MSG_READB,"attempt to read write only port INHSER"); break; }
-	  case CMBR_STATUS		: { msgout (MSGC_INFO,MSG_CMB,MSG_READB,"read STATUS8: %02x",cmb_status_word); return cmb_status_word & 0xff; }
-	  case CMBR_STATUS+1	: { msgout (MSGC_INFO,MSG_CMB,MSG_READB,"read STATUS8 low byte: %02x",cmb_status_word & 0xff); return cmb_status_word & 0xff; }
-	  case CMBR_GENSTATUS	: { msgout (MSGC_INFO,MSG_CMB,MSG_READB,"read GENSTATUS, no fault latched"); return 0; }
-	  case CMBR_GENSTATUS+1	: { msgout (MSGC_INFO,MSG_CMB,MSG_READB,"read GENSTATUS low byte, no fault latched"); return 0; }
+	  case CMBW_TSTOL		: { MSG (MSGC_ERR,MSG_CMB,MSG_READB,"attempt to read write only port TSTOL"); break; }
+	  case CMBR_MEMPAR_HI	: { MSG (MSGC_INFO,MSG_CMB,MSG_READB,"read CMB_MEMPAR_HI, no fault latched"); return 0; }
+	  case CMBR_MEMPAR_HI+1	: { MSG (MSGC_INFO,MSG_CMB,MSG_READB,"read CMB_MEMPAR_HI low byte, no fault latched"); return 0; }
+	  case CMBR_MEMPAR_LO	: { MSG (MSGC_INFO,MSG_CMB,MSG_READB,"read CMB_MEMPAR_LO, no fault latched"); return 0; }
+	  case CMBR_MEMPAR_LO+1	: { MSG (MSGC_INFO,MSG_CMB,MSG_READB,"read CMB_MEMPAR_LO low byte, no fault latched"); return 0; }
+	  case CMBW_PARDATA		: { MSG (MSGC_ERR,MSG_CMB,MSG_READB,"attempt to read write only port PARDATA"); break; }
+	  case CMBW_INHSER		: { MSG (MSGC_ERR,MSG_CMB,MSG_READB,"attempt to read write only port INHSER"); break; }
+	  case CMBR_STATUS		: { MSG (MSGC_INFO,MSG_CMB,MSG_READB,"read STATUS8: %02x",cmb_status_word); return cmb_status_word & 0xff; }
+	  case CMBR_STATUS+1	: { MSG (MSGC_INFO,MSG_CMB,MSG_READB,"read STATUS8 low byte: %02x",cmb_status_word & 0xff); return cmb_status_word & 0xff; }
+	  case CMBR_GENSTATUS	: { MSG (MSGC_INFO,MSG_CMB,MSG_READB,"read GENSTATUS, no fault latched"); return 0; }
+	  case CMBR_GENSTATUS+1	: { MSG (MSGC_INFO,MSG_CMB,MSG_READB,"read GENSTATUS low byte, no fault latched"); return 0; }
   }
-  msgout (MSGC_ERR,MSG_CMB,MSG_READB,"unhandled read byte from address %08",address);
+  MSG (MSGC_ERR,MSG_CMB,MSG_READB,"unhandled read byte from address %08",address);
   return 0xff;
 }
 
 unsigned int cmb_read_word(unsigned int address) {
   switch (address & CMB_ADDR_REG_MASK) {
-	  case CMBW_TSTOL		: { msgout (MSGC_ERR,MSG_CMB,MSG_READW,"attempt to read write only port TSTOL"); break; }
-	  case CMBR_MEMPAR_HI	: { msgout (MSGC_INFO,MSG_CMB,MSG_READW,"read CMB_MEMPAR_HI, no fault latched"); return 0; }
-	  case CMBR_MEMPAR_LO	: { msgout (MSGC_INFO,MSG_CMB,MSG_READW,"read CMB_MEMPAR_LO, no fault latched"); return 0; }
-	  case CMBW_PARDATA		: { msgout (MSGC_ERR,MSG_CMB,MSG_READW,"attempt to read write only port PARDATA"); break; }
-	  case CMBW_INHSER		: { msgout (MSGC_ERR,MSG_CMB,MSG_READW,"attempt to read write only port INHSER"); break; }
-	  case CMBR_STATUS		: { msgout (MSGC_INFO,MSG_CMB,MSG_READW,"read STATUS16: %04x",cmb_status_word); return cmb_status_word; }
-	  case CMBR_GENSTATUS	: { msgout (MSGC_INFO,MSG_CMB,MSG_READW,"read GENSTATUS, no fault latched"); return 0; }
+	  case CMBW_TSTOL		: { MSG (MSGC_ERR,MSG_CMB,MSG_READW,"attempt to read write only port TSTOL"); break; }
+	  case CMBR_MEMPAR_HI	: { MSG (MSGC_INFO,MSG_CMB,MSG_READW,"read CMB_MEMPAR_HI, no fault latched"); return 0; }
+	  case CMBR_MEMPAR_LO	: { MSG (MSGC_INFO,MSG_CMB,MSG_READW,"read CMB_MEMPAR_LO, no fault latched"); return 0; }
+	  case CMBW_PARDATA		: { MSG (MSGC_ERR,MSG_CMB,MSG_READW,"attempt to read write only port PARDATA"); break; }
+	  case CMBW_INHSER		: { MSG (MSGC_ERR,MSG_CMB,MSG_READW,"attempt to read write only port INHSER"); break; }
+	  case CMBR_STATUS		: { MSG (MSGC_INFO,MSG_CMB,MSG_READW,"read STATUS16: %04x",cmb_status_word); return cmb_status_word; }
+	  case CMBR_GENSTATUS	: { MSG (MSGC_INFO,MSG_CMB,MSG_READW,"read GENSTATUS, no fault latched"); return 0; }
   }
-  msgout (MSGC_ERR,MSG_CMB,MSG_READW,"unhandled read word from address %08",address);
+  MSG (MSGC_ERR,MSG_CMB,MSG_READW,"unhandled read word from address %08",address);
   return 0xffff;
 }
 
 unsigned int cmb_read_long(unsigned int address) {
   switch (address & CMB_ADDR_REG_MASK) {
-	  case CMBW_TSTOL		: { msgout (MSGC_ERR,MSG_CMB,MSG_READL,"attempt to read write only port TSTOL"); break; }
-	  case CMBR_MEMPAR_HI	: { msgout (MSGC_INFO,MSG_CMB,MSG_READL,"read CMB_MEMPAR_HI"); break; }
-	  case CMBR_MEMPAR_LO	: { msgout (MSGC_INFO,MSG_CMB,MSG_READL,"read CMB_MEMPAR_LO"); break; }
-	  case CMBW_PARDATA		: { msgout (MSGC_ERR,MSG_CMB,MSG_READL,"attempt to read write only port PARDATA"); break; }
-	  case CMBW_INHSER		: { msgout (MSGC_ERR,MSG_CMB,MSG_READL,"attempt to read write only port INHSER"); break; }
-	  case CMBR_STATUS		: { msgout (MSGC_INFO,MSG_CMB,MSG_READL,"read STATUS16: %04x",cmb_status_word); return cmb_status_word; }
-	  case CMBR_GENSTATUS	: { msgout (MSGC_INFO,MSG_CMB,MSG_READL,"read GENSTATUS"); break; }
+	  case CMBW_TSTOL		: { MSG (MSGC_ERR,MSG_CMB,MSG_READL,"attempt to read write only port TSTOL"); break; }
+	  case CMBR_MEMPAR_HI	: { MSG (MSGC_INFO,MSG_CMB,MSG_READL,"read CMB_MEMPAR_HI"); break; }
+	  case CMBR_MEMPAR_LO	: { MSG (MSGC_INFO,MSG_CMB,MSG_READL,"read CMB_MEMPAR_LO"); break; }
+	  case CMBW_PARDATA		: { MSG (MSGC_ERR,MSG_CMB,MSG_READL,"attempt to read write only port PARDATA"); break; }
+	  case CMBW_INHSER		: { MSG (MSGC_ERR,MSG_CMB,MSG_READL,"attempt to read write only port INHSER"); break; }
+	  case CMBR_STATUS		: { MSG (MSGC_INFO,MSG_CMB,MSG_READL,"read STATUS16: %04x",cmb_status_word); return cmb_status_word; }
+	  case CMBR_GENSTATUS	: { MSG (MSGC_INFO,MSG_CMB,MSG_READL,"read GENSTATUS"); break; }
   }
-  msgout (MSGC_ERR,MSG_CMB,MSG_READL,"unhandled read long from address %08",address);
+  MSG (MSGC_ERR,MSG_CMB,MSG_READL,"unhandled read long from address %08",address);
   return 0xffffffff;
 }
 
@@ -83,34 +83,34 @@ void cmb_setWriteRegs (int bit, int value) {
 
 void cmb_write_byte(unsigned int address, unsigned int value) {
 	switch (address & CMB_ADDR_REG_MASK) {
-		case (CMBW_LED)		: { cmb_setWriteRegs (CMBWSTAT_LED,value); msgout (MSGC_INFO,MSG_CMB,MSG_WRITEB,"LED: %d",value & 1); return; }
-		case (CMBW_INHSER)	: { cmb_setWriteRegs (CMBWSTAT_INHSER,value); msgout (MSGC_INFO,MSG_CMB,MSG_WRITEB,"SerialDrivers: %d",value & 1); return; }
-		case (CMBW_INHPAR)	: { cmb_setWriteRegs (CMBWSTAT_INHPAR,value); msgout (MSGC_INFO,MSG_CMB,MSG_WRITEB,"ParallelDrivers: %d",value & 1); return; }
-		case (CMBW_TSTOL)	: { cmb_setWriteRegs (CMBWSTAT_TSTOL,value); msgout (MSGC_INFO,MSG_CMB,MSG_WRITEB,"TestPoint TSTOL: %d",value & 1); return; }
-		case (CMBW_TSTERL)	: { cmb_setWriteRegs (CMBWSTAT_TSTERL,value); msgout (MSGC_INFO,MSG_CMB,MSG_WRITEB,"TestPoint TSERL: %d",value & 1); return; }
-		case (CMBW_PARDATA)	: { cmb_setWriteRegs (CMBWSTAT_PARDATA,value); msgout (MSGC_INFO,MSG_CMB,MSG_WRITEB,"Parity data forced: %d",value & 1); return; }
-		case (CMBW_INHPARITY):{ cmb_setWriteRegs (CMBWSTAT_INHPARITY,value); msgout (MSGC_INFO,MSG_CMB,MSG_WRITEB,"Inhibit parity response: %d",value & 1); return; }
+		case (CMBW_LED)		: { cmb_setWriteRegs (CMBWSTAT_LED,value); MSG (MSGC_INFO,MSG_CMB,MSG_WRITEB,"LED: %d",value & 1); return; }
+		case (CMBW_INHSER)	: { cmb_setWriteRegs (CMBWSTAT_INHSER,value); MSG (MSGC_INFO,MSG_CMB,MSG_WRITEB,"SerialDrivers: %d",value & 1); return; }
+		case (CMBW_INHPAR)	: { cmb_setWriteRegs (CMBWSTAT_INHPAR,value); MSG (MSGC_INFO,MSG_CMB,MSG_WRITEB,"ParallelDrivers: %d",value & 1); return; }
+		case (CMBW_TSTOL)	: { cmb_setWriteRegs (CMBWSTAT_TSTOL,value); MSG (MSGC_INFO,MSG_CMB,MSG_WRITEB,"TestPoint TSTOL: %d",value & 1); return; }
+		case (CMBW_TSTERL)	: { cmb_setWriteRegs (CMBWSTAT_TSTERL,value); MSG (MSGC_INFO,MSG_CMB,MSG_WRITEB,"TestPoint TSERL: %d",value & 1); return; }
+		case (CMBW_PARDATA)	: { cmb_setWriteRegs (CMBWSTAT_PARDATA,value); MSG (MSGC_INFO,MSG_CMB,MSG_WRITEB,"Parity data forced: %d",value & 1); return; }
+		case (CMBW_INHPARITY):{ cmb_setWriteRegs (CMBWSTAT_INHPARITY,value); MSG (MSGC_INFO,MSG_CMB,MSG_WRITEB,"Inhibit parity response: %d",value & 1); return; }
 	}
-	msgout (MSGC_ERR,MSG_CMB,MSG_WRITEB,"unhandled write byte of %02x to address %08x",value,address);
+	MSG (MSGC_ERR,MSG_CMB,MSG_WRITEB,"unhandled write byte of %02x to address %08x",value,address);
 }
 
 
 void cmb_write_word(unsigned int address, unsigned int value) {
 	switch (address & CMB_ADDR_REG_MASK) {
-		case (CMBW_LED)		: { cmb_setWriteRegs (CMBWSTAT_LED,value); msgout (MSGC_INFO,MSG_CMB,MSG_WRITEW,"LED: %d",value & 1); return; }
-		case (CMBW_INHSER)	: { cmb_setWriteRegs (CMBWSTAT_INHSER,value); msgout (MSGC_INFO,MSG_CMB,MSG_WRITEW,"SerialDrivers: %d",value & 1); return; }
-		case (CMBW_INHPAR)	: { cmb_setWriteRegs (CMBWSTAT_INHPAR,value); msgout (MSGC_INFO,MSG_CMB,MSG_WRITEW,"ParallelDrivers: %d",value & 1); return; }
-		case (CMBW_TSTOL)	: { cmb_setWriteRegs (CMBWSTAT_TSTOL,value); msgout (MSGC_INFO,MSG_CMB,MSG_WRITEW,"TestPoint TSTOL: %d",value & 1); return; }
-		case (CMBW_TSTERL)	: { cmb_setWriteRegs (CMBWSTAT_TSTERL,value); msgout (MSGC_INFO,MSG_CMB,MSG_WRITEW,"TestPoint TSERL: %d",value & 1); return; }
-		case (CMBW_PARDATA)	: { cmb_setWriteRegs (CMBWSTAT_PARDATA,value); msgout (MSGC_INFO,MSG_CMB,MSG_WRITEW,"Parity data forced: %d",value & 1); return; }
-		case (CMBW_INHPARITY):{ cmb_setWriteRegs (CMBWSTAT_INHPARITY,value); msgout (MSGC_INFO,MSG_CMB,MSG_WRITEW,"Inhibit parity response: %d",value & 1); return; }
+		case (CMBW_LED)		: { cmb_setWriteRegs (CMBWSTAT_LED,value); MSG (MSGC_INFO,MSG_CMB,MSG_WRITEW,"LED: %d",value & 1); return; }
+		case (CMBW_INHSER)	: { cmb_setWriteRegs (CMBWSTAT_INHSER,value); MSG (MSGC_INFO,MSG_CMB,MSG_WRITEW,"SerialDrivers: %d",value & 1); return; }
+		case (CMBW_INHPAR)	: { cmb_setWriteRegs (CMBWSTAT_INHPAR,value); MSG (MSGC_INFO,MSG_CMB,MSG_WRITEW,"ParallelDrivers: %d",value & 1); return; }
+		case (CMBW_TSTOL)	: { cmb_setWriteRegs (CMBWSTAT_TSTOL,value); MSG (MSGC_INFO,MSG_CMB,MSG_WRITEW,"TestPoint TSTOL: %d",value & 1); return; }
+		case (CMBW_TSTERL)	: { cmb_setWriteRegs (CMBWSTAT_TSTERL,value); MSG (MSGC_INFO,MSG_CMB,MSG_WRITEW,"TestPoint TSERL: %d",value & 1); return; }
+		case (CMBW_PARDATA)	: { cmb_setWriteRegs (CMBWSTAT_PARDATA,value); MSG (MSGC_INFO,MSG_CMB,MSG_WRITEW,"Parity data forced: %d",value & 1); return; }
+		case (CMBW_INHPARITY):{ cmb_setWriteRegs (CMBWSTAT_INHPARITY,value); MSG (MSGC_INFO,MSG_CMB,MSG_WRITEW,"Inhibit parity response: %d",value & 1); return; }
 	}
-	msgout (MSGC_ERR,MSG_CMB,MSG_WRITEW,"unhandled write word of %04x to address %08x",value,address);
+	MSG (MSGC_ERR,MSG_CMB,MSG_WRITEW,"unhandled write word of %04x to address %08x",value,address);
 }
 
 
 void cmb_write_long(unsigned int address, unsigned int value) {
-	msgout (MSGC_ERR,MSG_CMB,MSG_WRITEL,"unhandled write long of %08x to address %08x",value,address);
+	MSG (MSGC_ERR,MSG_CMB,MSG_WRITEL,"unhandled write long of %08x to address %08x",value,address);
 }
 
 void cmb_pulse_reset(void) {
@@ -148,7 +148,7 @@ void cmb_help (int numArgs, struct args_t *args) {
 }
 
 int cmb_dbgCmd(int numArgs, struct args_t * args) {
-	return findAndExecCommand (args[0].txt,cmbCmds,numArgs-1,&args[1]); 
+	return findAndExecCommand (args[0].txt,cmbCmds,numArgs-1,&args[1]);
 }
 
 unsigned int cmb_getStatusWord (void) {

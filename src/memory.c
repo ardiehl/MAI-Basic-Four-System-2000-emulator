@@ -37,7 +37,7 @@ unsigned int mem_read_byte(unsigned int address, int flags) {
   if (romMappedAfterReset) {
     return READ_BYTE(rom,address & (MEM_ROMSIZE-1));
   } else {
-    if (ADDR_IS_RAM (address)) 
+    if (ADDR_IS_RAM (address))
 		  return READ_BYTE(ram,address);
 	if (ADDR_IS_ROM (address)) return READ_BYTE(rom,address & (MEM_ROMSIZE-1));
 /*
@@ -45,7 +45,7 @@ unsigned int mem_read_byte(unsigned int address, int flags) {
 		BUSERROR(flags,address,MSG_READB);
 		return 0xff;
 	}
-	msgout (MSGC_ERR,MSG_MEM,MSG_READB,"unknown memory area %08",address);
+	MSG (MSGC_ERR,MSG_MEM,MSG_READB,"unknown memory area %08",address);
 */
     BUSERROR(flags,address,MSG_READB);
 	return 0xff;
@@ -64,7 +64,7 @@ if (romMappedAfterReset) {
 		BUSERROR(flags,address,MSG_READW);
 		return 0xffff;
 	}
-	msgout (MSGC_ERR,MSG_MEM,MSG_READW,"unknown memory area %08",address);
+	MSG (MSGC_ERR,MSG_MEM,MSG_READW,"unknown memory area %08",address);
 */
     BUSERROR(flags,address,MSG_READW);
 	return 0xffff;
@@ -74,38 +74,38 @@ if (romMappedAfterReset) {
 
 void mem_write_byte(unsigned int address, unsigned int value, int flags) {
   if (romMappedAfterReset) {
-    msgout (MSGC_INFO,MSG_MEM,MSG_WRITEB,"mapping rom to %08x",MEM_ADDR_ROM);
+    MSG(MSGC_INFO,MSG_MEM,MSG_WRITEB,"mapping rom to %08x",MEM_ADDR_ROM);
 	romMappedAfterReset = 0;
   }
   if (ADDR_IS_RAM (address)) { WRITE_BYTE(ram,address,value); return; }
 /*
-  if (ADDR_IS_ROM (address)) { msgout (MSGC_ERR,MSG_MEM,MSG_WRITEB,"attempt to write %02x to rom @ %08x",value,address); return; }
-  if (ADDR_IS_RAMSPACE (address)) { 
-	  msgout (MSGC_ERR,MSG_MEM,MSG_WRITEB,"attempt to write %02x to non existent ram @ %08x",value,address);
+  if (ADDR_IS_ROM (address)) { MSG(MSGC_ERR,MSG_MEM,MSG_WRITEB,"attempt to write %02x to rom @ %08x",value,address); return; }
+  if (ADDR_IS_RAMSPACE (address)) {
+	  MSG (MSGC_ERR,MSG_MEM,MSG_WRITEB,"attempt to write %02x to non existent ram @ %08x",value,address);
 	  BUSERROR(flags,address,MSG_WRITEB);
-	  return; 
+	  return;
   }
-  msgout (MSGC_ERR,MSG_MEM,MSG_WRITEB,"%02x to unknown memory %08x",value,address);
+  MSG (MSGC_ERR,MSG_MEM,MSG_WRITEB,"%02x to unknown memory %08x",value,address);
 */
-  BUSERROR(flags,address,MSG_WRITEB);  
+  BUSERROR(flags,address,MSG_WRITEB);
 }
 
 void mem_write_word(unsigned int address, unsigned int value, int flags) {
   if (romMappedAfterReset) {
-    msgout (MSGC_INFO,MSG_MEM,MSG_WRITEW,"mapping rom to %08x",MEM_ADDR_ROM);
+    MSG (MSGC_INFO,MSG_MEM,MSG_WRITEW,"mapping rom to %08x",MEM_ADDR_ROM);
 	romMappedAfterReset = 0;
   }
   if (ADDR_IS_RAM (address)) { WRITE_WORD(ram,address,value); return; }
 /*
-  if (ADDR_IS_ROM (address)) { msgout (MSGC_ERR,MSG_MEM,MSG_WRITEW,"attempt to write %04x to rom @ %08x",value,address); return; }
-  if (ADDR_IS_RAMSPACE (address)) { 
-	  msgout (MSGC_ERR,MSG_MEM,MSG_WRITEW,"attempt to write %04x to non existent ram @ %08x",value,address);
+  if (ADDR_IS_ROM (address)) { MSG (MSGC_ERR,MSG_MEM,MSG_WRITEW,"attempt to write %04x to rom @ %08x",value,address); return; }
+  if (ADDR_IS_RAMSPACE (address)) {
+	  MSG (MSGC_ERR,MSG_MEM,MSG_WRITEW,"attempt to write %04x to non existent ram @ %08x",value,address);
 	  BUSERROR(flags,address,MSG_WRITEW);
-	  return; 
+	  return;
   }
 */
   BUSERROR(flags,address,MSG_WRITEW);
-//  msgout (MSGC_ERR,MSG_MEM,MSG_WRITEW,"%04x to unknown memory %08x",value,address); 
+//  MSG (MSGC_ERR,MSG_MEM,MSG_WRITEW,"%04x to unknown memory %08x",value,address);
 }
 
 

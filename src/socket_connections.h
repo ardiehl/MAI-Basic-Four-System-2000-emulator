@@ -29,7 +29,7 @@ void sock_init(int startingPortNumber);
 void sock_deinit();
 
 // check for incoming connections or data on all open ports and set the status field for each connection
-void sock_poll();
+//void sock_poll();
 
 // read a byte, returns 1 if data was available
 int sock_getchar(int portNum, char * data);
@@ -42,6 +42,10 @@ void sock_putchar(int portNum, char data);
 void sock_putstr(int portNum, char * data);
 
 int sock_dbgCmd(int numArgs, struct args_t * args);
+
+// create the polling thread, -1 on error
+int sock_pollThreadStart ();
+void sock_pollThreadEnd ();
 
 void sock_initialize();
 void sock_deinitialize();

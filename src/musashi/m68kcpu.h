@@ -54,6 +54,9 @@
 #define EXCEPTION_RESET                    0
 #define EXCEPTION_BUS_ERROR                2 /* This one is not emulated! */
 #define EXCEPTION_ADDRESS_ERROR            3 /* This one is partially emulated (doesn't stack a proper frame yet) */
+#ifdef EXCEPTION_ILLEGAL_INSTRUCTION
+#undef EXCEPTION_ILLEGAL_INSTRUCTION
+#endif
 #define EXCEPTION_ILLEGAL_INSTRUCTION      4
 #define EXCEPTION_ZERO_DIVIDE              5
 #define EXCEPTION_CHK                      6
@@ -671,7 +674,7 @@ struct _m68ki_cpu_core
 	UINT16 ic_data[M68K_IC_SIZE];      /* instruction cache content data */
 
 	/* external instruction hook (does not depend on debug mode) */
-	
+
 	instruction_hook_t instruction_hook;
 
 };
@@ -1477,7 +1480,7 @@ INLINE void m68ki_stack_frame_buserr(m68ki_cpu_core *m68k, UINT32 sr)
 void m68ki_stack_frame_1000(m68ki_cpu_core *m68k, UINT32 pc, UINT32 sr, UINT32 vector)
 {
 	UINT16 special = 0;
-	
+
 	/* VERSION
      * NUMBER
      * INTERNAL INFORMATION, 16 WORDS
@@ -1512,25 +1515,25 @@ void m68ki_stack_frame_1000(m68ki_cpu_core *m68k, UINT32 pc, UINT32 sr, UINT32 v
 	/* FAULT ADDRESS */
 	m68ki_push_32(m68k, m68k->cpu_buserror_address);  /* ad: accessed address */
 
-	/* SPECIAL STATUS WORD 
+	/* SPECIAL STATUS WORD
 	   15 14 13 12   11 10  9  8    7  6  5  4  3   2   1   0
 	   RR  * IF DF   RM HB BY RW    *  *  *  *  * FC2 FC1 FC0
-	 
+
 		RR: Rerun flag; 0=processor rerun (default), 1=software rerun
 		IF: Instruction fetch to the instruction input buffer
 		DF: Data fetch to the data input buffer
 		RM: Read-modify-write cycle (AD: how to detect that ?)
-		HB: High-byte transfer from the data output buffer or to the data input 
+		HB: High-byte transfer from the data output buffer or to the data input
 			buffer
-		BY: Byte-transfer flag; HB selects the high or low byte of the transfer 
+		BY: Byte-transfer flag; HB selects the high or low byte of the transfer
 			register. If BY is clear, the transfer is word.
 		RW: Read/write flag; 0=write, 1=read
 		FC: The function code used during the faulted access
-		* : These bits are reserved for future use by Motorola and will be zero 
+		* : These bits are reserved for future use by Motorola and will be zero
 			when written by the MC68010.
 
 		move.l  #$CD0000,a0     ; wd1, not present
-        move.b  (a0),d0			; on real 68010, from supervidor mode: 0x1305 
+        move.b  (a0),d0			; on real 68010, from supervidor mode: 0x1305
 
 	 */
 	if (!(m68k->cpu_buserror_on_write)) special |= (1 << 8);		/* RW */
@@ -1540,11 +1543,11 @@ void m68ki_stack_frame_1000(m68ki_cpu_core *m68k, UINT32 pc, UINT32 sr, UINT32 v
 	}
 
 	/* DF: this may not be correct */
-	if (m68k->cpu_buserror_instrfetch)	/* bus error during instruction read ? */ 
+	if (m68k->cpu_buserror_instrfetch)	/* bus error during instruction read ? */
 		special |= (1 << 13);											/* IF */
 	else
 		if (!(m68k->cpu_buserror_on_write)) special |= (1 << 12);		/* DF */
-	
+
 	if (m68k->cpu_buserror_s_flag) {
 		if (m68k->cpu_buserror_instrfetch) special |= FUNCTION_CODE_SUPERVISOR_PROGRAM;
 		else special |= FUNCTION_CODE_SUPERVISOR_DATA;
@@ -1552,7 +1555,7 @@ void m68ki_stack_frame_1000(m68ki_cpu_core *m68k, UINT32 pc, UINT32 sr, UINT32 v
 		if (m68k->cpu_buserror_instrfetch) special |= FUNCTION_CODE_USER_PROGRAM;
 		else special |= FUNCTION_CODE_USER_DATA;
 	}
-	
+
 	m68ki_push_16(m68k, special);
 
 	/* 1000 (=long stack frame), VECTOR OFFSET */
@@ -1598,7 +1601,7 @@ void m68ki_stack_frame_1010(m68ki_cpu_core *m68k, UINT32 sr, UINT32 vector, UINT
 	/* INSTRUCTION PIPE STAGE C */
 	m68ki_push_16(m68k, 0);
 
-	/* SPECIAL STATUS REGISTER 
+	/* SPECIAL STATUS REGISTER
 	   set bit for: Rerun Faulted bus Cycle, or run pending prefetch
 	   set FC */
 	m68ki_push_16(m68k, 0x0100 | m68k->mmu_tmp_fc | orig_rw<<6);

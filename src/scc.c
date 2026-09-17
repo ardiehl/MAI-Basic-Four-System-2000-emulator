@@ -85,7 +85,7 @@ static void scc_update_irq (void) {
 
     if (want != asserted) {
         asserted = want;
-        msgout (MSGC_INFO,MSG_SCC,MSG_NONE,"interrupt line %s (txA %d rxA %d txB %d rxB %d)",
+        MSG (MSGC_INFO,MSG_SCC,MSG_NONE,"interrupt line %s (txA %d rxA %d txB %d rxB %d)",
                 want ? "asserted" : "negated",
                 sccTxPend[0],sccRxPend[0],sccTxPend[1],sccRxPend[1]);
         m68k_set_int_line (SCC_INTNO, want ? 1 : 0);
@@ -102,7 +102,7 @@ unsigned int scc_cmdRead (int port) {
 		/* RR3, channel A only: interrupt pending bits */
 		int v = (sccRxPend[0] << 5) | (sccTxPend[0] << 4) |
 		        (sccRxPend[1] << 2) | (sccTxPend[1] << 1);
-		msgout (MSGC_INFO,MSG_SCC,MSG_READB,"PortA RR3 (int pending): %02x",v);
+		MSG (MSGC_INFO,MSG_SCC,MSG_READB,"PortA RR3 (int pending): %02x",v);
 		return v;
 	}
 	if ((idx == 2) && (port == 1)) {
@@ -115,12 +115,12 @@ unsigned int scc_cmdRead (int port) {
 		else                   code = 3;    /* nothing: special condition B */
 		{
 			int v = (scc[0].wr[2] & 0xf1) | (code << 1);
-			msgout (MSGC_INFO,MSG_SCC,MSG_READB,"PortB RR2 (modified vector): %02x",v);
+			MSG (MSGC_INFO,MSG_SCC,MSG_READB,"PortB RR2 (modified vector): %02x",v);
 			return v;
 		}
 	}
 	if (scc[port].rr[idx] != 0x04)
-	    msgout (MSGC_INFO,MSG_SCC,MSG_READB,"Port%c cmd: %02x",port ? 'B' : 'A',scc[port].rr[idx]);
+	    MSG (MSGC_INFO,MSG_SCC,MSG_READB,"Port%c cmd: %02x",port ? 'B' : 'A',scc[port].rr[idx]);
 	if (idx == 0) {
 		pollCnt++;
 		if (pollCnt > 200) {
@@ -141,7 +141,7 @@ unsigned int scc_dataRead (int port) {
         scc[port].rr[0] &= 0xfe;
         sccRxPend[port] = 0;
         scc_update_irq();
-        msgout (MSGC_INFO,MSG_SCC,MSG_READB,"Port%c data: %02x",port ? 'B' : 'A',scc[port].recBuf);
+        MSG (MSGC_INFO,MSG_SCC,MSG_READB,"Port%c data: %02x",port ? 'B' : 'A',scc[port].recBuf);
         if (port == 0) return (unsigned int)scc[port].recBuf;
         else {
             if (scc[port].wr[14] & 0x10) {	/* are we in loopback mode ? */
@@ -155,7 +155,7 @@ unsigned int scc_dataRead (int port) {
             }
         }
     } else {
-		msgout (MSGC_INFO,MSG_SCC,MSG_READB,"Port%c data: no data available",port ? 'B' : 'A');
+		MSG (MSGC_INFO,MSG_SCC,MSG_READB,"Port%c data: no data available",port ? 'B' : 'A');
     }
     return 0;
 }
@@ -166,7 +166,7 @@ unsigned int scc_read_byte(unsigned int address) {
 
 	if ((address & SCC_ADDR_MASK) == BAUD_ADDR) {
 		int port = address & 1;
-		msgout (MSGC_INFO,MSG_SCC,MSG_READB,"baud latch port%c read back as %02x",port ? 'B' : 'A',sccBaud[port]);
+		MSG (MSGC_INFO,MSG_SCC,MSG_READB,"baud latch port%c read back as %02x",port ? 'B' : 'A',sccBaud[port]);
 		return sccBaud[port];
 	}
 	switch (address & SCC_REG_MASK) {
@@ -175,7 +175,7 @@ unsigned int scc_read_byte(unsigned int address) {
 		case (SCC_B_CMD) : { return scc_cmdRead(1); break; }
 		case (SCC_B_DATA): { return scc_dataRead(1); break; }
 	}
-	msgout (MSGC_ERR,MSG_SCC,MSG_READB,"%08x unknown address",address);
+	MSG (MSGC_ERR,MSG_SCC,MSG_READB,"%08x unknown address",address);
 	return 0xff;
 }
 
@@ -187,7 +187,7 @@ unsigned int scc_read_word(unsigned int address) {
 void scc_cmdWrite (int port, int value) {
 	int idx;
 
-	msgout (MSGC_INFO,MSG_SCC,MSG_WRITEB,"Port%c cmd %02x",port ? 'B' : 'A',value);
+	MSG (MSGC_INFO,MSG_SCC,MSG_WRITEB,"Port%c cmd %02x",port ? 'B' : 'A',value);
 	idx = scc[port].wr[0] & 0x07;
 	if (((scc[port].wr[0] >> 3) & 0x07) == 1) idx+=8;
 	scc[port].wr[0] = scc[port].wr[0] & 0xf0;	/* reset index to 0 */
@@ -218,7 +218,7 @@ void scc_cmdWrite (int port, int value) {
 
 void scc_dataWrite (int port, int value) {
 
-	msgout (MSGC_INFO,MSG_SCC,MSG_WRITEB,"Port%c data %02x",port ? 'B' : 'A',value);
+	MSG (MSGC_INFO,MSG_SCC,MSG_WRITEB,"Port%c data %02x",port ? 'B' : 'A',value);
 	if (scc[port].wr[14] & 0x10) {	/* are we in loopback mode ? */
 		/* boot rom echo's chars in loopbackmode and checks bit 7 in 7 bit mode */
 		switch ((scc[port].wr[3] >> 6) & 0x03) {
@@ -272,7 +272,7 @@ void scc_write_byte(unsigned int address, unsigned int value) {
 	if ((address & SCC_ADDR_MASK) == BAUD_ADDR) {
 		int port = address & 1;
 		sccBaud[port] = value & 0xff;
-		msgout (MSGC_INFO,MSG_SCC,MSG_WRITEB,"baud latch port%c = %02x",port ? 'B' : 'A',value & 0xff);
+		MSG (MSGC_INFO,MSG_SCC,MSG_WRITEB,"baud latch port%c = %02x",port ? 'B' : 'A',value & 0xff);
 		return;
 	}
 
@@ -282,7 +282,7 @@ void scc_write_byte(unsigned int address, unsigned int value) {
 		case (SCC_B_CMD) : { scc_cmdWrite(1,value); return; }
 		case (SCC_B_DATA): { scc_dataWrite(1,value); return; }
 	}
-	msgout (MSGC_ERR,MSG_SCC,MSG_WRITEB,"%02x to %08x",value,address);
+	MSG (MSGC_ERR,MSG_SCC,MSG_WRITEB,"%02x to %08x",value,address);
 }
 
 void scc_write_word(unsigned int address, unsigned int value) {

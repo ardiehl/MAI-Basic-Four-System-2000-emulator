@@ -2,7 +2,7 @@
  *  socket_connections.c
  *
  *  Created: Aug, 30 2026 AD
- *  Changed:
+ *
  *  Armin Diehl <ad@ardiehl.de>
  ****************************************************************************
  * TCP telnet connections for the eagle emulator
@@ -17,6 +17,9 @@
     typedef SOCKET socket_t;
     typedef WSAPOLLFD pollfd_t;
     #define poll_sockets WSAPoll
+    #define sockErrno WSAGetLastError()
+    #define FMT_SOCKET "%llu"
+    #define FMT_SOCKET5 "%5llu"
 #else
     #include <poll.h>
     #include <sys/socket.h>
@@ -26,6 +29,11 @@
     #define poll_sockets poll
     #include <netinet/in.h>
 	#include <arpa/inet.h>
+	#include <pthread.h>
+	#define sockErrno errno
+	#define sockStrerror strerror
+	#define FMT_SOCKET "%d"
+	#define FMT_SOCKET5 "%5d"
 #endif
 
 
@@ -46,6 +54,101 @@
 #include "charringbuffer.h"
 
 //#define SOCK_DEBUG
+
+
+static volatile int pollThreadTerminate;
+static volatile int pollThreadRunning;
+#ifndef _WIN32
+/********************************************************
+ Thread stuff for linux
+ ********************************************************/
+static pthread_mutex_t criticalSectionMutex;
+
+#define ENTER_CRIT pthread_mutex_lock (&criticalSectionMutex);
+#define LEAVE_CRIT pthread_mutex_unlock (&criticalSectionMutex);
+
+static void initCriticalSections() {
+	pthread_mutex_init (&criticalSectionMutex, NULL);
+}
+
+static void deInitCriticalSections() {
+	pthread_mutex_destroy (&criticalSectionMutex);
+}
+
+static pthread_t pollThreadId;
+
+static void *pollThread (void *ptr);
+
+
+int sock_pollThreadStart () {
+	//puts("start");
+	int rc;
+	pollThreadTerminate = 0;
+	pollThreadRunning = 0;
+	if ((rc = pthread_create(&pollThreadId, NULL, &pollThread, NULL)) != 0) {
+		fprintf(stderr,"pthread_create() failed with %d (%s)",rc,strerror(rc));
+		return -1;
+	}
+	return 0;
+}
+
+
+#else
+/********************************************************
+ Thread stuff for Windows
+ ********************************************************/
+static CRITICAL_SECTION criticalSection;
+
+#define ENTER_CRIT EnterCriticalSection(&criticalSection);
+#define LEAVE_CRIT LeaveCriticalSection(&criticalSection);
+
+static void initCriticalSections() {
+	InitializeCriticalSection (&criticalSection);
+}
+
+static void deInitCriticalSections() {
+	DeleteCriticalSection (&criticalSection);
+}
+
+static DWORD pollThreadId;
+
+static DWORD WINAPI pollThread(LPVOID ptr);
+
+
+int sock_pollThreadStart () {
+	pollThreadTerminate = 0;
+	pollThreadRunning = 0;
+	if (CreateThread(NULL,0,pollThread,NULL,0,&pollThreadId) == 0) return -1;
+	return 0;
+}
+
+#endif
+
+static void sock_poll();
+
+#ifdef _WIN32
+DWORD WINAPI pollThread(LPVOID ptr) {
+#else
+static void *pollThread (void *ptr) {
+#endif // _WIN32
+	//puts("pollThread started");
+	pollThreadRunning++;
+	while (!pollThreadTerminate) {
+		usleep(10000);
+		sock_poll();
+	}
+	pollThreadRunning--;
+	//puts("pollThread terminated");
+	return 0;
+}
+
+void sock_pollThreadEnd () {
+	if (pollThreadRunning) {
+		pollThreadTerminate = 1;
+		while (pollThreadRunning)usleep(10000);
+	}
+}
+
 
 // for holding escape sequences
 #define OUT_BUF_SIZE 64
@@ -250,9 +353,11 @@ static void translateVtAndAdd (sock_t *sock, vtToBfSeq_t tab[], char seq, int nu
                     if (sock->recvFlag & FLAG_TOGGLE_BACKSPACE_ACTIVE) sock->recvFlag &= ~FLAG_TOGGLE_BACKSPACE;
                     else sock->recvFlag |= FLAG_TOGGLE_BACKSPACE;
                 } else {
+                	ENTER_CRIT
                     ring_buffer_queue_arr(&sock->recvData, tab[i].bfSequence, strlen(tab[i].bfSequence));
+                    LEAVE_CRIT
 #ifdef SOCK_DEBUG
-                    printf("adding %ld bytes to ringbuffer (",strlen(tab[i].bfSequence));
+                    printf("adding %d bytes to ringbuffer (",(int)strlen(tab[i].bfSequence));
                     char *p = tab[i].bfSequence;
                     while (*p) {
                         if (*p == 27) printf("ESC ");
@@ -330,7 +435,29 @@ static void translateAndAdd (sock_t *sock, char *data, int size) {
 	}
 }
 
+#ifdef _WIN32
+static char * sockStrerrorLast;
 
+char * sockStrerror (int errCode) {
+	if (sockStrerrorLast) { LocalFree(sockStrerrorLast); sockStrerrorLast = NULL; }
+
+	DWORD result = FormatMessageA (FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL,errCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPSTR)&sockStrerrorLast,0, NULL);
+
+    if (result > 0 && sockStrerrorLast != NULL) {
+		char *p = sockStrerrorLast;
+		while (*p) {
+			if (*p == '\r' || *p =='\n') *p = ' ';
+			p++;
+		}
+		return sockStrerrorLast;
+    } else {
+    	//puts(" no err ");
+      return "";
+    }
+}
+#endif
 
 
 // returns listenfd or -1 on error
@@ -341,11 +468,11 @@ socket_t setupListenSocket(int portNum) {
     struct sockaddr_in6 serv_addr;
     char sendBuff [255];
 
-    memset(&serv_addr, '0', sizeof(serv_addr));
-    memset(sendBuff, '0', sizeof(sendBuff));
+    memset(&serv_addr, 0, sizeof(serv_addr));
+    memset(sendBuff, 0, sizeof(sendBuff));
 	listenfd = socket(AF_INET6, SOCK_STREAM, 0);
     if (listenfd < 0) {
-  	 	 fprintf(stderr,"socket failed with code %d, errno: %d %s\n",res, errno,strerror(errno));
+  	 	 fprintf(stderr,"socket failed with code " FMT_SOCKET ", sockErrno: %d %s\n",listenfd, sockErrno,sockStrerror(sockErrno));
   	 	 return -1;
 	}
 
@@ -356,7 +483,7 @@ socket_t setupListenSocket(int portNum) {
 	/****************************************************************************/
     on=1;
     if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR,(char *)&on,sizeof(on)) < 0) {
-         fprintf(stderr,"setsockopt(SO_REUSEADDR) failed, errno: %d %s\n",errno,strerror(errno));
+         fprintf(stderr,"setsockopt(SO_REUSEADDR) failed, sockErrno: %d %s\n",sockErrno,sockStrerror(sockErrno));
          return -1;
     }
 
@@ -367,7 +494,7 @@ socket_t setupListenSocket(int portNum) {
     on=0;
     res = setsockopt(listenfd, IPPROTO_IPV6, IPV6_V6ONLY,(char *)&on,sizeof(on));
     if (res < 0) {
-  	 	 fprintf(stderr,"setsockopt(IPV6_V6ONLY = %d) failed with code %d, errno: %d %s\n",on,res,errno,strerror(errno));
+  	 	 fprintf(stderr,"setsockopt(IPV6_V6ONLY = %d) failed with code %d, sockErrno: %d %s\n",on,res,sockErrno,sockStrerror(sockErrno));
 	}
 
 	serv_addr.sin6_family = AF_INET6;
@@ -382,14 +509,14 @@ socket_t setupListenSocket(int portNum) {
 
     res = bind(listenfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
     if (res < 0) {
-  	 	 fprintf(stderr,"bind to port %d failed with code %d, errno: %d %s\n",portNum, res, errno, strerror(errno));
+  	 	 fprintf(stderr,"bind to port %d failed with code %d, sockErrno: %d %s\n",portNum, res, sockErrno, sockStrerror(sockErrno));
   	 	 close(listenfd);
   	 	 return -1;
 	}
 
     res = listen(listenfd, 1);
     if (res < 0) {
-  	 	 fprintf(stderr,"listen failed with code %d, errno: %d %s\n",res, errno,strerror(errno));
+  	 	 fprintf(stderr,"listen failed with code %d, sockErrno: %d %s\n",res, sockErrno,sockStrerror(sockErrno));
   	 	 close(listenfd);
   	 	 return -1;
 	}
@@ -416,7 +543,8 @@ SERVER DATA:
 ]
 SERVER DATA: DD-WR
 */
-void telnetClientInit(int fd) {
+void telnetClientInit(socket_t fd) {
+	int res;
         uint8_t myOptions [] = {
                         TELNET_IAC, TELNET_DO, TELNET_TELOPT_ECHO,		// client should no echo
                         TELNET_IAC, TELNET_DONT, TELNET_TELOPT_NAWS,	// window size, we should disable this
@@ -428,14 +556,18 @@ void telnetClientInit(int fd) {
         };
         uint8_t reply[255];
 
-        write(fd, (void *)&myOptions, sizeof(myOptions));
+        res = send(fd, (void *)&myOptions, sizeof(myOptions), 0);
+        if (res != sizeof(myOptions)) {
+			printf("telnetClientInit: send returned %d, expected %d, errno %d %s\n",res,(int)sizeof(myOptions),sockErrno,sockStrerror(sockErrno));
+        }
 
-        usleep(1500);   // Avoid getting the answer as keypresses, telnet needs some time
+        // FIXME: select with timeout or some other not that stupid solutions
+        usleep(100000);   // Avoid getting the answer as keypresses, telnet needs some time
 
 #ifdef SOCK_DEBUG
         // we should get at least one packet from the client with answers
-        int res = recv(fd, (void *)&reply, sizeof(reply), 0);
-		printf("telnetClientInit response for fd %d, size %d (IGNORED, ASSUMED TO BE OK)\n",fd,res);
+        res = recv(fd, (void *)&reply, sizeof(reply), 0);
+		printf("telnetClientInit response for fd " FMT_SOCKET ", size %d (IGNORED, ASSUMED TO BE OK)\n",fd,res);
 #else
         // we should get at least one packet from the client with answers
         recv(fd, (void *)&reply, sizeof(reply), 0);
@@ -461,7 +593,7 @@ void sock_setupListen (int portNum, bool doClose) {
 
 	int newFd = setupListenSocket(socks[portNum].portNum);
 	if (newFd < 0) {
-		fprintf(stderr,"setupListenSocket failed with errno %d %s\n",errno,strerror(errno));
+		//fprintf(stderr,"setupListenSocket failed with sockErrno %d %s\n",sockErrno,sockStrerror(sockErrno));
 		socks[portNum].fd = -1;
 		socks[portNum].status = STAT_CLOSED;
 	} else {
@@ -473,7 +605,7 @@ void sock_setupListen (int portNum, bool doClose) {
 #define RECV_BUFSIZE 128
 
 // check for incomping connections or data on all open ports and set the status field for each connection
-void sock_poll() {
+static void sock_poll() {
 	if (!sock_initialize_done) return;
 	pollfd_t *pfds;
 	int i,fd,numFds=0,res;
@@ -486,6 +618,7 @@ void sock_poll() {
 	for (i=0;i<SOCK_MAX;i++) {
 		if (socks[i].status != STAT_CLOSED) numFds++;
 	}
+	if (!numFds) return;
 	// allocate the array of fd's for poll
 	pfds = calloc(numFds, sizeof(struct pollfd));
 	if (pfds == NULL) return;
@@ -501,7 +634,9 @@ void sock_poll() {
 	}
 	res = poll_sockets(pfds,numFds,0);
 	if (res < 0) {
-		fprintf(stderr,"poll returned %d, errno: %d %s\n",res,errno,strerror(errno));
+#ifdef SOCK_DEBUG
+		fprintf(stderr,"poll returned %d, sockErrno: %d %s\n",res,sockErrno,sockStrerror(sockErrno));
+#endif
 		return;
 	}
 
@@ -512,7 +647,7 @@ void sock_poll() {
 			if (socks[portIdx[i]].status == STAT_WAITCONN) {	// socket is listening, we need to accept the connection
 				int newFd = accept(pfds[i].fd, (struct sockaddr*)NULL, NULL);
 				if (newFd < 0) {
-					fprintf(stderr,"accept failed with errno %d %s\n",errno,strerror(errno));
+					fprintf(stderr,"accept failed with sockErrno %d %s\n",sockErrno,sockStrerror(sockErrno));
 					// close the listen socket and try to create it again
 					sock_setupListen (portIdx[i],true);
 				} else {	// accept was ok
@@ -544,22 +679,24 @@ void sock_poll() {
 					strcpy(buff,"\033[2J\033[H\033[1mWelcome to eagleemu on ");
 					strcat(buff,device);
 					strcat(buff,"\033[m\r\nF12 toggles backspace between 0x08 and 0x7f\r\n\n");
-					write(newFd,buff,strlen(buff));
+					send(newFd,buff,strlen(buff),0);
 				}
 
 			} else
 			if (socks[portIdx[i]].status == STAT_OPEN || socks[portIdx[i]].status == STAT_DATA_AVAILABLE) {
 				// receive the data here to get the full escape sequence and check for errors
-				ssize_t rc = recv(pfds[i].fd, (char *)&recvBuffer, sizeof(recvBuffer), 0); //MSG_DONTWAIT);
+				int rc = recv(pfds[i].fd, (char *)&recvBuffer, sizeof(recvBuffer), 0); //MSG_DONTWAIT);
 				if (rc > 0) {
 					socks[portIdx[i]].status = STAT_DATA_AVAILABLE;
 					if (socks[i].doInTranslation) {
 						translateAndAdd (&socks[portIdx[i]], recvBuffer, rc);
 					} else {
+						ENTER_CRIT
 						ring_buffer_queue_arr(&socks[portIdx[i]].recvData, recvBuffer, rc);
+						LEAVE_CRIT
 					}
 				} else {
-					fprintf(stderr,"sock_poll: recv after status POLLIN: %ld, errno: %d %s\n",rc,errno,strerror(errno));
+					fprintf(stderr,"sock_poll: recv after status POLLIN: %d, errno: %d %s\n",rc,sockErrno,sockStrerror(sockErrno));
 					// close the listen socket and try to create it again
 					sock_setupListen (portIdx[i],true);
 				}
@@ -588,6 +725,7 @@ void sock_putchar(int portNum, char data) {
 	if (portNum < 0 || portNum > SOCK_MAX-1) return;
 	if (socks[portNum].status != STAT_DATA_AVAILABLE && socks[portNum].status != STAT_OPEN) return;
 
+	ENTER_CRIT
 	if (socks[portNum].sendDataBuffer) {	// save data send to terminal if enabled
 		if (socks[portNum].sendDataBufferLen < socks[portNum].sendDataBufferSize) {
 			*socks[portNum].sendDataBufferPos = data;
@@ -595,6 +733,7 @@ void sock_putchar(int portNum, char data) {
 			socks[portNum].sendDataBufferLen++;
 		}
 	}
+	LEAVE_CRIT
 
 	if (socks[portNum].doOutTranslation) {		// if we have outgoing escape sequence translation
 		char outSeqBuffer[OUT_BUF_SIZE];
@@ -623,7 +762,9 @@ int sock_getchar(int portNum, char * data) {
 	int rc;
 
 	if (portNum < 0 || portNum > SOCK_MAX-1) return 0;
+	ENTER_CRIT
 	rc = ring_buffer_dequeue(&socks[portNum].recvData, data);
+	LEAVE_CRIT
 #ifdef SOCK_DEBUG
 	//printf("sock_getchar %d retuning %d\n",portNum,rc);
 #endif
@@ -633,7 +774,11 @@ int sock_getchar(int portNum, char * data) {
 }
 
 int sock_dataAvailable(int portNum) {
-	return ring_buffer_peek(&socks[portNum].recvData, NULL, 0);
+	int res;
+	ENTER_CRIT
+	res = ring_buffer_peek(&socks[portNum].recvData, NULL, 0);
+	LEAVE_CRIT
+	return res;
 }
 
 
@@ -693,7 +838,7 @@ char * status2txt(enum sockstat_t status) {
 
 void printStatus(int port) {
 	if (port < 0 || port > SOCK_MAX-1) return;
-	printf("%7d%5d %08x %-20s %10d  %9d%3d%7d\n",port,socks[port].fd,socks[port].revents,status2txt(socks[port].status),socks[port].doTelnetInit,socks[port].doOutTranslation,socks[port].doInTranslation,socks[port].portNum);
+	printf("%7d" FMT_SOCKET5 " %08x %-20s %10d  %9d%3d%7d\n",port,socks[port].fd,socks[port].revents,status2txt(socks[port].status),socks[port].doTelnetInit,socks[port].doOutTranslation,socks[port].doInTranslation,socks[port].portNum);
 }
 
 void sock_showStatus (int numArgs, struct args_t *args) {
@@ -812,8 +957,10 @@ void sock_recSend (int numArgs, struct args_t *args) {
 	}
 
 	if (socks[portNum].sendDataBuffer) {
+		ENTER_CRIT
 		free(socks[portNum].sendDataBuffer);
 		socks[portNum].sendDataBuffer = NULL;
+		LEAVE_CRIT
 		printf("recording disabled\n");
 		return;
 	}
@@ -822,9 +969,10 @@ void sock_recSend (int numArgs, struct args_t *args) {
 		newBufSize = args[1].value;
 	else
 		newBufSize = SEND_DATA_BUF_DEF_SIZE;
-
+	ENTER_CRIT
 	socks[portNum].sendDataBuffer = calloc(1,newBufSize);
 	if (!socks[portNum].sendDataBuffer) {
+		LEAVE_CRIT
 		printf("failed to allocate %d bytes\n",newBufSize);
 		return;
 	}
@@ -832,6 +980,7 @@ void sock_recSend (int numArgs, struct args_t *args) {
 
 	socks[portNum].sendDataBufferPos = socks[portNum].sendDataBuffer;
 	socks[portNum].sendDataBufferLen = 0;
+	LEAVE_CRIT
 }
 
 
@@ -910,8 +1059,16 @@ int sock_dbgCmd(int numArgs, struct args_t * args) {
 
 
 #ifndef _WIN32
-void sock_initialize() {};
-void sock_deinitialize() {};
+void sock_initialize() {
+	initCriticalSections();
+	sock_initialize_done = 1;
+}
+
+
+void sock_deinitialize() {
+	sock_pollThreadEnd ();
+	deInitCriticalSections();
+}
 #else
 
 // winsock init
@@ -920,7 +1077,9 @@ void sock_initialize() {
     WSADATA wsaData;
     int err;
 
-     wVersionRequested = MAKEWORD(2, 2);
+    initCriticalSections();
+
+    wVersionRequested = MAKEWORD(2, 2);
 
     err = WSAStartup(wVersionRequested, &wsaData);
     if (err != 0) {
@@ -937,13 +1096,15 @@ void sock_initialize() {
     }
 
     sock_initialize_done = 1;
-};
+}
 
 void sock_deinitialize() {
 	if (!sock_initialize_done) return;
+	sock_pollThreadEnd ();
+	deInitCriticalSections();
 	WSACleanup();
 	sock_initialize_done = 0;
-};
+}
 
 #endif // _WIN32
 

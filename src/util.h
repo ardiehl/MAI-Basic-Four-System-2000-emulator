@@ -66,5 +66,6 @@ int file_getSize(char * filename);
 char* stpcpy(char* dest, const char* src);
 #endif
 
+void console_init();
 
 #endif

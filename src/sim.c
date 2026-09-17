@@ -19,12 +19,22 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/time.h>
+#ifdef _WIN32
+#include <windows.h>
+#include "linenoise/linenoise.h"
+#define readline linenoise
+#define add_history linenoiseHistoryAdd
+#define read_history linenoiseHistoryLoad
+#define using_history linenoiseHistoryFree
+#define write_history linenoiseHistorySave
+#else
+#include <readline/readline.h>
+#include <readline/history.h>
+#endif // _WIN32
 #include "sim.h"
 #include "m68k.h"
 #include <ctype.h>
 #include "util.h"
-#include <readline/readline.h>
-#include <readline/history.h>
 #include "memory.h"		/* raw ram and rom access */
 #include "mmu.h"
 #include "cmb.h"		/* cmb registers */
@@ -168,7 +178,7 @@ unsigned int sys_read_byte(unsigned int address, int memFlags)
 	if (ADDR_IS_FW(address))
 		value = fw_read_byte(address,memFlags);
 	else {
-		/* msgout (MSGC_ERR,MSG_NONE,MSG_READB,"unknown memory area %08x",address); */
+		/* MSG (MSGC_ERR,MSG_NONE,MSG_READB,"unknown memory area %08x",address); */
 		BUSERROR(memFlags,address,MSG_READB);
 		value = 0xff;
 	}
@@ -225,7 +235,7 @@ unsigned int sys_read_word(unsigned int address, int memFlags)
 	if (ADDR_IS_FW(address))
 		value = fw_read_word(address,memFlags);
 	else {
-		/*msgout (MSGC_ERR,MSG_NONE,MSG_READW,"unknown memory area %08x",address);*/
+		/* MSG (MSGC_ERR,MSG_NONE,MSG_READW,"unknown memory area %08x",address);*/
 		BUSERROR(memFlags,address,MSG_READW);
 		value = 0xffff;
 	}
@@ -513,10 +523,10 @@ int sys_int_ack (device_t *device, int int_level){
 	   Reporting that as "vector ffffffff" reads like a device handing back a
 	   nonsense vector, so say what it is instead. */
     if ((vector != M68K_INT_ACK_SPURIOUS) && (vector != M68K_INT_ACK_AUTOVECTOR)) {
-		msgout (MSGC_INFO+MSGC_NOPC,MSG_CPU,MSG_INTR,"sys_int_ack: returning vector %02x for int level %d (%s)",vector,int_level,deviceName);
+		MSG(MSGC_INFO+MSGC_NOPC,MSG_CPU,MSG_INTR,"sys_int_ack: returning vector %02x for int level %d (%s)",vector,int_level,deviceName);
         return vector;
     }
-	msgout (MSGC_INFO+MSGC_NOPC,MSG_CPU,MSG_INTR,"sys_int_ack: returning M68K_INT_ACK_AUTOVECTOR for int level %d (%s)",int_level,deviceName);
+	MSG(MSGC_INFO+MSGC_NOPC,MSG_CPU,MSG_INTR,"sys_int_ack: returning M68K_INT_ACK_AUTOVECTOR for int level %d (%s)",int_level,deviceName);
 	return M68K_INT_ACK_AUTOVECTOR;
 }
 
@@ -1692,7 +1702,7 @@ void dbgCmd_go (int numArgs, struct args_t *args) {
 			pollCount = SCC_POLL_INSTRUCTIONS;
 			pollBoardStatus();
 			// check for incoming connections or data on all open ports and set the status field for each connection
-			sock_poll();
+			//sock_poll();  // now threaded
 		}
 		fwPendingIntCount--;
 		if (!(fwPendingIntCount) || m68k_is_stopped()) {
@@ -1808,11 +1818,8 @@ void dbgCmd_exec (int numArgs, struct args_t *args) {
     }
 } */
 
-// number of calls to sock_poll() after fork
-#define EXEC_NUMPOLLS 150
-#define EXEC_POLLDELAY 10000
+
 void dbgCmd_exec (int numArgs, struct args_t *args) {
-    char *a[MAXNUMARGS+1];
     int i;
 
     if (numArgs < 1 || args[1].isValue) {
@@ -1821,6 +1828,8 @@ void dbgCmd_exec (int numArgs, struct args_t *args) {
     }
 
 #ifndef _WIN32
+	char *a[MAXNUMARGS+1];
+
     for (i=0;i<numArgs;i++) {
         //printf("%d: isValue:%d value:%d txt: \"%s\"\n",i,args[i].isValue,args[i].value,&args[i].txt[0]);
         a[i] = &args[i].txt[0];
@@ -1837,14 +1846,46 @@ void dbgCmd_exec (int numArgs, struct args_t *args) {
         execvp(a[0], a);
         perror("Exec failed");
         exit(1);
-    } else {
-        for (i=0; i<EXEC_NUMPOLLS; i++) {
-            sock_poll();
-            usleep(EXEC_POLLDELAY);
-        }
     }
 #else
-#warning dbgCmd_exex, windows version to be created (CreateProcessA)
+	// calc length for command line
+	int cmdLineSize = 1;
+	for (i = 0; i < numArgs; i++) {
+		cmdLineSize += strlen(args[i].txt);
+		cmdLineSize += 3;  // "" + blank
+	}
+	char *cmdLine = calloc(1,cmdLineSize);
+	char *p = cmdLine;
+	for (i = 0; i < numArgs; i++) {
+		p = stpcpy (p,"\"");
+		p = stpcpy (p,args[i].txt);
+		p = stpcpy (p,"\" ");
+	}
+	if (p > cmdLine)
+		if (*(p-1) == ' ') *(p-1) = 0;
+
+	STARTUPINFO si;
+    PROCESS_INFORMATION pi;
+
+    ZeroMemory( &si, sizeof(si) );
+    si.cb = sizeof(si);
+    ZeroMemory( &pi, sizeof(pi) );
+
+    // Start the child process.
+    if( !CreateProcess(
+		NULL,           // No module name (use command line)
+        cmdLine,        // Command line
+        NULL,           // Process handle not inheritable
+        NULL,           // Thread handle not inheritable
+        FALSE,          // Set handle inheritance to FALSE
+        CREATE_NEW_CONSOLE,              // No creation flags
+        NULL,           // Use parent's environment block
+        NULL,           // Use parent's starting directory
+        &si,            // Pointer to STARTUPINFO structure
+        &pi)) {          // Pointer to PROCESS_INFORMATION structure
+		puts("createProcessA failed");
+    }
+
 #endif
 
 
@@ -2312,7 +2353,7 @@ void commandHandler(char * oneCmd, int echo)
 
 		if (cmdNum == -1) findAndExecCommand (cmd,cmds,numArgs,args);
 	  }
-      sock_poll();
+
       if (oneCmd) return;
 	} while ((strcmp(cmd,"quit")));
 	if (lastCmd) free(lastCmd);
@@ -2405,6 +2446,7 @@ int main(int argc, char* argv[])
 	}
 	if (! socketInitDone)
         sock_init(port);	/* init listen sockets */
+	sock_pollThreadStart ();
 
 	commandHandler(NULL,1);
 	sock_deinit();

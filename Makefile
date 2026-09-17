@@ -118,10 +118,32 @@ BUILD_TYPE	?=	debug
 # target executable
 TARGET		=	eagleemu
 
+OBJDIR		= obj
+DEPDIR 		= dep
+
+ifeq ($(PLATFORM),win32)
+WINDOWS = 1
+LINENOISE = 1
+OBJDIR = obj_win32
+DEPDIR = dep_win32
+endif
+ifeq ($(PLATFORM),win64)
+WINDOWS = 1
+LINENOISE = 1
+OBJDIR = obj_win64
+DEPDIR = dep_win64
+endif
+
+
+
 # source files that produce object files
 SRC			=	cmb.c load.c memory.c nvram.c scc.c sim.c util.c wd.c pit.c fd.c cs.c m68k.c mmu.c fourway.c esc_sequences.c socket_connections.c eagle_superblock.c
 SRC			+=	musashi/m68kcpu.c musashi/m68kdasm.c musashi/m68kops.c
 SRC			+=  vtparse/vtparse.c vtparse/vtparse_table.c charringbuffer.c
+
+ifdef LINENOISE
+SRC			+= linenoise/linenoise.c linenoise/utf8.c
+endif
 
 # source type - either "c" or "cpp" (C or C++)
 SRC_TYPE	=	c
@@ -130,17 +152,17 @@ SRC_TYPE	=	c
 EXT_OBJ		=
 # libraries to link in -- these will be specified as "-l" parameters, the -l
 # is prepended automatically
-ifeq ($(PLATFORM),linux)
+ifndef LINENOISE
 LIB			= readline
 endif
 ifeq ($(PLATFORM),win64)
-STATICLIBS			= -Wl,--allow-multiple-definition -static-libgcc /usr/x86_64-w64-mingw32/sys-root/mingw/lib/libreadline.a /usr/x86_64-w64-mingw32/sys-root/mingw/lib/libtermcap.a
+#STATICLIBS			= -Wl,--allow-multiple-definition -static-libgcc /usr/x86_64-w64-mingw32/sys-root/mingw/lib/libreadline.a /usr/x86_64-w64-mingw32/sys-root/mingw/lib/libtermcap.a
 STATIC			= -static
 LIB			+= ws2_32 msvcrt
 endif
 ifeq ($(PLATFORM),win32)
 LIB			+= ws2_32 msvcrt
-STATICLIBS			= -Wl,--allow-multiple-definition -static-libgcc /usr/x86_64-w64-mingw32/sys-root/mingw/lib/libreadline.a /usr/x86_64-w64-mingw32/sys-root/mingw/lib/libtermcap.a
+#STATICLIBS			= -Wl,--allow-multiple-definition -static-libgcc /usr/x86_64-w64-mingw32/sys-root/mingw/lib/libreadline.a /usr/x86_64-w64-mingw32/sys-root/mingw/lib/libtermcap.a
 STATIC			= -static
 endif
 # library paths -- where to search for the above libraries
@@ -149,7 +171,7 @@ LIBPATH		=
 # standard paths
 INCPATH		=
 # garbage files that should be deleted on a 'make clean' or 'make tidy'
-GARBAGE		=	obj/musashi/m68kmake obj/musashi/m68kmake.o
+GARBAGE		=	$(OBJDIR)/musashi/m68kmake $(OBJDIR)/musashi/m68kmake.o
 
 # extra dependencies - files that we don't necessarily know how to build, but
 # that are required for building the application; e.g. object files or
@@ -213,7 +235,7 @@ ifneq ($(PLATFORM),win64)
 endif
 endif
 endif
-
+#
 ####
 # Version info generation
 ####
@@ -319,10 +341,10 @@ endif
 ####
 
 # object files
-OBJ	=	$(addprefix obj/, $(addsuffix .o, $(basename $(SRC))) $(EXT_OBJ)) $(addsuffix .o, $(basename $(EXTSRC)))
+OBJ	=	$(addprefix $(OBJDIR)/, $(addsuffix .o, $(basename $(SRC))) $(EXT_OBJ)) $(addsuffix .o, $(basename $(EXTSRC)))
 
 # dependency files
-DEPFILES =	$(addprefix dep/, $(addsuffix .d, $(basename $(SRC))) $(EXT_OBJ)) $(addsuffix .d, $(basename $(EXTSRC)))
+DEPFILES =	$(addprefix $(DEPDIR)/, $(addsuffix .d, $(basename $(SRC))) $(EXT_OBJ)) $(addsuffix .d, $(basename $(EXTSRC)))
 
 # path commands
 LIBLNK	+=	$(addprefix -l, $(LIB))
@@ -380,13 +402,13 @@ clean-versioninfo:
 
 # initialise the build system for a new project
 init:
-	@mkdir -p src dep obj
-	@echo "This file is a directory-keeper. Do not delete it." > dep/.keepme
-	@echo "This file is a directory-keeper. Do not delete it." > obj/.keepme
+	@mkdir -p src $(DEPDIR) $(OBJDIR)
+	@echo "This file is a directory-keeper. Do not delete it." > $(DEPDIR)/.keepme
+	@echo "This file is a directory-keeper. Do not delete it." > $(OBJDIR)/.keepme
 	@echo 0 > .buildnum
 	@echo 'syntax: glob' > .hgignore
-	@echo 'obj/*.o' >> .hgignore
-	@echo 'dep/*.d' >> .hgignore
+	@echo '$(OBJDIR)/*.o' >> .hgignore
+	@echo '$(DEPDIR)/*.d' >> .hgignore
 	@echo '*~' >> .hgignore
 	@echo '.*.sw?' >> .hgignore
 	@echo '#define VER_COMPILE_DATETIME	"@@datetime@@"'		>> src/version.h.in
@@ -445,33 +467,33 @@ endif
 ## musashi build rules
 # 68k CPU builder
 
-obj/musashi/m68kmake.o:	src/musashi/m68kmake.c
+$(OBJDIR)/musashi/m68kmake.o:	src/musashi/m68kmake.c
 	@echo "compiling $@"
-	@mkdir -p $(dir $@) $(dir dep/$*.d)
+	@mkdir -p $(dir $@) $(dir $(DEPDIR)/$*.d)
 	@$(HOSTCC) -c $< -o $@
 
-obj/musashi/m68kmake:	obj/musashi/m68kmake.o
+$(OBJDIR)/musashi/m68kmake:	$(OBJDIR)/musashi/m68kmake.o
 	@echo "compiling $@"
-	@$(HOSTCC) obj/musashi/m68kmake.o -o $@
+	@$(HOSTCC) $(OBJDIR)/musashi/m68kmake.o -o $@
 # 68k CPU sources
-src/musashi/m68kops.h src/musashi/m68kops.c:	obj/musashi/m68kmake src/musashi/m68k_in.c
+src/musashi/m68kops.h src/musashi/m68kops.c:	$(OBJDIR)/musashi/m68kmake src/musashi/m68k_in.c
 	@echo "generating m68 handler from m68k_in.c"
-	@./obj/musashi/m68kmake src/musashi src/musashi/m68k_in.c
+	@./$(OBJDIR)/musashi/m68kmake src/musashi src/musashi/m68k_in.c
 
 ####
 # make object files from C source files
-obj/%.o:	src/%.c
+$(OBJDIR)/%.o:	src/%.c
 	@echo "compiling $@"
-	@mkdir -p $(dir $@) $(dir dep/$*.d)
+	@mkdir -p $(dir $@) $(dir $(DEPDIR)/$*.d)
 	@$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
 
 ##
 # make object files from C++ source files
-obj/%.o:	src/%.cc
+$(OBJDIR)/%.o:	src/%.cc
 	@echo "compiling $@"
 	$(CXX) -c $(CXXFLAGS) $(CPPFLAGS) $< -o $@
 
-obj/%.o:	src/%.cpp
+$(OBJDIR)/%.o:	src/%.cpp
 	@echo "compiling $@"
 	@$(CXX) -c $(CXXFLAGS) $(CPPFLAGS) $< -o $@
 
@@ -489,22 +511,25 @@ src/%.c:	src/%.l
 
 ###
 # make dependencies for our source files
-dep/%.d:	src/%.c
+$(DEPDIR)/%.d:	src/%.c
 	@echo "generating dep for $@"
+	@mkdir -p $(dir $@) $(dir $(DEPDIR)/$*.d)
 	@$(CC) -MM $(CFLAGS) $(CPPFLAGS) $< > $@.$$$$; \
-		sed 's,\($*\)\.o[ :]*,obj/\1.o $@ : ,g' < $@.$$$$ > $@; \
+		sed 's,\($*\)\.o[ :]*,$(OBJDIR)/\1.o $@ : ,g' < $@.$$$$ > $@; \
 		rm -f $@.$$$$
 
-dep/%.d:	src/%.cpp
+$(DEPDIR)/%.d:	src/%.cpp
 	@echo "generating dep for $@"
+	@mkdir -p $(dir $@) $(dir $(DEPDIR)/$*.d)
 	@$(CXX) -MM $(CXXFLAGS) $(CPPFLAGS) $< > $@.$$$$; \
-		sed 's,\($*\)\.o[ :]*,obj/\1.o $@ : ,g' < $@.$$$$ > $@; \
+		sed 's,\($*\)\.o[ :]*,$(OBJDIR)/\1.o $@ : ,g' < $@.$$$$ > $@; \
 		rm -f $@.$$$$
 
-dep/%.d:	src/%.cc
+$(DEPDIR)/%.d:	src/%.cc
 	@echo "generating dep for $@"
+	@mkdir -p $(dir $@) $(dir $(DEPDIR)/$*.d)
 	@$(CXX) -MM $(CXXFLAGS) $(CPPFLAGS) $< > $@.$$$$; \
-		sed 's,\($*\)\.o[ :]*,obj/\1.o $@ : ,g' < $@.$$$$ > $@; \
+		sed 's,\($*\)\.o[ :]*,$(OBJDIR)/\1.o $@ : ,g' < $@.$$$$ > $@; \
 		rm -f $@.$$$$
 
 ####

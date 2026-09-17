@@ -279,3 +279,19 @@ char* stpcpy(char* dest, const char* src) {
     return dest;
 }
 #endif
+
+
+void console_init() {
+#ifdef _WIN32
+    HANDLE hInput = GetStdHandle(STD_INPUT_HANDLE);
+    DWORD mode = 0;
+    if (GetConsoleMode(hInput, &mode)) {
+        SetConsoleMode(hInput, mode | ENABLE_VIRTUAL_TERMINAL_INPUT);
+    }
+
+    HANDLE hOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (GetConsoleMode(hOutput, &mode)) {
+        SetConsoleMode(hOutput, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+    }
+#endif
+}
