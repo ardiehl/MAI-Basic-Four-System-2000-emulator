@@ -152,6 +152,9 @@ for %%i in (%SOCKNUMS%) do (
     )
 )
 
+:: when executing the 32 bit version on 64 bit systems, telnet is not in the search path
+set "PATH=%PATH%;%WINDIR%\sysnative"
+
 :: Execute the program string directly
 ::echo ARGS: %ARGS% %POSITIONAL_ARGS% %GO%
 %ARGS% %POSITIONAL_ARGS% %GO%
