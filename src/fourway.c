@@ -215,13 +215,16 @@ void fw_processPendingCompletes() {
 	if (fwIntPending) return;
 	if (!numPendingComplete) {
 		for (i=0; i<FW_INSTALLED*4;i++) {
-			if (sock_dataAvailable(2+i)) {	// do we have incoming data ?
-				int n = i/4;
-				int port = i % 4;
-				sock_getchar(2+i, &fw[n].recvData);
-				fw_addPendingComplete (n, port, FW_VEC_RXCHAR); // queue them all so that not only the first gets priority
-				numAdded++;
-				msgout (MSGC_INFO,MYSELF,MSG_NONE,"fw%d port%c: rxchar completion interrupt queued", n,'A'+port);
+			// TODO: check if last char was read before generating an int
+			int n = i/4;
+			if ((fw[n].status & FW_ST_NOVECTOR) == 0) {
+				if (sock_dataAvailable(2+i)) {	// do we have incoming data ?
+					int port = i % 4;
+					sock_getchar(2+i, &fw[n].recvData);
+					fw_addPendingComplete (n, port, FW_VEC_RXCHAR); // queue them all so that not only the first gets priority
+					numAdded++;
+					msgout (MSGC_INFO,MYSELF,MSG_NONE,"fw%d port%c: rxchar completion interrupt queued", n,'A'+port);
+				}
 			}
 		}
 		if (numAdded == 0) return;

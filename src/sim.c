@@ -21,6 +21,11 @@
 #include <sys/time.h>
 #ifdef _WIN32
 #include <windows.h>
+
+#ifdef USE_SHELL_EXECUTE
+#include <shellapi.h>
+#endif
+
 #include "linenoise/linenoise.h"
 #define readline linenoise
 #define add_history linenoiseHistoryAdd
@@ -1817,6 +1822,46 @@ void dbgCmd_exec (int numArgs, struct args_t *args) {
         printf("exec loaded\n");
     }
 } */
+#ifdef _WIN32
+typedef struct startedProcess_t startedProcess_t;
+struct startedProcess_t {
+    HANDLE hProcess;
+    HANDLE hThread;
+	startedProcess_t *next;
+};
+
+static startedProcess_t *startedProcesses;
+
+void startedProcessesAdd (HANDLE hProcess, HANDLE hThread) {
+	startedProcess_t *pr;
+	if (!startedProcesses) {
+		startedProcesses = malloc(sizeof(startedProcess_t));
+		if (!startedProcesses) return;
+		pr = startedProcesses;
+	} else {
+		pr = startedProcesses;
+		while (pr->next) pr = pr->next;
+		pr->next = malloc(sizeof(startedProcess_t));
+		if (!pr->next) return;
+		pr = pr->next;
+	}
+	pr->hProcess = hProcess;
+	pr->hThread = hThread;
+	pr->next = NULL;
+}
+
+void terminateStartedProcesses() {
+	startedProcess_t *pr = startedProcesses;
+	while (pr) {
+		TerminateProcess(pr->hProcess, 0);
+		//printf("terminate %8p\n",pr->hProcess);
+		CloseHandle(pr->hProcess);
+		if (pr->hThread) CloseHandle (pr->hThread);
+		pr = pr->next;
+	}
+}
+
+#endif
 
 
 void dbgCmd_exec (int numArgs, struct args_t *args) {
@@ -1848,6 +1893,63 @@ void dbgCmd_exec (int numArgs, struct args_t *args) {
         exit(1);
     }
 #else
+
+	char *cmdArgs;
+	SHELLEXECUTEINFOA sei;
+
+	if (numArgs > 1) {
+		// calc length for command line excluding arg[0]
+		int cmdArgsSize = 1;
+		for (i = 1; i < numArgs; i++) {
+			cmdArgsSize += strlen(args[i].txt);
+			cmdArgsSize += 3;  // "" + blank
+		}
+		cmdArgs = calloc(1,cmdArgsSize);
+		char *p = cmdArgs;
+		for (i = 1; i < numArgs; i++) {
+			//p = stpcpy (p,"\"");
+			p = stpcpy (p,args[i].txt);
+			//p = stpcpy (p,"\" ");
+			p = stpcpy (p," ");
+		}
+		if (p > cmdArgs)
+			if (*(p-1) == ' ') *(p-1) = 0;
+	} else cmdArgs = NULL;
+
+    ZeroMemory (&sei, sizeof(sei));
+    sei.cbSize = sizeof(SHELLEXECUTEINFOA);
+    //sei.fMask = SEE_MASK_FLAG_NO_UI;    // no error message box
+    sei.fMask = SEE_MASK_NOCLOSEPROCESS;
+    sei.lpVerb = "open";                // Default action
+    sei.lpFile = args[0].txt;
+    sei.lpParameters = cmdArgs;
+    sei.nShow = SW_SHOWNORMAL;
+
+    //printf("sei.lpFile '%s', sei.lpParameters '%s'\n",args[0].txt,cmdArgs);
+
+    if (ShellExecuteExA(&sei)) {
+		if (sei.hProcess != NULL) startedProcessesAdd (sei.hProcess, NULL);
+    } else {
+        printf("Failed to launch '%s'. Error code: %lu %s\n", args[0].txt, GetLastError(), sockStrerror(GetLastError()));
+    }
+    if (cmdArgs) free (cmdArgs);
+
+#endif
+}
+
+
+void dbgCmd_execA (int numArgs, struct args_t *args) {
+
+    if (numArgs < 1 || args[1].isValue) {
+        printf("usage: exec arg [,arg ...]\n");
+        return;
+    }
+
+#ifndef _WIN32
+	dbgCmd_exec (numArgs, args);
+#else
+	int i;
+
 	// calc length for command line
 	int cmdLineSize = 1;
 	for (i = 0; i < numArgs; i++) {
@@ -1867,12 +1969,12 @@ void dbgCmd_exec (int numArgs, struct args_t *args) {
 	STARTUPINFO si;
     PROCESS_INFORMATION pi;
 
-    ZeroMemory( &si, sizeof(si) );
+    ZeroMemory (&si, sizeof(si));
     si.cb = sizeof(si);
-    ZeroMemory( &pi, sizeof(pi) );
+    ZeroMemory (&pi, sizeof(pi));
 
     // Start the child process.
-    if( !CreateProcess(
+    if( CreateProcessA(
 		NULL,           // No module name (use command line)
         cmdLine,        // Command line
         NULL,           // Process handle not inheritable
@@ -1883,13 +1985,15 @@ void dbgCmd_exec (int numArgs, struct args_t *args) {
         NULL,           // Use parent's starting directory
         &si,            // Pointer to STARTUPINFO structure
         &pi)) {          // Pointer to PROCESS_INFORMATION structure
+        	if (pi.hProcess != NULL) startedProcessesAdd (pi.hProcess, pi.hThread);
+        	//puts("createProcessA success");
+	} else {
 		puts("createProcessA failed");
     }
-
+    free (cmdLine);
 #endif
-
-
 }
+
 
 
 int emu_save_state(FILE * f) {
@@ -2115,6 +2219,7 @@ struct cmds_t cmds[] =
     { "dup" ,  dbgCmd_dup   , 0,1,0,"{0|1} disable/enable showing of duplicate messages"},
     { "dw",    dbgCmd_dw    , 1,1,1,"[count] - change/display count word(s)"},
     { "exec",  dbgCmd_exec  , 1,1,0,"command - start a new process"},
+    { "execa", dbgCmd_execA , 1,1,0,"command - start a new process"},
 
     { "go",    dbgCmd_go    , 0,1,1,"[address] - run, optional from address"},
     { "image", dbgCmd_img   , 0,1,0,"save|load [filename] save/load current state to/from file"},
@@ -2311,7 +2416,7 @@ void commandHandler(char * oneCmd, int echo)
 	  }
 	  if (tmp) {
           if (lastCmd == NULL) {
-		      add_history (tmp);		/* add cmd line to histrory buffer */
+		      add_history (tmp);		/* add cmd line to history buffer */
 		      lastCmd=strdup(tmp);
 		  } else {
 		      if (strcmp(tmp,lastCmd) != 0) {
@@ -2375,18 +2480,22 @@ void kbtest (void) {
 	exit(1);
 }
 
-#ifdef _WIN32
-
-#endif // _WIN32
-
 
 int main(int argc, char* argv[])
 {
 	int i;
 	int port = 0;
-	int socketInitDone = 0;
+#ifdef _WIN64
+	char *platform = "win64 ";
+#else
+  #ifdef _WIN32
+	char *platform = "win32 ";
+  #else
+	char *platform ="";
+  #endif
+#endif
 
-	printf("eaglesim %s (%s %s)\nControl x will break into the command line\n",VER_FULLSTR,VER_COMPILE_BY,VER_COMPILE_DATE);
+	printf("eagleemu %s %s(%s %s)\nControl x will break into the command line\n",VER_FULLSTR,platform,VER_COMPILE_BY,VER_COMPILE_DATE);
 
 	/* disable all messages */
 	memset(msgClassFlags,0x00,sizeof(msgClassFlags));
@@ -2396,7 +2505,7 @@ int main(int argc, char* argv[])
 		exit_error("unable to open rom file %s\n",MEM_ROM_FILENAME);
 
 
-	scc_setSockCom(1,1); /* set scc port B to socket connection by default */
+	scc_setSockCom(1,1); /* set scc port B to socket connection by default (for using the load command in rom debugger) */
 
     m68k_set_cpu_type(M68K_CPU_TYPE_68010);
 	m68k_set_int_ack_callback(sys_int_ack);
@@ -2407,6 +2516,9 @@ int main(int argc, char* argv[])
 	 * needs to be changed later because ^c is used to enter "alt load" */
 	(void) signal(SIGINT,ctrlChandler);
 
+	/* set the boot device in nvram to wd0, can be changed later via dev nv device */
+    commandHandler("dev nv wd",0);
+
 	using_history();
 	read_history (HISTORY_FILENAME);
 
@@ -2415,42 +2527,43 @@ int main(int argc, char* argv[])
     /* set directory for tape */
     //commandHandler("device cs directory cs/diag",1);
 
-    /* set the boot device in nvram to wd0, can be changed later via dev nv device */
-    commandHandler("dev nv wd",0);
+    sock_initialize();	// Init lock mutex and init WinSock for Windows
 
-    sock_initialize();
-
+    /* scan for port argument before sock_init will setup listening ports */
     for (i=1;i<argc;i++) {
-        printf("%d: %s\n",i,argv[i]);
+        if ((strcmp(argv[i],"-p") == 0) || (strcmp(argv[i],"--port") == 0)) {
+		    i++;
+		    port = atoi(argv[i]);
+		    i++;
+        }
     }
+
+    sock_init(port);			/* init listen sockets */
+	sock_pollThreadStart ();	/* and start the socket polling thread */
+
+    /* arguments other than port */
 	for (i=1;i<argc;i++) {
 		if ((strcmp(argv[i],"-h") == 0) || (strcmp(argv[i],"--help") == 0)) {
-			printf ("usage: %s\n  --help\n",argv[0]);
-			printf("  --port or -p  starting tcp port number for terminal connections\n");
-			printf ("   or  %s \"Command\" \"Command\" ..\n",argv[0]);
+			printf ("usage: %s\n  --help\n" \
+			        "  --port or -p  starting tcp port number for terminal connections\n" \
+	                "   or  %s \"Command\" \"Command\" ..\n", argv[0], argv[0]);
+			sock_deinit();
 			sock_deinitialize();
 			exit(1);
 		}
 		if ((strcmp(argv[i],"-p") == 0) || (strcmp(argv[i],"--port") == 0)) {
-		    i++;
-		    port = atoi(argv[i]);
-		    printf("Port %d\n",port);
-		    i++;
+		    i+=2;
 		} else {
-            if (! socketInitDone) {
-                sock_init(port);	/* init listen sockets */
-                socketInitDone++;
-            }
-			commandHandler(argv[i],1);
+            commandHandler(argv[i],1);
 		}
 	}
-	if (! socketInitDone)
-        sock_init(port);	/* init listen sockets */
-	sock_pollThreadStart ();
 
 	commandHandler(NULL,1);
-	sock_deinit();
-	sock_deinitialize();
+	sock_deinit();         /* close all sockets */
+	sock_deinitialize();   /* release mutexes and WinSock */
+#ifdef _WIN32
+	terminateStartedProcesses();
+#endif
 	write_history (HISTORY_FILENAME);
 	return 0;
 }

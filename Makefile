@@ -99,6 +99,11 @@
 #         be displayed for exported code)
 #
 
+# Building for win32 need on fedora:
+#
+# mingw32-gcc.x86_64
+
+
 ####
 # Build configuration
 ####
@@ -194,7 +199,7 @@ ifeq ($(strip $(PLATFORM)),win32)
 	TARGET := $(addsuffix .exe,$(TARGET))
 	# console mode application
 	EXT_CFLAGS = -mconsole -fno-builtin-stpcpy
-	C_PREFIX = i686-w64-mingw32-gcc-
+	C_PREFIX = i686-w64-mingw32-
 endif
 
 ifeq ($(strip $(PLATFORM)),win64)

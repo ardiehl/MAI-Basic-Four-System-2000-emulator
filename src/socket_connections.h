@@ -50,5 +50,6 @@ void sock_pollThreadEnd ();
 void sock_initialize();
 void sock_deinitialize();
 
+char * sockStrerror (int errCode);
 
 #endif // SOCKET_CONNECTIONS_H_INCLUDED

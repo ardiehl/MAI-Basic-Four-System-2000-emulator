@@ -18,8 +18,16 @@ XT2=" -e "
 GT1="gnome-terminal --geometry $XT_GEOMETRY -t "
 GT2=" -- "
 
+PU1="pterm -bg $XT_BACKGROUND -fg $XT_FOREGROUND -geometry $XT_GEOMETRY -title"
+PU2="-e "
+
+CR1="cool-retro-term -p 'Monochrome Green' -T"
+CR2="-e "
+CR3=" 2>/dev/null"
+
 TERMCMD="$XT1"
 TERMEXEC="$XT2"
+
 # socket numbers to start
 SOCKNUMS=""
 
@@ -33,6 +41,8 @@ usage () {
     echo " -f  --fd        boot from fd0"
     echo " -t, --telnet    telnet program to use"
     echo " -gt,--gnome     use gnome-terminal instead of xterm"
+    echo " -pt,--putty     use putty instead of xterm"
+    echo " -cr,--cool      use cool retro terminal instead of xterm"
     echo " -0              start first terminal -0 to -9 are supported"
     echo " -a, --all       start all terminals"
     echo " -g              go, start the emulation"
@@ -90,6 +100,16 @@ while [[ $# -gt 0 ]]; do
             TERMEXEC="$GT2"
             shift
         ;;
+	-pt|--putty)
+	    TERMCMD="$PU1"
+	    TERMEXEC="$PU2"
+	    shift
+	;;
+	-cr|--cool)
+            TERMCMD="$CR1"
+	    TERMEXEC="$CR2"
+	    shift
+	;;
         -t|--telnet)
             TELNET="$2"
             shift
@@ -145,7 +165,7 @@ for i in $SOCKNUMS; do
     else addarg "dev sock terminal $i 1"
     fi
     PORT=$((PORT_BASE + i))
-    addarg "exec $TERMCMD $TP $TERMEXEC $TELNET $HOST $PORT"
+    addarg "exec $TERMCMD $TP $TERMEXEC $TELNET $HOST $PORT$TERMEND"
 done
 
 #echo "$ARGS $POSITIONAL_ARGS $GO"

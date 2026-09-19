@@ -18,11 +18,17 @@
     typedef WSAPOLLFD pollfd_t;
     #define poll_sockets WSAPoll
     #define sockErrno WSAGetLastError()
+#ifdef _WIN64
     #define FMT_SOCKET "%llu"
     #define FMT_SOCKET5 "%5llu"
 #else
+	#define FMT_SOCKET "%u"
+    #define FMT_SOCKET5 "%5u"
+#endif
+#else
     #include <poll.h>
     #include <sys/socket.h>
+    #include <sys/select.h>
     #include <unistd.h>
     typedef int socket_t;
     typedef struct pollfd pollfd_t;
@@ -34,6 +40,7 @@
 	#define sockStrerror strerror
 	#define FMT_SOCKET "%d"
 	#define FMT_SOCKET5 "%5d"
+	#define INVALID_SOCKET -1
 #endif
 
 
@@ -472,7 +479,7 @@ socket_t setupListenSocket(int portNum) {
     memset(sendBuff, 0, sizeof(sendBuff));
 	listenfd = socket(AF_INET6, SOCK_STREAM, 0);
     if (listenfd < 0) {
-  	 	 fprintf(stderr,"socket failed with code " FMT_SOCKET ", sockErrno: %d %s\n",listenfd, sockErrno,sockStrerror(sockErrno));
+  	 	 fprintf(stderr,"socket failed with code " FMT_SOCKET ", errno: %d %s\n",listenfd, sockErrno,sockStrerror(sockErrno));
   	 	 return -1;
 	}
 
@@ -525,6 +532,72 @@ socket_t setupListenSocket(int portNum) {
 }
 
 
+#include <stdio.h>
+#include <string.h>
+
+// Cross-platform headers
+#ifdef _WIN32
+    #include <winsock2.h>
+    typedef int socklen_t;
+#else
+    #include <sys/select.h>
+    #include <sys/socket.h>
+    #include <unistd.h>
+    typedef int SOCKET;
+    #define INVALID_SOCKET -1
+#endif
+
+// Returns 1 on success (data received), 0 on timeout, -1 on error
+int recvWithTimeout (socket_t client_sock, char *buffer, size_t buffer_size, int *bytes_received, int timeoutMs) {
+    fd_set read_fds;
+    struct timeval timeout;
+
+    FD_ZERO(&read_fds);
+    FD_SET(client_sock, &read_fds);
+    *bytes_received = 0;
+
+    timeout.tv_sec = 0;
+    timeout.tv_usec = timeoutMs * 1000;
+
+    int activity = select((int)(client_sock + 1), &read_fds, NULL, NULL, &timeout);
+
+    if (activity < 0) return -1;
+
+    else if (activity == 0) {
+        // timeout passed without the client sending anything
+        return 0;
+    }
+
+    // 4. Data is ready to read
+    if (FD_ISSET(client_sock, &read_fds)) {
+        #ifdef _WIN32
+            int res = recv(client_sock, buffer, (int)buffer_size, 0);
+        #else
+            ssize_t res = recv(client_sock, buffer, buffer_size, 0);
+        #endif
+
+        if (res > 0) {
+            *bytes_received = (int)res;
+            return 1; // Success
+        } else if (res == 0) {
+            return -1;  // lient disconnected
+        } else {
+            //perror("recv error");
+            return -1;
+        }
+    }
+
+    return -1;
+}
+
+void dumpBuffer (char *info, char *c, int len) {
+	if (info) printf(info);
+	for (int i=0; i<len; i++) {
+		printf("%02x ",*(uint8_t *)c); c++;
+	}
+	printf("\n");
+}
+
 /* keep it simple: initialize telnet session, most important: disable remote echo
 
 sample from DD-WRT and linux telnet:
@@ -542,27 +615,49 @@ SERVER DATA:
  [<0x0D><0x0D><0x0A>
 ]
 SERVER DATA: DD-WR
+
+WILL SGA
+DO   ECHO
+WILL BINARY
+DO   BINARY
 */
+
+#define TELNET_RECV_TIMEOUT_MS 250
+
 void telnetClientInit(socket_t fd) {
 	int res;
+	int dataSize;
+
         uint8_t myOptions [] = {
-                        TELNET_IAC, TELNET_DO, TELNET_TELOPT_ECHO,		// client should no echo
+                        TELNET_IAC, TELNET_DO, TELNET_TELOPT_ECHO,		// client should not echo
                         TELNET_IAC, TELNET_DONT, TELNET_TELOPT_NAWS,	// window size, we should disable this
-                        TELNET_IAC, TELNET_WILL,TELNET_TELOPT_ECHO,
+                        TELNET_IAC, TELNET_WILL,TELNET_TELOPT_ECHO,     // without that, linux telnet will show ^M on enter key
                         TELNET_IAC, TELNET_WILL,TELNET_TELOPT_SGA,
                         TELNET_IAC, TELNET_DO,  TELNET_TELOPT_SGA,		// for eagleemu, suppress CRLF on enter
                         TELNET_IAC, TELNET_DO,   TELNET_TELOPT_BINARY, 	// for eagleemu, suppress CRLF on enter
 						TELNET_IAC, TELNET_WILL, TELNET_TELOPT_BINARY   // for eagleemu, suppress CRLF on enter
         };
-        uint8_t reply[255];
+        char reply[255];
+#ifdef SOCK_DEBUG
+        res = recvWithTimeout (fd, (char *)&reply, 255, &dataSize, TELNET_RECV_TIMEOUT_MS);
+        if (res && (dataSize > 0)) dumpBuffer("got before sending opts: ",reply,dataSize);
+#else
+		recvWithTimeout (fd, (char *)&reply, 255, &dataSize, 50);
+#endif
 
         res = send(fd, (void *)&myOptions, sizeof(myOptions), 0);
         if (res != sizeof(myOptions)) {
 			printf("telnetClientInit: send returned %d, expected %d, errno %d %s\n",res,(int)sizeof(myOptions),sockErrno,sockStrerror(sockErrno));
         }
+#ifdef SOCK_DEBUG
+        res = recvWithTimeout (fd, (char *)&reply, 255, &dataSize, TELNET_RECV_TIMEOUT_MS);
+        if (res && (dataSize > 0)) dumpBuffer("got after sending opts: ",reply,dataSize);
+#else
+		recvWithTimeout (fd, (char *)&reply, 255, &dataSize, TELNET_RECV_TIMEOUT_MS);
+#endif
 
         // FIXME: select with timeout or some other not that stupid solutions
-        usleep(100000);   // Avoid getting the answer as keypresses, telnet needs some time
+        //usleep(100000);   // Avoid getting the answer as keypresses, telnet needs some time
 
 #ifdef SOCK_DEBUG
         // we should get at least one packet from the client with answers
@@ -668,17 +763,19 @@ static void sock_poll() {
 #endif
 					if (socks[portIdx[i]].doTelnetInit) telnetClientInit(newFd);
 
-					char buff[100];
-					char device[10];
+					char buff[255];
+					char device[30];
 					if (portIdx[i] == 0) strcpy(device,"scc0");
 					else if (portIdx[i] == 1) strcpy(device,"scc1");
-					else if (portIdx[i] < 6) strcpy(device,"fw1");
-					else if (portIdx[i] < 10) strcpy(device,"fw2");
-					else if (portIdx[i] < 14) strcpy(device,"fw3");
-					else strcpy(device,"fw4");
-					strcpy(buff,"\033[2J\033[H\033[1mWelcome to eagleemu on ");
-					strcat(buff,device);
-					strcat(buff,"\033[m\r\nF12 toggles backspace between 0x08 and 0x7f\r\n\n");
+					else if (portIdx[i] < 6) sprintf(device,"fw1:%d",portIdx[i]-2);
+					else if (portIdx[i] < 10) sprintf(device,"fw2:%d",portIdx[i]-6);
+					else if (portIdx[i] < 14) sprintf(device,"fw3:%d",portIdx[i]-10);
+					else sprintf(device,"fw4:%d",portIdx[i]-14);
+
+					/* set window caption (of cause, does not work with windows telnet) */
+					sprintf(buff,"\033]0;%s" \
+								"\007\033[2J\033[H\033[1mWelcome to eagleemu on %s" \
+								"\033[m\r\nF12 toggles backspace between 0x08 and 0x7f\r\n\n",device,device);
 					send(newFd,buff,strlen(buff),0);
 				}
 
@@ -688,6 +785,20 @@ static void sock_poll() {
 				int rc = recv(pfds[i].fd, (char *)&recvBuffer, sizeof(recvBuffer), 0); //MSG_DONTWAIT);
 				if (rc > 0) {
 					socks[portIdx[i]].status = STAT_DATA_AVAILABLE;
+					/* This is an ugly hack to fix Microsoft telnet
+
+					   According to official Telnet protocol specifications (RFC 854), when binary transmission mode is negotiated,
+					   the client should pass keys transparently. However, the Windows Telnet client defaults to a strict "New line mode".
+					   When you press Enter (which maps to 0x0A or \n natively on Linux telnet), the Windows engine automatically expands
+					   it to a carriage return + line feed (0x0D 0x0A)
+					*/
+					if (rc == 2)
+						if (recvBuffer[0] == 0x0d && recvBuffer[1] == 0x0a)
+							rc--;
+
+#ifdef SOCK_DEBUG
+					dumpBuffer("Received: ",(char *)&recvBuffer, rc);
+#endif
 					if (socks[i].doInTranslation) {
 						translateAndAdd (&socks[portIdx[i]], recvBuffer, rc);
 					} else {
@@ -696,9 +807,11 @@ static void sock_poll() {
 						LEAVE_CRIT
 					}
 				} else {
-					fprintf(stderr,"sock_poll: recv after status POLLIN: %d, errno: %d %s\n",rc,sockErrno,sockStrerror(sockErrno));
-					// close the listen socket and try to create it again
-					sock_setupListen (portIdx[i],true);
+					if (rc < 0) {
+						fprintf(stderr,"sock_poll: recv after status POLLIN: %d, errno: %d %s\n",rc,sockErrno,sockStrerror(sockErrno));
+						// close the listen socket and try to create it again
+						sock_setupListen (portIdx[i],true);
+					}
 				}
 			}
 		}
