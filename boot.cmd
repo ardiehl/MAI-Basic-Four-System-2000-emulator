@@ -153,8 +153,8 @@ for %%i in (%SOCKNUMS%) do (
 )
 
 :: Execute the program string directly
-echo ARGS: %ARGS% %POSITIONAL_ARGS% %GO%
-::%ARGS% %POSITIONAL_ARGS% %GO%
+::echo ARGS: %ARGS% %POSITIONAL_ARGS% %GO%
+%ARGS% %POSITIONAL_ARGS% %GO%
 goto :eof
 
 :: ==============================================================================
