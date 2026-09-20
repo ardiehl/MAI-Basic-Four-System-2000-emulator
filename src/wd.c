@@ -19,6 +19,7 @@
 #include "sim.h"
 #include "memory.h"
 #include "eagle_superblock.h"
+#include "util.h"
 
 int installedWds[WD_MAX] = {WD0_INSTALLED,WD1_INSTALLED};
 
@@ -428,16 +429,6 @@ static void wd_clear_outstanding_ints(wd_regs_t * wd) {
 	wd->busErrorIntPending = 0;
 }
 
-
-/*
-static void wd_raise_complete (wd_regs_t * wd) {
-    if (!(wd->ctlReg2 & WD_CTL_INTEN)) return;
-    msgout (MSGC_INFO,MYSELF,MSG_NONE,"operation complete interrupt, vector %02x",wd->intVector);
-    wd->intPending = 1;
-    wd_update_irq(wd);
-}
-*/
-
 static void wd_buserr_int (wd_regs_t * wd) {
 	wd->busErrorIntPending = 1;
 	wd_update_irq (wd,1);
@@ -534,7 +525,8 @@ void processScsiNextPhase (wd_regs_t * wd) {
     int cmd, dmaOn, len;
     UINT32 lba = 0, numBlocks = 0, done, chunk;
     wd_unitRegs_t *wdu;
-    //int modesenseImageBlocks;
+    char formatFillByte;
+    char *p;
 
     wdu = &wd->units[unit];
 
@@ -621,8 +613,13 @@ void processScsiNextPhase (wd_regs_t * wd) {
 
     dmaOn = (wd->ctlReg2 & WD_CTL_SEQEN) ? 1 : 0;
 
-    msgout (MSGC_DEV,MYSELF,MSG_NONE,"Executing scsi command %02x (%s) unit %d blocks %d (%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x), dmaOn: %d",wd->scsiBuf[0] & 0x3f,scsiCommandNames[wd->scsiBuf[0] & 0x3f],unit,numBlocks,
-                wd->scsiBuf[0],wd->scsiBuf[1],wd->scsiBuf[2],wd->scsiBuf[3],wd->scsiBuf[4],wd->scsiBuf[5],wd->scsiBuf[6],wd->scsiBuf[7],wd->scsiBuf[8],wd->scsiBuf[9],dmaOn);
+    if (class == 0)
+		msgout (MSGC_DEV,MYSELF,MSG_NONE,"Executing scsi command %02x (%s) unit %d blocks %d (%02x %02x %02x %02x %02x %02x), dmaOn: %d, dataIdx: %d",wd->scsiBuf[0] & 0x3f,scsiCommandNames[wd->scsiBuf[0] & 0x3f],unit,numBlocks,
+                wd->scsiBuf[0],wd->scsiBuf[1],wd->scsiBuf[2],wd->scsiBuf[3],wd->scsiBuf[4],wd->scsiBuf[5],dmaOn,wd->dataIdx);
+	else
+		msgout (MSGC_DEV,MYSELF,MSG_NONE,"Executing scsi command %02x (%s) unit %d blocks %d (%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x), dmaOn: %d, dataIdx: %d",wd->scsiBuf[0] & 0x3f,scsiCommandNames[wd->scsiBuf[0] & 0x3f],unit,numBlocks,
+                wd->scsiBuf[0],wd->scsiBuf[1],wd->scsiBuf[2],wd->scsiBuf[3],wd->scsiBuf[4],wd->scsiBuf[5],wd->scsiBuf[6],wd->scsiBuf[7],wd->scsiBuf[8],wd->scsiBuf[9],dmaOn,wd->dataIdx);
+
     wd->scsiCheck = 0;
     wd->readInpReg = 0x00;
     wd->replyBytePos = 0;
@@ -676,7 +673,7 @@ void processScsiNextPhase (wd_regs_t * wd) {
                             memcpy(wd->replyBuffer,wd->sense,4);
                             wd->replyBytesLeft = len;
                         }
-                        msgout (MSGC_FUNC,MYSELF,MSG_NONE,"REQUEST SENSE, %d bytes, sense %02x (%s)",len,wd->sense[0],scsiStatusNames[wd->sense[0]]);
+                        msgout (MSGC_FUNC|MSGC_NOPC,MYSELF,MSG_NONE,"REQUEST SENSE, %d bytes, sense %02x (%s)",len,wd->sense[0],scsiStatusNames[wd->sense[0]]);
                         memset(wd->sense,0,sizeof(wd->sense));
                         break;
 
@@ -684,7 +681,7 @@ void processScsiNextPhase (wd_regs_t * wd) {
         case SCSI_READ2:
                         wd_cdb_lba(wd,&lba,&numBlocks);
                         if (numBlocks * WD_SECTOR_SIZE > sizeof(wd->dataBuf)) {
-                            msgout (MSGC_WARN,MYSELF,MSG_NONE,"read of %u blocks split, buffer holds %u",numBlocks,(UINT32)(sizeof(wd->dataBuf)/WD_SECTOR_SIZE));
+                            msgout (MSGC_WARN|MSGC_NOPC,MYSELF,MSG_NONE,"read of %u blocks split, buffer holds %u",numBlocks,(UINT32)(sizeof(wd->dataBuf)/WD_SECTOR_SIZE));
                         }
                         done = 0;
                         while (done < numBlocks) {
@@ -705,7 +702,7 @@ void processScsiNextPhase (wd_regs_t * wd) {
                                 }
                                 memcpy(wd->replyBuffer,wd->dataBuf,numBlocks * WD_SECTOR_SIZE);
 								wd->replyBytesLeft = numBlocks * WD_SECTOR_SIZE;
-								msgout (MSGC_FUNC,MYSELF,MSG_NONE,"READ nonDma lba %u numBlocks: %d",lba,numBlocks);
+								msgout (MSGC_FUNC|MSGC_NOPC,MYSELF,MSG_NONE,"READ nonDma lba %u numBlocks: %d",lba,numBlocks);
 								break;
                             }
                             if (!wd_dma_to_mem(wd,wd->dataBuf,chunk*WD_SECTOR_SIZE)) {
@@ -713,7 +710,7 @@ void processScsiNextPhase (wd_regs_t * wd) {
                             }
                             done += chunk;
                         }
-                        msgout (MSGC_FUNC,MYSELF,MSG_NONE,"READ  lba %u count %u -> memory, status %02x",lba,numBlocks,wd->replyBuffer[0]);
+                        msgout (MSGC_FUNC|MSGC_NOPC,MYSELF,MSG_NONE,"READ  lba %u count %u -> memory, status %02x",lba,numBlocks,wd->replyBuffer[0]);
                         break;
 
         case SCSI_WRITE:
@@ -736,7 +733,7 @@ void processScsiNextPhase (wd_regs_t * wd) {
                             }
                             done += chunk;
                         }
-                        msgout (MSGC_FUNC,MYSELF,MSG_NONE,"WRITE lba %u count %u <- memory, status %02x",lba,numBlocks,wd->replyBuffer[0]);
+                        msgout (MSGC_FUNC|MSGC_NOPC,MYSELF,MSG_NONE,"WRITE lba %u count %u <- memory, status %02x",lba,numBlocks,wd->replyBuffer[0]);
                         break;
 
         case SCSI_SENDDIAG:
@@ -747,10 +744,10 @@ void processScsiNextPhase (wd_regs_t * wd) {
                             if (!wd_dma_from_mem(wd,wd->dataBuf,(len+1) & ~1)) {
                                 wd->statusByte = 0x02; wd->sense[0] = 0x11; break;
                             }
-                            msgout (MSGC_FUNC,MYSELF,MSG_NONE,"SEND DIAGNOSTIC, %d parameter bytes: %02x %02x %02x %02x",
+                            msgout (MSGC_FUNC|MSGC_NOPC,MYSELF,MSG_NONE,"SEND DIAGNOSTIC, %d parameter bytes: %02x %02x %02x %02x",
                                     len,wd->dataBuf[0],wd->dataBuf[1],wd->dataBuf[2],wd->dataBuf[3]);
                         } else
-                            msgout (MSGC_FUNC,MYSELF,MSG_NONE,"SEND DIAGNOSTIC, no parameter transfer (len %d, dma %d)",len,dmaOn);
+                            msgout (MSGC_FUNC|MSGC_NOPC,MYSELF,MSG_NONE,"SEND DIAGNOSTIC, no parameter transfer (len %d, dma %d)",len,dmaOn);
                         wd->sense[0] = 0;
                         break;
 
@@ -764,17 +761,11 @@ void processScsiNextPhase (wd_regs_t * wd) {
                                 wd->statusByte = 0x02; wd->sense[0] = 0x11; break;
                             }
                         }
-                        msgout (MSGC_FUNC,MYSELF,MSG_NONE,"RECEIVE DIAGNOSTIC, %d bytes returned as zero",len);
+                        msgout (MSGC_FUNC|MSGC_NOPC,MYSELF,MSG_NONE,"RECEIVE DIAGNOSTIC, %d bytes returned as zero",len);
                         break;
 
         case SCSI_MODESENSE:
-						/* FIXME:
-						   Test 23 -->  Mode sense
-                           Modesense data from format doesnt match Superblock  */
-						//modesenseImageBlocks = wdu->imgBlocks;
-						//if (wdu->capacity > 0) modesenseImageBlocks = wdu->capacity; /* from superblock */
-
-                        /* twelve byte descriptor: 4 header, 8 extent */
+						/* twelve byte descriptor: 4 header, 8 extent */
                         len = wd->scsiBuf[4];
                         if (len == 0) len = 12;
                         if (len > (int)sizeof(wd->replyBuffer)) len = sizeof(wd->replyBuffer);
@@ -807,12 +798,12 @@ void processScsiNextPhase (wd_regs_t * wd) {
 							}
                         } else
 							wd->replyBytesLeft = len;
-                        msgout (MSGC_FUNC,MYSELF,MSG_NONE,"MODE SENSE, %d bytes, %u blocks of %d",len,wdu->imgBlocks,WD_SECTOR_SIZE);
+                        msgout (MSGC_FUNC|MSGC_NOPC,MYSELF,MSG_NONE,"MODE SENSE, %d bytes, %u blocks of %d",len,wdu->imgBlocks,WD_SECTOR_SIZE);
                         break;
 
         case SCSI_MODESELECT:
                         len = wd->scsiBuf[4];
-                        msgout (MSGC_ERR,MYSELF,MSG_NONE,"MODE SELECT dma: %d, len: %d",dmaOn,len);
+                        //msgout (MSGC_ERR,MYSELF,MSG_NONE,"MODE SELECT dma: %d, len: %d",dmaOn,len);
                         if (len > (int)sizeof(wd->dataBuf)) len = sizeof(wd->dataBuf);
                         if (len) {
 							if (dmaOn) {
@@ -849,8 +840,8 @@ void processScsiNextPhase (wd_regs_t * wd) {
                                 if (wdu->cylinders < 1 || wdu->cylinders > 2048) errs++;
                                 wdu->heads = wd->dataBuf[15];
                                 if (wdu->heads < 1 || wdu->heads > 16) errs++;
-
-                                msgout (MSGC_DEV,MYSELF,MSG_NONE,"MODE SELECT, blockSize: %d, cylinders; %d, heads: %d, errs: %d",blockSize,wdu->cylinders,wdu->heads,errs);
+								wdu->sectors = 17;
+                                msgout (MSGC_FUNC|MSGC_NOPC,MYSELF,MSG_NONE,"MODE SELECT, blockSize: %d, cylinders; %d, heads: %d, errs: %d",blockSize,wdu->cylinders,wdu->heads,errs);
 							}
 
 							if (errs) {
@@ -877,12 +868,68 @@ void processScsiNextPhase (wd_regs_t * wd) {
                             } else
 								wd->replyBytesLeft = 8;
                         }
-                        msgout (MSGC_FUNC,MYSELF,MSG_NONE,"READ CAPACITY, last block %u",lba);
+                        msgout (MSGC_FUNC|MSGC_NOPC,MYSELF,MSG_NONE,"READ CAPACITY, last block %u",lba);
                         break;
 
         case SCSI_FORMAT:
+						/*
+						scsi: 04 1e e5 00 01 00
+						'00 00 00 10 00 00 01 02 00 00 00 03 00 00 04 05 00 00 00 06 00 00 00 00 00 00 00 00
+						Defect no.: 1
+						  Cylinder        : 1
+						  Head            : 2
+						  Bytes from index: 3
+						Defect no.: 2
+						  Cylinder        : 4
+						  Head            : 5
+						  Bytes from index: 6
 
-                        msgout (MSGC_DEV,MYSELF,MSG_NONE,"FORMAT UNIT accepted, image left untouched");
+						  todo: diag always tries to read 32760 (independent on drive capacity) when trying to install diags, try that on real hw
+							wd: Executing scsi command 08 (SCSI_READ) unit 0 blocks 4 (08 05 00 00 04 00), dmaOn: 1, dataIdx: 0 (PC:00012cd2 dbra    D3, $12cd2)
+							ERROR wd: read past end of image, unit 0, block 327680 count 4, image has 312120 (PC:00012cd2 dbra    D3, $12cd2)
+							wd: READ  lba 327680 count 4 -> memory, status 00)
+
+
+
+						*/
+						if ((wd->scsiBuf[1] & 7) == 2) formatFillByte = wd->scsiBuf[2];
+						else formatFillByte = 0xe5; // manual states 6c but original machine has e5 ?
+
+						if ((wdu->cylinders < 1) || (wdu->heads < 1) || (wdu->sectors != 17)) {
+							wd->statusByte = 0x02; wd->sense[0] = SENSE_BAD_ARGUMENT; break;
+						}
+						if (dmaOn) {
+							len = 1024; // maximum size of buffer in wd
+
+							if (!wd_dma_from_mem(wd,wd->dataBuf,len)) {
+									wd->statusByte = 0x02; wd->sense[0] = 0x11; break;
+							}
+							wd->dataIdx = ((uint32_t)wd->dataBuf[3]) | (((uint32_t)wd->dataBuf[2]) << 8) +4;
+						}
+						p = NULL;
+						if (wd->dataIdx > 0)
+							p = dumpData(wd->dataBuf, wd->dataIdx);
+
+						if (wdu->imgReadonly) {
+							msgout (MSGC_ERR,MYSELF,MSG_NONE,"format of read only image for unit %d rejected",unit);
+							wd->statusByte = 0x02; wd->sense[0] = SENSE_WRITE_FAULT; break;
+						}
+
+						int numBlocks = wdu->cylinders * wdu->heads * wdu->sectors;
+						if (! (wdu->img = freopen(wdu->imgName, "w+b", wdu->img))) {
+							msgout (MSGC_ERR,MYSELF,MSG_NONE,"truncate of '%s' for unit %d failed",wdu->imgName,unit);
+							wd->statusByte = 0x02; wd->sense[0] = SENSE_WRITE_FAULT; break;
+						}
+						memset(wd->dataBuf,formatFillByte,WD_SECTOR_SIZE);
+						wdu->imgBlocks = numBlocks;
+						for (int i = 0; i < numBlocks; i++) {
+							if (!wd_img_write(wd,unit,i,wd->dataBuf,1)) {
+								wd->statusByte = 0x02; wd->sense[0] = SENSE_WRITE_FAULT; break;
+							}
+						}
+
+                        msgout (MSGC_FUNC|MSGC_NOPC,MYSELF,MSG_NONE,"Unit %d formatted, cylinders: %d, heads: %d, sectors: %d, blocks: %d (%.1f MB)",unit,wdu->cylinders,wdu->heads,wdu->sectors,numBlocks,(double)wdu->imgBlocks * WD_SECTOR_SIZE / 1048576.0);
+                        free(p);
                         wd->sense[0] = 0;
                         break;
 
@@ -914,9 +961,6 @@ void processScsiNextPhase (wd_regs_t * wd) {
 						wd->sense[0] = 0;
                         break;
 		case SCSI_TRANSLATE:
-						/* Test 19 -->  Translate, pass
-						   for now return all 0 */
-						// TODO: calculate if values for cylinders / heads are set
 						wd_cdb_lba(wd,&lba,&numBlocks);
 						int track = 0;
 						int sector = 0;
@@ -948,7 +992,7 @@ void processScsiNextPhase (wd_regs_t * wd) {
 						wd->sense[0] = 0;
                         break;
 
-        default:        msgout (MSGC_WARN,MYSELF,MSG_NONE,"scsi command %02x (%s) not implemented, dmaOn: %d",cmd,scsiCommandNames[cmd & 0x3f],dmaOn);
+        default:        msgout (MSGC_WARN|MSGC_NOPC,MYSELF,MSG_NONE,"scsi command %02x (%s) not implemented, dmaOn: %d",cmd,scsiCommandNames[cmd & 0x3f],dmaOn);
                         wd->statusByte = 0x02;
                         wd->sense[0] = 0x20;    /* invalid command */
     }
@@ -1030,9 +1074,17 @@ int numNonDmaBytesToBeTransferedFromHost (wd_regs_t * wd) {
     cmd = wd->scsiBuf[0] & 0x1f;
     switch (cmd) {
         case SCSI_FORMAT:
-            /* defect list not yet supported
+            /* defect list
                Byte 01 is used to indicate if a list of defect locations is appended and whether a
                unique fill character is required. Bit 04 indicates that defect data is appended */
+			if (wd->scsiIdx > 1)
+				if (wd->scsiBuf[1] & (1 << 4)) {	// Data bit <4> is set to alert the wdc that a list of bad areas is forthcoming
+					dataLen = 4;				// 2 bytes reserved, than length of Defect List in Bytes (MSB, LSB)
+				}
+			if (wd->scsiIdx > 8) {
+				dataLen +=  (uint32_t)wd->scsiBuf[9] | ((uint32_t)wd->scsiBuf[8] << 8);
+			}
+			//if (dataLen) msgout (MSGC_DEV,MYSELF,MSG_NONE," Format data length: %d",dataLen);
             break;
         case SCSI_WRITE:
             dataLen = wd->scsiBuf[4] * WD_SECTOR_SIZE;
@@ -1058,6 +1110,43 @@ int numNonDmaBytesToBeTransferedFromHost (wd_regs_t * wd) {
             break;
     }
     return dataLen;
+}
+
+
+void wa(char c) {
+	wd_regs_t *wd = &wdr[0];
+	int i;
+	wd->scsiBuf[wd->scsiIdx]=c; wd->scsiIdx++;
+	printf("%d: ",wd->scsiIdx-7);
+	for (i=0; i<wd->scsiIdx; i++)
+		printf("%02x ",wd->scsiBuf[i]);
+	printf(" dataLen: %d\n",numNonDmaBytesToBeTransferedFromHost(wd));
+}
+
+void test() {
+	wd_regs_t *wd = &wdr[0];
+
+	wd->scsiIdx = 0;
+	wa(0x04); // format
+	wa(1 << 4);  // defect list
+	wa(0x55);  // data pattern
+	wa(0x00);wa(0x00); // interleave
+	wa(0x00);  // reserved
+
+	// data
+	wa(0x00);wa(0x00);  // reserved
+
+	wa(0x00);wa(0x05);  // 5 bytes
+	wa(0x00);wa(0x00);wa(0x00);wa(0x00);wa(0x00);
+
+	wa(0x00);wa(0x04);  // 4 bytes
+	wa(0x00);wa(0x00);wa(0x00);wa(0x00);
+
+	wa(0x00);wa(0x00);  // 0 bytes
+
+
+
+
 }
 
 
@@ -1093,7 +1182,7 @@ int processScsiCommand(wd_regs_t * wd) {
     }
 
     if (wd->scsiIdx == len) {
-        //printf("--------- got scsi command\n");
+        //printf("--------- got scsi command %02x\n",wd->scsiBuf[0] & 0x3f);
         dataLen = numNonDmaBytesToBeTransferedFromHost (wd);
         if (dataLen) {
             // state from cmd | busy to busy
@@ -1293,18 +1382,18 @@ void wd_write_byte(unsigned int address, unsigned int value, int flags) {
             case WD_REG_DMA_HI		: tmp = value << 16;
                                       wd->dmaAddress &= 0x0ffff;
                                       wd->dmaAddress |= tmp;
-                                      msgout (MSGC_FUNC,MYSELF,MSG_WRITEB,"%02x to %08x (DMA H), dmaReg:%06x (%06x)",value,address,~wd->dmaAddress,((~wd->dmaAddress) & 0xffffff)<<1);
+                                      msgout (MSGC_INFO,MYSELF,MSG_WRITEB,"%02x to %08x (DMA H), dmaReg:%06x (%06x)",value,address,~wd->dmaAddress,((~wd->dmaAddress) & 0xffffff)<<1);
                                       wd->dmaTestCount = 0;
                                       return;
             case WD_REG_DMA_MID		: tmp = value << 8;
                                       wd->dmaAddress &= 0x0ff00ff;
                                       wd->dmaAddress |= tmp;
-                                      msgout (MSGC_FUNC,MYSELF,MSG_WRITEB,"%02x to %08x (DMA M), dmaReg:%06x (%06x)",value,address,~wd->dmaAddress,((~wd->dmaAddress) & 0xffffff)<<1);
+                                      msgout (MSGC_INFO,MYSELF,MSG_WRITEB,"%02x to %08x (DMA M), dmaReg:%06x (%06x)",value,address,~wd->dmaAddress,((~wd->dmaAddress) & 0xffffff)<<1);
                                       wd->dmaTestCount = 0;
                                       return;
             case WD_REG_DMA_LOW		: wd->dmaAddress &= 0x0ffff00;
                                       wd->dmaAddress |= value;
-                                      msgout (MSGC_FUNC,MYSELF,MSG_WRITEB,"%02x to %08x (DMA L), dmaReg:%06x (%06x)",value,address,~wd->dmaAddress,((~wd->dmaAddress) & 0xffffff)<<1);
+                                      msgout (MSGC_INFO,MYSELF,MSG_WRITEB,"%02x to %08x (DMA L), dmaReg:%06x (%06x)",value,address,~wd->dmaAddress,((~wd->dmaAddress) & 0xffffff)<<1);
                                       wd->dmaTestCount = 0;
                                       return;
             case WD_REG_INTVEC      : wd->intVector = value;
@@ -1545,7 +1634,7 @@ void wd_superblock (int numArgs, struct args_t *args) {
 		res = sb_read (wdr[wdn].units[unit].img, &sb);
 		if (res > 0) sb_show (&sb);
 		else printf("failed to read superblock\n");
-    }
+    } else printf("no image attached\n");
 }
 
 

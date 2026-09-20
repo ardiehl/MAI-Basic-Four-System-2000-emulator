@@ -2495,6 +2495,10 @@ int main(int argc, char* argv[])
   #endif
 #endif
 
+	/*wd_pulse_reset();
+	test();
+	return 0;*/
+
 	printf("eagleemu %s %s(%s %s)\nControl x will break into the command line\n",VER_FULLSTR,platform,VER_COMPILE_BY,VER_COMPILE_DATE);
 
 	/* disable all messages */

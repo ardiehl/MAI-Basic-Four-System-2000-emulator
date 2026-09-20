@@ -68,4 +68,7 @@ char* stpcpy(char* dest, const char* src);
 
 void console_init();
 
+// return a string of hex bytes, returned pointer must be freed
+char * dumpData(char *p, int len);
+
 #endif

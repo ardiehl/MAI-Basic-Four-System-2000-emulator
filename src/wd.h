@@ -40,8 +40,10 @@
 #define WD_MAX          2
 // this is the size of the buffer ram of the wd/acb-4000
 #define WD_DATABUF_LEN_MAX 1024
+#define WD_DATABUF_LEN 18*WD_SECTOR_SIZE
+
 // as all incoming data is in scsiBuf as well we need this instead of 255
-#define WD_SCSICMD_MAX  WD_DATABUF_LEN_MAX + 20
+#define WD_SCSICMD_MAX  WD_DATABUF_LEN + 10
 #define WD_SECTOR_SIZE  512
 // max units (drives) per wd
 #define WD_MAX_UNITS    2
@@ -223,11 +225,11 @@ typedef struct {
     //int    intAsserted;    /* current state of the request line   */
     UINT32 replyBytesLeft;
     UINT32 replyBytePos;
-    UINT8  replyBuffer[18*WD_SECTOR_SIZE];
+    UINT8  replyBuffer[WD_DATABUF_LEN];
     UINT8  sense[4];       /* sense bytes returned by REQUEST SENSE  */
     UINT8  statusByte;     /* SCSI status handed over in the status phase */
     int dataIdx;
-    UINT8  dataBuf[WD_SECTOR_SIZE*8];
+    UINT8  dataBuf[WD_DATABUF_LEN];
     /* --!! this has to be the last field in the struct and is not nulled on reset !!-- */
     wd_unitRegs_t units[WD_MAX_UNITS];
 } wd_regs_t;
@@ -267,5 +269,7 @@ int  wd_irq_ack(int level);
 
 int wd_save_state(FILE * f);
 int wd_load_state(FILE * f);
+
+void test();
 
 #endif

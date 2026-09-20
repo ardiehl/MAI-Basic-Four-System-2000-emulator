@@ -24,6 +24,7 @@
 
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -295,3 +296,27 @@ void console_init() {
     }
 #endif
 }
+
+
+// return a string of hex bytes, returned pointer must be freed
+char * dumpData(char *p, int len) {
+	char *res;
+	int allocSize,i;
+	char temp[4];
+	char *resEnd;
+
+	allocSize = (len * 3) +1;
+	res = malloc(allocSize);
+	if (!res) return NULL;
+	*res = 0;
+	resEnd = res;
+	for (i = 0; i < len; i++) {
+		sprintf(temp,"%02x ",*p);
+		p++;
+		resEnd = stpcpy(resEnd,temp);
+	}
+	if (resEnd > res) { resEnd--; *resEnd = 0; }
+	return res;
+
+}
+
