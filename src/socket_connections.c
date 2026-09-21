@@ -168,7 +168,7 @@ enum sockstat_t {
 };
 
 #define SEND_DATA_BUF_DEF_SIZE 32768
-#define RECV_BUFFER_SIZE 256
+#define RECV_BUFFER_SIZE 32768
 
 typedef struct {
 	socket_t fd;
