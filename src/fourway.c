@@ -62,6 +62,7 @@ typedef struct {
     UINT32        intVector;
     UINT32        accesses;
     char          recvData;        /* for this we have fired the recv interrupt */
+    int           hostReadRegFull;
     fw_portRegs_t portRegs[4];
 } fw_regs_t;
 
@@ -218,12 +219,14 @@ void fw_processPendingCompletes() {
 			// TODO: check if last char was read before generating an int
 			int n = i/4;
 			if ((fw[n].status & FW_ST_NOVECTOR) == 0) {
-				if (sock_dataAvailable(2+i)) {	// do we have incoming data ?
-					int port = i % 4;
-					sock_getchar(2+i, &fw[n].recvData);
-					fw_addPendingComplete (n, port, FW_VEC_RXCHAR); // queue them all so that not only the first gets priority
-					numAdded++;
-					msgout (MSGC_INFO,MYSELF,MSG_NONE,"fw%d port%c: rxchar completion interrupt queued", n,'A'+port);
+				if (!fw[n].hostReadRegFull) {
+					if (sock_dataAvailable(2+i)) {	// do we have incoming data ?
+						int port = i % 4;
+						sock_getchar(2+i, &fw[n].recvData);
+						fw_addPendingComplete (n, port, FW_VEC_RXCHAR); // queue them all so that not only the first gets priority
+						numAdded++;
+						msgout (MSGC_INFO,MYSELF,MSG_NONE,"fw%d port%c: rxchar completion interrupt queued", n,'A'+port);
+					}
 				}
 			}
 		}
@@ -404,7 +407,7 @@ static void fw_runCommand (int n, int port) {
             fw_complete(n,port,FW_VEC_CMDEXECUTED);
             break;
 
-		/* Cbmmand Configuration - For each register to be changed, the Data Packet (DP) must specify the
+		/* Command Configuration - For each register to be changed, the Data Packet (DP) must specify the
 		   register number first, followed by the new command. */
 		case FW_CMD_CONF:
 
@@ -494,6 +497,7 @@ unsigned int fw_read_byte (unsigned int address, int flags) {
     // 3ef44
 	if ((address & FW_REG_MASK) == FW_REG_RECV) {
 		msgout (MSGC_FUNC,MYSELF,MSG_READB,"fw%d: read of %08x (%s), returning 0x%02x",n,address,fw_regName(address),fw[n].recvData);
+		fw[n].hostReadRegFull = 0;
 		return fw[n].recvData;
 	} else
 	// if this is set to ff, kernel reports "Cannot set transmission characteristics"
@@ -569,6 +573,7 @@ void fw_pulse_reset (void) {
            vector, and says so, M8155A 3.3.6 step 2 */
         fw[i].status = FW_ST_NOCMDBLOCK | FW_ST_NOVECTOR;
         fw[i].initState = FW_INIT_CBLOCK_LOW;
+        fw[i].hostReadRegFull = 0;
         for (j=0;j<3;j++)
 			portSetDefaults(&fw[i].portRegs[j]);
     }

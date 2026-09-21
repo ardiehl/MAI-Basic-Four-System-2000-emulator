@@ -345,7 +345,7 @@ void cs_processContinue(void) {  /* called each n instructions */
     cs_iopb_t iopb;
     unsigned int address,dataAddr;
     char name[255];
-    int i,skipped;
+    int i,skipped,atEOF;
     char filename[FILENAME_MAX+1];
 
     if (cs.execCount) {
@@ -373,8 +373,10 @@ void cs_processContinue(void) {  /* called each n instructions */
                                             msgout (MSGC_FUNC,MYSELF,MSG_NONE,"using int vector %02x",cs.intVector);
                                         }
                                         break;
-                case CS_CMD_SKIP      : tape_close_file();
-                                        i = iopb.numBlocks; skipped=0;
+                case CS_CMD_SKIP      : atEOF = ((cs.fileRemainingBlocks == 0) && cs.fileIsOpen);	// if we are at end of file, skip has to skip the next file not the current one
+										tape_close_file();
+                                        i = iopb.numBlocks + atEOF; skipped=0;
+                                        //if (cs.fileRemainingBlocks == 0) i++;
                                         while((i>0) && (tape_file_exists(cs.fileNo))) { i--; skipped++; cs.fileNo++; }
                                         iopb.status = CS_STAT_COMPLETE;
                                         if (i>0) iopb.status |= CS_STAT_EOD; /* is this the correct flag ? */
