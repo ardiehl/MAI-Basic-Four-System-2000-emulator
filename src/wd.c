@@ -925,7 +925,7 @@ void processScsiNextPhase (wd_regs_t * wd) {
 							wd->statusByte = 0x02; wd->sense[0] = SENSE_WRITE_FAULT; break;
 						}
 
-						int numBlocks = wdu->cylinders * wdu->heads * wdu->sectors;
+						numBlocks = wdu->cylinders * wdu->heads * wdu->sectors;
 						if (! (wdu->img = freopen(wdu->imgName, "w+b", wdu->img))) {
 							msgout (MSGC_ERR,MYSELF,MSG_NONE,"truncate of '%s' for unit %d failed",wdu->imgName,unit);
 							wd->statusByte = 0x02; wd->sense[0] = SENSE_WRITE_FAULT; break;

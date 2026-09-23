@@ -46,11 +46,13 @@ usage () {
     echo " -0              start first terminal -0 to -9 are supported"
     echo " -a, --all       start all terminals"
     echo " -g              go, start the emulation"
+    echo "--commandline    show commandline but do not start"
 }
 
 TP=""
 GO=""
 ARGS="./eagleemu"
+SHOWCOMMANDLINE="0"
 
 terminalPort () {
     case $1 in
@@ -87,6 +89,10 @@ addarg () {
 
 while [[ $# -gt 0 ]]; do
     case $1 in
+        --commandline)
+            SHOWCOMMANDLINE="1"
+            shift
+        ;;
         -0|-1|-2|-3|-4|-5|-6|-7|-8|-9)
             SOCKNUMS="$SOCKNUMS ${1:1}"
             shift
@@ -168,8 +174,11 @@ for i in $SOCKNUMS; do
     addarg "exec $TERMCMD $TP $TERMEXEC $TELNET $HOST $PORT$TERMEND"
 done
 
-#echo "$ARGS $POSITIONAL_ARGS $GO"
-eval $ARGS $POSITIONAL_ARGS $GO
+if [ "$SHOWCOMMANDLINE" == "1" ]; then
+  echo "$ARGS $POSITIONAL_ARGS $GO"
+else
+  eval $ARGS $POSITIONAL_ARGS $GO
+fi
 
 
 

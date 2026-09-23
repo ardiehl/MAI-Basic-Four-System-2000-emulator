@@ -26,6 +26,7 @@
     #define FMT_SOCKET5 "%5u"
 #endif
 #else
+	#include <signal.h>
     #include <poll.h>
     #include <sys/socket.h>
     #include <sys/select.h>
@@ -734,14 +735,14 @@ static void sock_poll() {
 	}
 	res = poll_sockets(pfds,numFds,0);
 	if (res < 0) {
-#ifdef SOCK_DEBUG
+//#ifdef SOCK_DEBUG
 		fprintf(stderr,"poll returned %d, sockErrno: %d %s\n",res,sockErrno,sockStrerror(sockErrno));
-#endif
+//#endif
 		return;
 	}
 
 	for(i=0;i<numFds;i++) {
-		//printf("%d revents: 0x%8x ",i,pfds[i].revents);
+		//if (pfds[i].revents != 0) printf("%d revents: 0x%08x ",i,pfds[i].revents);
 		socks[portIdx[i]].revents = pfds[i].revents;
 		if (pfds[i].revents && POLLIN) {						// on Linux i only get POLLIN even if the telnet client is already terminated
 			if (socks[portIdx[i]].status == STAT_WAITCONN) {	// socket is listening, we need to accept the connection
@@ -812,11 +813,9 @@ static void sock_poll() {
 						LEAVE_CRIT
 					}
 				} else {
-					if (rc < 0) {
-						fprintf(stderr,"sock_poll: recv after status POLLIN: %d, errno: %d %s\n",rc,sockErrno,sockStrerror(sockErrno));
-						// close the listen socket and try to create it again
-						sock_setupListen (portIdx[i],true);
-					}
+					printf("port %d disconnected\n",i);
+					// close the listen socket and try to create it again
+					sock_setupListen (portIdx[i],true);
 				}
 			}
 		}
@@ -1184,6 +1183,7 @@ int sock_dbgCmd(int numArgs, struct args_t * args) {
 void sock_initialize() {
 	initCriticalSections();
 	sock_initialize_done = 1;
+	//signal(SIGPIPE, SIG_IGN);
 }
 
 
