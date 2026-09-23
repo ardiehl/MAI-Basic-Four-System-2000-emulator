@@ -55,6 +55,12 @@ cs
    trestore d=/dev/cs name=CONFIG
    Part of file '/sys/config.2000-97894' missing on tape
    Tape read error -85. Can't restore /sys/config.2000-97894
+ for the last file on diags an error is reported:
+   <exec>load dutilnew
+   Loading: dutilnew..........
+   Tape Error:  1400
+
+   Tape Error:  0000 
 
 Image
  Update the menu to contain all programs (games, user progs, ...)

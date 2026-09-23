@@ -276,7 +276,7 @@ void fd_write_byte(unsigned int address, unsigned int value, int flags) {
 		                if (regNum == WD1793_CMD) {
 							fd_exec_command(value);
 						} else {
-			                MSG (MSGC_NOTIMP,MYSELF,MSG_WRITEB,"%02x to %08x (wd1793) regNum %d",value,address,regNum);
+			                //MSG (MSGC_NOTIMP,MYSELF,MSG_WRITEB,"%02x to %08x (wd1793) regNum %d",value,address,regNum);
 						}
 						return;
 		case FD_BUFF:	bufPos = address & FD_BUFFER_MASK;
@@ -406,10 +406,62 @@ void fd_processContinue(void) {  /* called after n instructions if a ws1793 comm
     }
 }
 
+int fd_attach_image (int unit, const char * name) {
+    long sz;
+    fd_unitRegs_t *fdu;
+
+    if ((unit < 0) || (unit >= FD_MAX_DRIVES)) return 0;
+    fdu = &fd.units[unit];
+
+    if (fdu->img) { fclose(fdu->img); fdu->img = NULL; fdu->imgBlocks = 0; }
+    if (!name) return 1;
+    fdu->imgReadonly = 0;
+    fdu->img = fopen(name,"r+b");
+    if (!fdu->img) {
+        fdu->img = fopen(name,"rb");
+        if (fdu->img) fdu->imgReadonly = 1;
+    }
+    if (!fdu->img) {
+        printf("fd%d: cannot open '%s'\n",unit,name);
+        return 0;
+    }
+    fseek(fdu->img,0,SEEK_END);
+    sz = ftell(fdu->img);
+    if (sz <= 0) { printf("fd,%d: '%s' is empty\n",unit,name); fclose(fdu->img); fdu->img=NULL; return 0; }
+    fdu->imgBlocks = (UINT32)(sz / FD_SECTOR_SIZE);
+    strncpy(fdu->imgName,name,sizeof(fdu->imgName)-1);
+    printf("fd,%d: attached '%s', %u blocks (%.1f MB)%s\n",unit,name,fdu->imgBlocks,
+            (double)fdu->imgBlocks * FD_SECTOR_SIZE / 1048576.0,
+            fdu->imgReadonly ? " read only" : "");
+    return 1;
+}
+
 
 /******************************************************************************
  * Commands
  ******************************************************************************/
+
+ void fd_image (int numArgs, struct args_t *args) {
+    int unit = 0;
+
+    if (numArgs < 1) {
+		for (unit=0; unit < FD_MAX_DRIVES; unit++)
+			printf("fd,%d image: %s (%u blocks)\n",unit,
+				fd.units[unit].img ? fd.units[unit].imgName : "<none>",fd.units[unit].imgBlocks);
+        return;
+    }
+    if (numArgs > 1) unit = args[1].value;
+    if (!fd_attach_image(unit,args[0].txt)) printf("unable to attach image\n");
+}
+
+
+void fd_imageRemove (int numArgs, struct args_t *args) {
+    int unit = 0;
+
+    if (numArgs > 0) unit = args[0].value;
+    if (!fd_attach_image(unit,NULL)) printf("unable to detach image\n");
+}
+
 
 
 void fd_showRegs(int numArgs, struct args_t *args) {
@@ -434,10 +486,12 @@ void fd_help (int numArgs, struct args_t *args);
 
 struct cmds_t fdCmds[] =
     {
-    { "registers"  ,fd_showRegs, 0,0,0,"show fd registers"},
-    { "?"          ,fd_help, 0,0,0,""},
-    { "help"       ,fd_help, 0,0,0,"show this help"},
-    { ""           ,  NULL,  0,0,0,""}
+	{ "image",      fd_image,       0,3,0,"image <file> [unit] - attach a raw disk image"},
+    { "detach",     fd_imageRemove, 1,2,0,"detach [unit] - remove an attached disk image"},
+    { "registers"  ,fd_showRegs,    0,0,0,"show fd registers"},
+    { "?"          ,fd_help,        0,0,0,""},
+    { "help"       ,fd_help,        0,0,0,"show this help"},
+    { ""           ,  NULL,         0,0,0,""}
 };
 
 void fd_help (int numArgs, struct args_t *args) {

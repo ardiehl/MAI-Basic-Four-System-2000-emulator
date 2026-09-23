@@ -30,7 +30,7 @@
 /*
  70XXXX WRITE Floppy address counter reset (13J)
         latches the control bit pattern from the byte-wide I/O data bus that determines the direction of data
-        flow in the floppy sector buffer state machine. Floppy drive recording density and encoding format 
+        flow in the floppy sector buffer state machine. Floppy drive recording density and encoding format
         also are chosen here.
 
  72XXXX READ Floppy status (read only)
@@ -115,6 +115,15 @@
 #endif
 
 #define FD_MAX_REGISTERS 5
+#define FD_MAX_DRIVES    2
+#define FD_SECTOR_SIZE 512
+
+typedef struct {
+    FILE * img;
+    char   imgName[FILENAME_MAX+1];
+    UINT32 imgBlocks;         /* size of the image in 512 byte blocks (8 sectors a 512 bytes per track) */
+    int    imgReadonly;
+} fd_unitRegs_t;
 
 typedef struct {
     UINT8  regs[FD_MAX_REGISTERS];
@@ -132,6 +141,9 @@ typedef struct {
     UINT32 dummy2;
     UINT32 dummy3;
     UINT32 dummy4;
+
+    fd_unitRegs_t units[FD_MAX_DRIVES];
+
 } fd_t;
 
 
