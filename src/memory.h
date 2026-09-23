@@ -9,7 +9,13 @@
 
 #define MEM_BOARDSIZE		0x40000		/* 256K per board */
 #define MEM_BOARDS			6
+#if MEM_BOARDS == 8
+// we can not use 2 MB due to a bug in musashi and the rom and diags wants steps of 128k
+// so we can only use half of the last board
+#define MEM_SIZE			((MEM_BOARDSIZE * MEM_BOARDS) - 0x20000)
+#else
 #define MEM_SIZE			MEM_BOARDSIZE * MEM_BOARDS
+#endif
 
 #define MEM_ADDR_ROM		0x400000
 #define MEM_ADDR_ROM_MASK	0xFFF00000
@@ -30,7 +36,7 @@
 							  ((BASE)[(ADDR)+1]<<16) |		\
 							  ((BASE)[(ADDR)+2]<<8) |		\
 							  (BASE)[(ADDR)+3])
-/* aaggghh: this was a typo in musashi 3.31, it was % instead of & in WRITE_BYTE */
+
 #define WRITE_BYTE(BASE, ADDR, VAL) (BASE)[ADDR] = (VAL)&0xff
 #define WRITE_WORD(BASE, ADDR, VAL) (BASE)[ADDR] = ((VAL)>>8) & 0xff;		\
 									(BASE)[(ADDR)+1] = (VAL)&0xff

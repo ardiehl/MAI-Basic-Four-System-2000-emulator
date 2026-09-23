@@ -13,6 +13,7 @@
 #include "esc_sequences.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdint.h>
 
 typedef struct bfescseqaux_t bfescseqaux_t;
 
@@ -31,7 +32,6 @@ struct bfescseq_t {
 	char secTabSize;	// second table e.g. for ESC g 0 to ESC g F
 	bfescseqaux_t *secTab;
 };
-
 
 
 // for ESC g
@@ -160,6 +160,42 @@ struct bfescseq_t bfescseq_tab[] =
 
 };
 
+#define BF_SINGLECHARMAX 0x1f
+
+char * bfSingeCharTab[] = {
+	NULL,	// 0 0x00
+	NULL,	// 1 0x01
+	NULL,	// 2 0x02
+	NULL,	// 3 0x03
+	NULL,	// 4 0x04
+	NULL,	// 5 0x05
+	NULL,	// 6 0x06
+	NULL,	// 7 0x07
+	NULL,	// 8 0x08
+	NULL,	// 9 0x09
+	NULL,	// 10 0x0A
+	"\033[A",	// 11 0x0B - cursor up
+	"\033[C",	// 12 0x0C - right
+	NULL,	// 13 0x0D
+	NULL,	// 14 0x0E
+	NULL,	// 15 0x0F
+	NULL,	// 16 0x10
+	NULL,	// 17 0x11
+	NULL,	// 18 0x12
+	NULL,	// 19 0x13
+	NULL,	// 20 0x14
+	NULL,	// 21 0x15
+	NULL,	// 22 0x16
+	NULL,	// 23 0x17
+	NULL,	// 24 0x18
+	NULL,	// 25 0x19
+	NULL,	// 26 0x1A
+	NULL,	// 27 0x1B
+	NULL,	// 28 0x1C
+	NULL,	// 29 0x1D
+	NULL,	// 30 0x1E
+	NULL	// 31 0x1F
+};
 
 
  void addCharToOutBuf (char c, char * outBuf, int outBufSize) {
@@ -192,14 +228,21 @@ struct bfescseq_t bfescseq_tab[] =
  	char tmpBuf[255];
  	char * vtseq;
 
- 	*outBuf = 0;
+ 	*outBuf = '\0';
 	if (! sta->inSequence) {
-		// TODO: one character code translation
 		if (c == 27) {
 			sta->inSequence = 1;
 			sta->seqBufLen = 0;
 			return 0;
 		}
+		// single char translation
+		if (c <= BF_SINGLECHARMAX)
+			if (bfSingeCharTab[(uint8_t)c]) {
+				addStrToOutBuf (bfSingeCharTab[(uint8_t)c], outBuf, outBufSize);
+				return strlen(bfSingeCharTab[(uint8_t)c]);
+			}
+
+
 		addCharToOutBuf(c,outBuf,outBufSize);
 		return 1;
 	}

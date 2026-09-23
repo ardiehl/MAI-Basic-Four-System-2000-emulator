@@ -34,6 +34,8 @@
 
 #define MYSELF MSG_FW
 
+extern char * colors [];
+
 typedef enum {
     FW_INIT_CBLOCK_LOW = 0,     /* expecting the command block address, LSW  */
     FW_INIT_CBLOCK_HIGH,        /* then its most significant part            */
@@ -223,6 +225,13 @@ void fw_processPendingCompletes() {
 					if (sock_dataAvailable(2+i)) {	// do we have incoming data ?
 						int port = i % 4;
 						sock_getchar(2+i, &fw[n].recvData);
+						fw[n].hostReadRegFull = 1;
+
+						/*char tempStr[50];
+						if (fw[n].recvData < 32) sprintf(tempStr,"%s0x%02x%s",colors[boldpurple],fw[n].recvData,colors[none]);
+						else sprintf(tempStr,"%s%c%s",colors[boldpurple],fw[n].recvData,colors[none]);
+						printf(tempStr);*/
+
 						fw_addPendingComplete (n, port, FW_VEC_RXCHAR); // queue them all so that not only the first gets priority
 						numAdded++;
 						msgout (MSGC_INFO,MYSELF,MSG_NONE,"fw%d port%c: rxchar completion interrupt queued", n,'A'+port);
@@ -496,6 +505,12 @@ unsigned int fw_read_byte (unsigned int address, int flags) {
 
     // 3ef44
 	if ((address & FW_REG_MASK) == FW_REG_RECV) {
+
+		/*char tempStr[50];
+		if (fw[n].recvData < 32) sprintf(tempStr,"%s0x%02x%s",colors[boldgreen],fw[n].recvData,colors[none]);
+		else sprintf(tempStr,"%s%c%s",colors[boldgreen],fw[n].recvData,colors[none]);
+		printf(tempStr);*/
+
 		msgout (MSGC_FUNC,MYSELF,MSG_READB,"fw%d: read of %08x (%s), returning 0x%02x",n,address,fw_regName(address),fw[n].recvData);
 		fw[n].hostReadRegFull = 0;
 		return fw[n].recvData;

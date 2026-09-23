@@ -340,6 +340,11 @@ vtToBfSeq_t vtToBfTab_CSI[] = {
 	{ 'F',2,1,5, ESC CTRL_B },	// ctrl end - end of file
 	{ 'H',2,1,5, ESC CTRL_A },	// alt home - start of para
 	{ 'F',2,1,5, ESC CTRL_E },	// alt end - end of para
+	{ '~',1,3,0, CTRL_D },      // del - delete char for basic and ved
+	{ '~',2,3,5, ESC CTRL_D },      // ctrl del - delete word for ved
+	{ '~',2,3,2, CTRL_K },      // shift del -kill line
+	{ '~',1,2,0, CTRL_I },      // ins for basic
+
 	{ '~',1,24,0,"",FLAG_TOGGLE_BACKSPACE },
 	{ 0,0,0,0,NULL }
 
@@ -405,10 +410,10 @@ static void translateAndAdd (sock_t *sock, char *data, int size) {
 		else {
             processed = vtparse(&sock->parser, (unsigned char *)p, 1);
 #ifdef SOCK_DEBUG
-            printf(" [%s] ", STATE_NAMES[sock->parser.state]);
+            //printf(" [%s] ", STATE_NAMES[sock->parser.state]);
 #endif
             if (processed) {
-#ifdef SOCK_DEBUG
+#if 0
                 printf("Received action %s %s\n", ACTION_NAMES[sock->parser.action],STATE_NAMES[sock->parser.state]);
                 printf("%d Parameters for '%c' '%c': ", sock->parser.num_params,sock->parser.ch2,sock->parser.ch);
                 for(i = 0; i < sock->parser.num_params; i++)
@@ -421,8 +426,8 @@ static void translateAndAdd (sock_t *sock, char *data, int size) {
                     case VTPARSE_ACTION_EXECUTE:
                         ring_buffer_queue(&sock->recvData, sock->parser.ch);
 #ifdef SOCK_DEBUG
-                        if (sock->parser.ch < 33 || sock->parser.ch > 126) printf("adding 0x%02x\n",sock->parser.ch);
-                        else printf("adding '%c'\n",sock->parser.ch);
+                        if (sock->parser.ch < 33 || sock->parser.ch > 126) printf("added 0x%02x\n",sock->parser.ch);
+                        else printf("added '%c'\n",sock->parser.ch);
 #endif
                         break;
                     case VTPARSE_ACTION_ESC_DISPATCH:	// this for F1..F4 (ESC OP, ESC OQ, ESC OR, ESC OS)
@@ -851,8 +856,9 @@ void sock_putchar(int portNum, char data) {
 	if (socks[portNum].doOutTranslation) {		// if we have outgoing escape sequence translation
 		char outSeqBuffer[OUT_BUF_SIZE];
 												// bfseq_processChar will process the character and fill outSeqBuffer when we have a complete sequence
-		if (socks[portNum].dumpIO_console) dumpChar('s',data);
+
 		int bufLen = bfseq_processChar (&socks[portNum].outSeqSta,data, outSeqBuffer, sizeof(outSeqBuffer));
+		if (socks[portNum].dumpIO_console) dumpChar('s',data);
 		if (bufLen) {
 			send(socks[portNum].fd,(char *)&outSeqBuffer,bufLen,0); //MSG_DONTWAIT);
 			//if (socks[portNum].dumpIO_console) dumpStr('s',outSeqBuffer);
@@ -860,6 +866,7 @@ void sock_putchar(int portNum, char data) {
 
 	} else {
 		send(socks[portNum].fd,&data,1,0); //MSG_DONTWAIT);
+		if (socks[portNum].dumpIO_console) dumpChar('s',data);
 	}
 }
 
@@ -882,7 +889,8 @@ int sock_getchar(int portNum, char * data) {
 	//printf("sock_getchar %d retuning %d\n",portNum,rc);
 #endif
 
-	if (socks[portNum].dumpIO_console) dumpChar('R',*data);
+	if (rc)
+		if (socks[portNum].dumpIO_console) dumpChar('R',*data);
 	return rc;
 }
 
@@ -1094,6 +1102,7 @@ void sock_recSend (int numArgs, struct args_t *args) {
 	socks[portNum].sendDataBufferPos = socks[portNum].sendDataBuffer;
 	socks[portNum].sendDataBufferLen = 0;
 	LEAVE_CRIT
+	printf("recording enabled for port %d, size: %d\n",portNum,newBufSize);
 }
 
 
@@ -1136,7 +1145,7 @@ void sock_showRec (int numArgs, struct args_t *args) {
 		printf("invalid port number\n");
 		return;
 	}
-	if (!socks[portNum].sendDataBuffer) {
+	if (!socks[portNum].sendDataBuffer || socks[portNum].sendDataBufferLen) {
 		printf("no data available on port %d\n",portNum);
 		return;
 	}

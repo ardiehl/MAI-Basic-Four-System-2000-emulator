@@ -30,27 +30,34 @@ fway
  Implement reset
  Implement registers
  Make more diag tests running
- My be diag will check status after a command, in that case all ints have to queued and fired after n instructions
+ MDONE ay be diag will check status after a command, in that case all ints have to queued and fired after n instructions
  Fix paste
 
 wd
  DONE Add second harddisk support
- Check if we can create a new image with diag (format support may be needed)
+ DONE Check if we can create a new image with diag (format support may be needed)
  DONE make more tests pass (passed all standard tests except ram parity)
  Check/fix support for 2nd wd
- implement format to create images with dutil
+ DONE implement format to create images with dutil
 
 sock
  Add support for injecting chars
  DONE Outgoing key translation (e.g. for MB I..MB VI keys required as well as backspace (7f to ^H))
  Add support for serial ports and local sockets
- Make the basic EDIT command work
+ DONE Make the basic EDIT command work
  printer support
 
 fd
  To be implemented further
 
+cs
+ during install trestore fails for the config record
+   trestore d=/dev/cs name=CONFIG
+   Part of file '/sys/config.2000-97894' missing on tape
+   Tape read error -85. Can't restore /sys/config.2000-97894
+
 Image
  Update the menu to contain all programs (games, user progs, ...)
  Reintegrate what was on the original wd0
  Transfer what i have on 5 1/4" floppies from the S/10 to the image
+
