@@ -1,8 +1,8 @@
 General
- - Figure out how the checksum of the config record works, goal, change the config
+ - DONE Figure out how the checksum of the config record works, goal, change the config
    record to use full ram and enable the use of floppy disk and to enable 2 wd controllers
-   DONE: Enrique has figured it out and wrote a python sccript edit the config record
- - Make a new image that contains the diags on wd (required 2 nd disk support)
+   DONE: Enrique has figured it out and wrote a python script to edit the config record
+ - DONE Make a new image that contains the diags on wd (required 2 nd disk support)
    DONE partly, 2 disk support works
  - Get rid of personal data from Scott Printing from the image but leaving the basic programs working
  - Test asm, may work
@@ -11,6 +11,7 @@ General
    same for c compiler and header files
  - Complete and test the installation tape further, try if instetc from the 3000 tape can be patched to run even
    it was compiled for 68020
+ - check protected / clear protected escape sequences and map to vt220 (will work with xterm but most other lack protected support)
 
 emu
  Move sock/scc polling and fw int dequeue to sys_device_tick
@@ -30,8 +31,8 @@ fway
  Implement reset
  Implement registers
  Make more diag tests running
- MDONE ay be diag will check status after a command, in that case all ints have to queued and fired after n instructions
- Fix paste
+ DONE may be diag will check status after a command, in that case all ints have to queued and fired after n instructions
+ DONE Fix paste (it depends on buffers set via vconf, fourway.c is fine)
 
 wd
  DONE Add second harddisk support
@@ -63,7 +64,9 @@ cs
    Tape Error:  0000 
 
 Image
- Update the menu to contain all programs (games, user progs, ...)
+ Update the menu to contain all programs (
+  games
+  user progs
  Reintegrate what was on the original wd0
  Transfer what i have on 5 1/4" floppies from the S/10 to the image
 
