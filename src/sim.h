@@ -3,7 +3,7 @@
 
 #define HISTORY_FILENAME "./sim.history"
 
-#define SCC_POLL_INSTRUCTIONS	100000
+#define SCC_POLL_INSTRUCTIONS	3000
 #define FW_PENDING_INT_INSTRUCTIONS 600
 
 #define MSGC_MAX	7
@@ -122,6 +122,7 @@ struct args_t {
 	char txt[MAXARGLEN+1];
 	int isValue;
 	unsigned int value;
+	int forceSupervisorAddress;
   };
 
 struct cmds_t {

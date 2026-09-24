@@ -2,14 +2,11 @@
  *  sim.c
  *
  *  Created: Nov, 22 2011
- *  Changed: Dec, 25 2020
+ *
  *  Armin Diehl <ad@ardiehl.de>
  ****************************************************************************
  * mai basic four system 2000 (eagle) emaulator main
- *
- * Nov 25 2020 AD: added nmi command
-                   less verbose as default
- */
+ ****************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -425,6 +422,10 @@ void cpu_watch_check (unsigned int address, unsigned int addressVirtual, int siz
  * "68010 memory management trap".
  */
 
+static int cpuIsInUserMode() {
+	return (cpu_in_user_mode() && mmu_is_enabled());
+}
+
 static int cpu_xlate(unsigned int logical, int isWrite, unsigned int * phys) {
 	if (!cpu_in_user_mode() || !mmu_is_enabled()) { *phys = logical; return 1; }
 	if (mmu_translate(logical,isWrite,phys)) return 1;
@@ -478,22 +479,77 @@ void cpu_write_long(unsigned int address, unsigned int value) {
 }
 
 
+static unsigned int dbg_read_byte (unsigned int address, int forceSupervisorAddress) {
+	//return sys_read_byte (address,MEM_DISABLEBUSERROR);
+	unsigned int phys = address;
+	if (!forceSupervisorAddress)
+		if (!cpu_xlate(address,0,&phys)) { return 0xff; }
+	unsigned int res = sys_read_byte(phys,0);
+	return res;
+}
+
+
+static unsigned int dbg_read_word (unsigned int address, int forceSupervisorAddress) {
+	//return sys_read_word (address,MEM_DISABLEBUSERROR);
+	unsigned int phys = address;
+	if (!forceSupervisorAddress)
+		if (!cpu_xlate(address,0,&phys)) { return 0xffff; }
+	unsigned int res = sys_read_word(phys,0);
+	return res;
+}
+
+
+static unsigned int dbg_read_long (unsigned int address, int forceSupervisorAddress) {
+	unsigned int data;
+
+	data = dbg_read_word(address,forceSupervisorAddress) << 16;
+	if (!(m68k_cpu.cpu_buserror_occurred))
+		data |= dbg_read_word(address+2,forceSupervisorAddress);
+	return data;
+}
+
+
+static void dbg_write_byte(unsigned int address, unsigned int value, int forceSupervisorAddress) {
+	unsigned int phys = address;
+	if (!forceSupervisorAddress)
+		if (!cpu_xlate(address,1,&phys)) { return; }
+	sys_write_byte(phys,value,0);
+	cpu_watch_check (phys,address, 1, 1);
+}
+
+static void dbg_write_word(unsigned int address, unsigned int value, int forceSupervisorAddress) {
+	unsigned int phys = address;
+	if (!forceSupervisorAddress)
+		if (!cpu_xlate(address,1,&phys)) { return; }
+	sys_write_word(phys,value,0);
+	cpu_watch_check (phys,address, 1, 2);
+}
+
+static void dbg_write_long(unsigned int address, unsigned int value, int forceSupervisorAddress) {
+	dbg_write_word(address, (value >> 16) & 0xffff, forceSupervisorAddress);
+	if (!(m68k_cpu.cpu_buserror_occurred))
+		dbg_write_word(address+2, value & 0xffff, forceSupervisorAddress);
+}
+
+
+
+
+// for mushasi disassembler
+
+int disassembleForceSupervisorAddress;
+
 unsigned int m68k_read_disassembler_8  (unsigned int address) {
-	return sys_read_byte (address,MEM_DISABLEBUSERROR);
+	return dbg_read_byte (address,disassembleForceSupervisorAddress);
 }
 
 
 unsigned int m68k_read_disassembler_16 (unsigned int address) {
-	return sys_read_word (address,MEM_DISABLEBUSERROR);
+	return dbg_read_word (address,disassembleForceSupervisorAddress);
 }
 
 
 unsigned int m68k_read_disassembler_32 (unsigned int address) {
-	unsigned int data;
-
-	data = sys_read_word(address,MEM_DISABLEBUSERROR) << 16;
-	data |= sys_read_word(address+2,MEM_DISABLEBUSERROR);
-	return data;
+	return dbg_read_long (address,disassembleForceSupervisorAddress);
 }
 
 
@@ -1185,9 +1241,9 @@ void dbgCmd_dbdwdw (int byteSize, int ascii, int numArgs, struct args_t *args) {
             for (i=0;i<args[1].value;i++) {
                 value = 0;	/* to avoid warning */
 	            switch (byteSize) {
-		            case 1: { value = cpu_read_byte(addr); break; }
-		            case 2: { value = cpu_read_word(addr); break; }
-		            case 4: { value = cpu_read_long(addr); break; }
+		            case 1: { value = dbg_read_byte(addr,args[0].forceSupervisorAddress); break; }
+		            case 2: { value = dbg_read_word(addr,args[0].forceSupervisorAddress); break; }
+		            case 4: { value = dbg_read_long(addr,args[0].forceSupervisorAddress); break; }
 	            }
                 if (ascii) {
 		            c = (char)value;
@@ -1208,9 +1264,9 @@ void dbgCmd_dbdwdw (int byteSize, int ascii, int numArgs, struct args_t *args) {
     do {
 	  value = 0;	/* to avoid warning */
 	  switch (byteSize) {
-		  case 1: { value = cpu_read_byte(addr); break; }
-		  case 2: { value = cpu_read_word(addr); break; }
-		  case 4: { value = cpu_read_long(addr); break; }
+		  case 1: { value = dbg_read_byte(addr,args[0].forceSupervisorAddress); break; }
+		  case 2: { value = dbg_read_word(addr,args[0].forceSupervisorAddress); break; }
+		  case 4: { value = dbg_read_long(addr,args[0].forceSupervisorAddress); break; }
 	  }
 	  valueOrg = value;
 	  if (ascii) {
@@ -1225,9 +1281,9 @@ void dbgCmd_dbdwdw (int byteSize, int ascii, int numArgs, struct args_t *args) {
 	  }
 	  if ((c != KEY_ESC) && (value != valueOrg)) {
 		  switch (byteSize) {
-  		    case 1: { cpu_write_byte(addr,value); break; }
-		    case 2: { cpu_write_word(addr,value); break; }
-		    case 4: { cpu_write_long(addr,value); break; }
+  		    case 1: { dbg_write_byte(addr,value,args[0].forceSupervisorAddress); break; }
+		    case 2: { dbg_write_word(addr,value,args[0].forceSupervisorAddress); break; }
+		    case 4: { dbg_write_long(addr,value,args[0].forceSupervisorAddress); break; }
 	      }
 	  }
 	  printf("\n");
@@ -1279,7 +1335,7 @@ void dbgCmd_regs (int numArgs, struct args_t *args) {
 
 
 
-void dbgCmd_doDump (unsigned int addr, unsigned int endAddr, int lineLen) {
+void dbgCmd_doDump (unsigned int addr, unsigned int endAddr, int lineLen, int forceSupervisorAddress) {
 	unsigned int data;
 	int asciiLen = 0;
 	int hexLen;
@@ -1290,7 +1346,7 @@ void dbgCmd_doDump (unsigned int addr, unsigned int endAddr, int lineLen) {
 	hexData[0]=0; sprintf(hexData,"%08x: ",addr);
 	hexLen = strlen(hexData);
 	while (addr <= endAddr) {
-		data = cpu_read_byte(addr);
+		data = dbg_read_byte(addr, forceSupervisorAddress);
 		if ((data < ' ') | (data > 0x7e)) ascii[asciiLen++] = '.'; else ascii[asciiLen++] = data;
 		ascii[asciiLen] = 0;
 		hexData[hexLen++] = hexNibble(data >> 4);
@@ -1320,7 +1376,7 @@ void dbgCmd_type (int numArgs, struct args_t *args) {
 	if (numArgs > 2) lineLen = args[2].value; else lineLen = 16;
 	if (numArgs < 2) endAddr = addr + 64;
 
-	dbgCmd_doDump (addr,endAddr,lineLen);
+	dbgCmd_doDump (addr,endAddr,lineLen, args[0].forceSupervisorAddress);
 }
 
 
@@ -1330,7 +1386,7 @@ void dbgCmd_dump (int numArgs, struct args_t *args) {
 	int lineLen;
 	if (numArgs > 2) lineLen = args[2].value; else lineLen = 16;
 
-	dbgCmd_doDump (addr,endAddr-1,lineLen);
+	dbgCmd_doDump (addr,endAddr-1,lineLen,args[0].forceSupervisorAddress);
 }
 
 
@@ -1340,10 +1396,12 @@ void dbgCmd_disass (int numArgs, struct args_t *args) {
 	int i = 0;
 	if (maxCount < 1) maxCount = 16;
 
+	disassembleForceSupervisorAddress = args[0].forceSupervisorAddress;
 	do {
 		addr += showInstruction(addr,"");
 		i++;
 	} while (i < maxCount);
+	disassembleForceSupervisorAddress = 0;
 }
 
 
@@ -1622,16 +1680,18 @@ void dbgCmd_step (int numArgs, struct args_t *args) {
 	unsigned int regsBefore[NUMREGS];
 	unsigned int regsAfter[NUMREGS];
 	char changedRegs[512];
-	char buff[255];  // AD 23.10.2020: from 30 to 255 to avoid gcc10 warning
+	char buff[255];
 
 	g_busErrorCount = 0;
 	pc = m68k_get_reg(NULL, M68K_REG_PC);
     if (pc != prevShownPC) showInstruction(pc,"");
-	if (numArgs > 0) instrCount = args[0].value;
+	if (numArgs > 0)
+		if (args[0].value) instrCount = args[0].value;
 	if (m68k_is_stopped())
 		printf("CPU is stopped (a STOP instruction executed), waiting for an interrupt;\n"
 		       "stepping passes time but executes nothing until one arrives.\n");
 	for (i=0; i<instrCount; i++) {
+		if (numArgs == 1 && args[0].value == 0) i--;  // run forever with step 0 (ctrl c will stop it)
 		for (j=0; j<NUMREGS;j++) regsBefore[j]=m68k_get_reg(NULL, j);
 		m68k_execute(1);
 		sys_device_tick();
@@ -1647,13 +1707,30 @@ void dbgCmd_step (int numArgs, struct args_t *args) {
 				}
 			}
 		}
-		if (g_busErrorCount) {
-			showBusError ("break due to");
-			i = instrCount;
-		}
+
 		showInstruction(pc,changedRegs);
         prevShownPC = pc;
+        if (g_busErrorCount) {
+			showBusError ("break due to");
+			i = instrCount;
+			return;
+		}
+		if (g_ctrlCpressed) {
+			printf("break due to ctrl c\n");
+			g_ctrlCpressed = 0;
+			if (m68k_is_stopped())
+				printf("CPU is stopped (a STOP instruction executed), waiting for an interrupt.\n");
+			return;
+		}
+		if (watchHit || cpuWatchHit) {
+			printf("break due to watch hit\n");
+			watchHit = 0;
+			cpuWatchHit = 0;
+			return;
+		}
+
         if (breakpointReached (pc)) return;
+
 	}
 }
 
@@ -2174,58 +2251,68 @@ void dbgCmd_vector (int numArgs, struct args_t *args) {
 		   "=================================================================================\n");
 	while (vectors[i].vectorNum >= 0) {
 		address = sys_read_long (vbr + vectors[i].address,0);
-		printf("%08x: #%-3d %02x    %08x  %s\n",vbr + vectors[i].address, vectors[i].vectorNum, vectors[i].vectorNum,
+		printf("%08x: #%-3d %02x    %08x     %s\n",vbr + vectors[i].address, vectors[i].vectorNum, vectors[i].vectorNum,
 				address,vbr + vectors[i].txt);
 		i++;
 	}
 }
 
 
+void dbgCmd_translate (int numArgs, struct args_t *args) {
+	unsigned int phys;
+	if (cpu_xlate(args[0].value,0,&phys)) {
+		printf("%08x\n",phys);
+	} else {
+		printf("invalid\n");
+	}
+}
+
 struct cmds_t cmds[] =
 {
-    { "an",    dbgCmd_an    , 0,1,0,"aX - change register A0 to A7"},
-    { "break", dbgCmd_break , 0,3,1,"BrkNum address [count] - set breakpoint 0 to 3"},
-    { "watch", dbgCmd_watch , 0,3,1,"WatchNum [address] [len] - log writes to an address"},
-    { "cwatch", dbgCmd_cwatch , 0,5,0,"WatchNum [address] [len] [rw,r or w] [1 = virtual]- log cpu access to an address"},
-    { "history", dbgCmd_history , 0,1,1,"[count] - show recently executed instructions"},
-    { "msave", dbgCmd_msave , 0,1,0,"[file] - dump all RAM to a file"},
-    { "traptrace", dbgCmd_traptrace , 0,1,1,"[0|1] - log TRAP instructions executed in user mode"},
-    { "bus"  , dbgCmd_bus   , 0,1,0,"{0|1} disable/enable break on bus error"},
-    { "clr"  , dbgCmd_clr   , 0,0,0,"clear all breakpoints"},
+    { "an",       dbgCmd_an    , 0,1,0,"aX - change register A0 to A7"},
+    { "break",    dbgCmd_break , 0,3,1,"BrkNum address [count] - set breakpoint 0 to 3"},
+    { "watch",    dbgCmd_watch , 0,3,1,"WatchNum [address] [len] - log writes to an address"},
+    { "cwatch",   dbgCmd_cwatch , 0,5,0,"WatchNum [address] [len] [rw,r or w] [1 = virtual]- log cpu access to an address"},
+    { "history",  dbgCmd_history , 0,1,1,"[count] - show recently executed instructions"},
+    { "msave",    dbgCmd_msave , 0,1,0,"[file] - dump all RAM to a file"},
+    { "traptrace",dbgCmd_traptrace , 0,1,1,"[0|1] - log TRAP instructions executed in user mode"},
+    { "bus"  ,    dbgCmd_bus   , 0,1,0,"{0|1} disable/enable break on bus error"},
+    { "clr"  ,    dbgCmd_clr   , 0,0,0,"clear all breakpoints"},
 
-    { "db",    dbgCmd_db    , 1,1,1,"address [count] - change/display count byte(s)"},
-    { "dc",    dbgCmd_dc    , 1,1,1,"address [count] - change/display count char(s)"},
-    { "device",dbgCmd_device, 1,0,0,"device (fw|wd|scc|cmb|nw) device_command"},
-    { "dl",    dbgCmd_dl    , 1,1,1,"address [count] - change/display count long(s)"},
-    { "dn",    dbgCmd_dn    , 0,1,0,"dX - change register D0 to D7"},
-    { "dis",   dbgCmd_disass, 1,2,1,"address [num instructions] - disassemble"},
-    { "dump",  dbgCmd_dump  , 2,3,1,"fromAdr len    - display memory dump"},
-    { "dup" ,  dbgCmd_dup   , 0,1,0,"{0|1} disable/enable showing of duplicate messages"},
-    { "dw",    dbgCmd_dw    , 1,1,1,"[count] - change/display count word(s)"},
-    { "exec",  dbgCmd_exec  , 1,1,0,"command - start a new process"},
-    { "execa", dbgCmd_execA , 1,1,0,"command - start a new process"},
+    { "db",       dbgCmd_db    , 1,1,1,"address [count] - change/display count byte(s)"},
+    { "dc",       dbgCmd_dc    , 1,1,1,"address [count] - change/display count char(s)"},
+    { "device",   dbgCmd_device, 1,0,0,"device (fw|wd|scc|cmb|nw) device_command"},
+    { "dl",       dbgCmd_dl    , 1,1,1,"address [count] - change/display count long(s)"},
+    { "dn",       dbgCmd_dn    , 0,1,0,"dX - change register D0 to D7"},
+    { "dis",      dbgCmd_disass, 1,2,1,"address [num instructions] - disassemble"},
+    { "dump",     dbgCmd_dump  , 2,3,1,"fromAdr len    - display memory dump"},
+    { "dup" ,     dbgCmd_dup   , 0,1,0,"{0|1} disable/enable showing of duplicate messages"},
+    { "dw",       dbgCmd_dw    , 1,1,1,"[count] - change/display count word(s)"},
+    { "exec",     dbgCmd_exec  , 1,1,0,"command - start a new process"},
+    { "execa",    dbgCmd_execA , 1,1,0,"command - start a new process"},
 
-    { "go",    dbgCmd_go    , 0,1,1,"[address] - run, optional from address"},
-    { "image", dbgCmd_img   , 0,1,0,"save|load [filename] save/load current state to/from file"},
-    { "int",   dbgCmd_int   , 1,1,1,"generate interrupt n"},
-    { "load",  dbgCmd_load  , 1,1,0,"filename [mem offset] - load s-record file"},
-    { "nmi",   dbgCmd_nmi   , 0,0,0,"generate NMI and continue execution"},
-    { "over",  dbgCmd_over  , 0,0,0,"step over next instruction"},
-    { "mbreak",dbgCmd_mbrk  , 0,1,0,"set break on messages with break flag on/off" },
-    { "msg",   dbgCmd_msg   , 0,0,0,"set message level, {source|all} {-|+|{+|-}warn | {+|-}err | {+|-}info}" },
-    { "pc"  ,  dbgCmd_pc    , 0,1,1,"change pc"},
-    { "regs",  dbgCmd_regs  , 0,0,0,"show registers"},
-    { "reset", dbgCmd_rese  , 0,0,0,"reset cpu"},
-    { "rm"   , dbgCmd_rm    , 0,0,0,"Run until (enabled) message from emu"},
-    { "step",  dbgCmd_step  , 0,1,1,"step one or more instructions"},
-    { "type",  dbgCmd_type  , 1,3,1,"fromAdr toAddr - display memory dump"},
-    { "colors",dbgCmd_color , 0,0,0,"color to list color 0 to disable, color err|notimp|warn|info|fatal|func colorName"},
-    { "vector",dbgCmd_vector, 0,1,1,"show vector table"},
+    { "go",       dbgCmd_go    , 0,1,1,"[address] - run, optional from address"},
+    { "image",    dbgCmd_img   , 0,1,0,"save|load [filename] save/load current state to/from file"},
+    { "int",      dbgCmd_int   , 1,1,1,"generate interrupt n"},
+    { "load",     dbgCmd_load  , 1,1,0,"filename [mem offset] - load s-record file"},
+    { "nmi",      dbgCmd_nmi   , 0,0,0,"generate NMI and continue execution"},
+    { "over",     dbgCmd_over  , 0,0,0,"step over next instruction"},
+    { "mbreak",   dbgCmd_mbrk  , 0,1,0,"set break on messages with break flag on/off" },
+    { "msg",      dbgCmd_msg   , 0,0,0,"set message level, {source|all} {-|+|{+|-}warn | {+|-}err | {+|-}info}" },
+    { "pc"  ,     dbgCmd_pc    , 0,1,1,"change pc"},
+    { "regs",     dbgCmd_regs  , 0,0,0,"show registers"},
+    { "reset",    dbgCmd_rese  , 0,0,0,"reset cpu"},
+    { "rm"   ,    dbgCmd_rm    , 0,0,0,"Run until (enabled) message from emu"},
+    { "step",     dbgCmd_step  , 0,1,1,"step one or more instructions"},
+    { "type",     dbgCmd_type  , 1,3,1,"fromAdr toAddr - display memory dump"},
+    { "translate",dbgCmd_translate, 1,1,0,"translate virtual to physical address" },
+    { "colors"   ,dbgCmd_color , 0,0,0,"color to list color 0 to disable, color err|notimp|warn|info|fatal|func colorName"},
+    { "vector"   ,dbgCmd_vector, 0,1,1,"show vector table"},
 
-    { "?",     dbgCmd_help  , 0,0,0,""},
-    { "help",  dbgCmd_help  , 0,0,0,"show this help"},
-    { "quit",  NULL         , 0,0,0,"terminate emulator"},
-    { ""    ,  NULL         , 0,0,0,""}
+    { "?",        dbgCmd_help  , 0,0,0,""},
+    { "help",     dbgCmd_help  , 0,0,0,"show this help"},
+    { "quit",     NULL         , 0,0,0,"terminate emulator"},
+    { ""    ,     NULL         , 0,0,0,""}
 };
 
 void showHelp (char * caption, struct cmds_t * cmds, int extended) {
@@ -2270,14 +2357,27 @@ void dbgCmd_help (int numArgs, struct args_t *args) {
  * -A0..7, -D0..7 return the register value
  * ======================================================================== */
 
-unsigned int strToULong(char * txt, unsigned int * value) {
+unsigned int strToULong(char * txt, unsigned int * value, int * forceSupervisorAddress) {
 	char buf[255];
 	int regNum = -1;
 	int isPtr = 0;
 	int i;
 
-	if (xtoui(txt,value)) return 1;  /* pure hex value */
+	*forceSupervisorAddress = 0;
+
 	strcpy(buf,txt);
+
+	char *p = (&buf[0])+strlen(buf);
+	if (p > &buf[0]) {
+	  p--;
+	  if (*p == '!') {
+		(*forceSupervisorAddress)++;
+		*p = 0;
+	  }
+	}
+
+	if (xtoui(buf,value)) return 1;  /* pure hex value */
+
 	i = strlen(buf);
 	if ((i>0) && (buf[i-1] == '+')) { isPtr = 1; buf[i-1] = 0; }
 	if (buf[0]=='-') {
@@ -2382,9 +2482,13 @@ void commandHandler(char * oneCmd, int echo)
 	char * tmp;
 	char * token;
 	char * lastCmd = NULL;
+	char prompt[10];
 
 
 	do {
+	  if (cpuIsInUserMode()) strcpy(prompt,"<dbgu>");
+	  else strcpy(prompt,"<dbg>");
+
 	  for (i=0;i<MAXNUMARGS;i++) {	/* clear all args */
 		  args[i].txt[0] = 0;
 		  args[i].isValue = 0;
@@ -2392,9 +2496,9 @@ void commandHandler(char * oneCmd, int echo)
 	  }
 	  if (oneCmd) {
 		  tmp = strdup(oneCmd);
-		  if (echo) printf("<dbg> %s\n",tmp);
+		  if (echo) printf("%s %s\n",prompt,tmp);
 	  } else {
-      	  tmp = readline("<dbg>");		/* get command line */
+      	  tmp = readline(prompt);		/* get command line */
 	  	  if (tmp)
 		    if (strlen(tmp) < 1) { free(tmp); tmp=NULL; }
 	  }
@@ -2417,7 +2521,7 @@ void commandHandler(char * oneCmd, int echo)
 		  while ((token) && (numArgs < MAXNUMARGS)) {
 			  strncpy(args[numArgs].txt,token,sizeof(args[numArgs].txt));
 			  args[numArgs].txt[sizeof(args[numArgs].txt)-1] = 0;
-			  args[numArgs].isValue = strToULong(args[numArgs].txt,&args[numArgs].value);
+			  args[numArgs].isValue = strToULong(args[numArgs].txt,&args[numArgs].value,&args[numArgs].forceSupervisorAddress);
 			  token = strtok(NULL," ");
 			  numArgs++;
 		  }

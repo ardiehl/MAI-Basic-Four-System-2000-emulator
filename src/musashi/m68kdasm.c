@@ -159,7 +159,6 @@ static unsigned int g_address_mask = 0xffffffff;
 unsigned int m68k_read_disassembler_8  (unsigned int address);
 unsigned int m68k_read_disassembler_16 (unsigned int address);
 unsigned int m68k_read_disassembler_32 (unsigned int address);
-
 #endif
 
 /* make signed integers 100% portably */
