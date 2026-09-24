@@ -82,6 +82,8 @@ INT32 g_breakOnBusError = 0;
 int g_msgBreak = 0;
 INT32 g_msgBreakEnabled = 0;
 unsigned int g_currPC;
+int fwPendingIntCount;
+int sccPollCount = SCC_POLL_INSTRUCTIONS;
 
 /* Write watchpoints. The breakpoints above trigger on the program counter,
  * which is no use when the question is "who writes this variable". These
@@ -727,16 +729,30 @@ void sys_device_tick (void) {
 	}
 	/* One idle pass stands for the instructions the CPU would have executed in
 	 * that time, so the disk keeps its cadence instead of stalling. */
-    wdInstrCount += idle ? 20 : 1;
+	int step = idle ? 20 : 1;
+
+    wdInstrCount += step;
 	if (wdInstrCount >= 20) {
 		wd_processContinue();
         cs_processContinue();
 		wdInstrCount = 0;
 	}
+
 	if (fdInstrCount) {
-		int step = idle ? 20 : 1;
 		fdInstrCount -= (fdInstrCount > step) ? step : fdInstrCount;
 		if (fdInstrCount == 0) fd_processContinue();
+	}
+
+	fwPendingIntCount -= (fwPendingIntCount > step) ? step : fwPendingIntCount;
+	if (fwPendingIntCount == 0) {
+		fwPendingIntCount = FW_PENDING_INT_INSTRUCTIONS;
+		fw_processPendingCompletes();
+	}
+
+	sccPollCount -= (sccPollCount > step) ? step : sccPollCount;
+	if (sccPollCount == 0) {
+		sccPollCount = SCC_POLL_INSTRUCTIONS;
+		scc_pollStatus ();
 	}
 }
 
@@ -896,10 +912,6 @@ void fatalerror(char * msg, ...) {
 	msgout (MSGC_FATAL,MSG_OTHER,MSG_NONE,"%s",message);
 }
 
-
-void pollBoardStatus(void) {
-	scc_pollStatus ();
-}
 
 /* ======================================================================== */
 /* =================== eagle like debugger functions ====================== */
@@ -1620,7 +1632,6 @@ void dbgCmd_step (int numArgs, struct args_t *args) {
 		printf("CPU is stopped (a STOP instruction executed), waiting for an interrupt;\n"
 		       "stepping passes time but executes nothing until one arrives.\n");
 	for (i=0; i<instrCount; i++) {
-		pollBoardStatus();
 		for (j=0; j<NUMREGS;j++) regsBefore[j]=m68k_get_reg(NULL, j);
 		m68k_execute(1);
 		sys_device_tick();
@@ -1648,24 +1659,15 @@ void dbgCmd_step (int numArgs, struct args_t *args) {
 
 
 void dbgCmd_rm (int numArgs, struct args_t *args) {
-	unsigned int pc,pollCount;
+	unsigned int pc;
 	int maxMsgs;
 	int brkpt;
 
 	maxMsgs = args[0].value;
 	if (maxMsgs<1) maxMsgs=1;
 	numMsgs = 0;
-	pollCount = SCC_POLL_INSTRUCTIONS;
 	kb_raw();
 	do {
-		pollCount--;
-		/* The poll counter measures instructions, and a stopped CPU executes
-		 * none, so without the second test the console would go deaf exactly
-		 * while the kernel sits idle waiting for a keystroke. */
-		if (!(pollCount) || m68k_is_stopped()) {
-			pollCount = SCC_POLL_INSTRUCTIONS;
-			pollBoardStatus();
-		}
 		g_currPC = m68k_get_reg(NULL, M68K_REG_PC); /* REG_PPC does not work */
 		m68k_execute(1);
 		sys_device_tick();
@@ -1689,32 +1691,14 @@ void dbgCmd_rm (int numArgs, struct args_t *args) {
 
 
 void dbgCmd_go (int numArgs, struct args_t *args) {
-	unsigned int pc,pollCount,fwPendingIntCount;
+	unsigned int pc;
 	int brkpt;
 
 	if (numArgs > 0)
 		m68k_set_reg(M68K_REG_PC,args[0].value);
 
-	pollCount = SCC_POLL_INSTRUCTIONS;
-	fwPendingIntCount = FW_PENDING_INT_INSTRUCTIONS;
 	kb_raw();
 	do {
-		pollCount--;
-		/* The poll counter measures instructions, and a stopped CPU executes
-		 * none, so without the second test the console would go deaf exactly
-		 * while the kernel sits idle waiting for a keystroke. */
-		if (!(pollCount) || m68k_is_stopped()) {
-			pollCount = SCC_POLL_INSTRUCTIONS;
-			pollBoardStatus();
-			// check for incoming connections or data on all open ports and set the status field for each connection
-			//sock_poll();  // now threaded
-		}
-		fwPendingIntCount--;
-		if (!(fwPendingIntCount) || m68k_is_stopped()) {
-			fwPendingIntCount = FW_PENDING_INT_INSTRUCTIONS;
-			fw_processPendingCompletes();
-		}
-
 		g_currPC = m68k_get_reg(NULL, M68K_REG_PC); /* REG_PPC does not work */
 		m68k_execute(1);
 		sys_device_tick();
