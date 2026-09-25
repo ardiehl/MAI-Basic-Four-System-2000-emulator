@@ -940,7 +940,7 @@ int msgout(unsigned int msgClass,
 			m68k_disassemble(&instruction[0], g_currPC, M68K_CPU_TYPE_68010);
 			printf("%s%s%s%s (PC:%08x %s)%s\n",colors[classColors[msgClass]],classSrc,msgBreak,message,g_currPC,instruction,endColor);
 		} else {
-			printf("%s%s%s%s)%s\n",colors[classColors[msgClass]],classSrc,msgBreak,message,endColor);
+			printf("%s%s%s%s%s\n",colors[classColors[msgClass]],classSrc,msgBreak,message,endColor);
 		}
 		res = 1;
     }

@@ -57,10 +57,21 @@
 #define FLPOPT_HD_SD   4  /* 1=HD, 0=SD */
 #define FLPOPT_FM_MFM  5  /* 1=FM, 0=MFM */
 /* bit 6 is not connected */
-#define FLPOPT_FRES    7  /* Reset incl wd1793 reset */
+#define FLPOPT_FRES    7  /* Reset incl wd1793 reset, fdfs writes 0x00, 0x80 */
 
 // Status Transfer Control (13L) (read)
 #define FD_ADDR_FLPSTAT 0x720000
+
+#define FLPSTAT_BUSY    0x01
+#define FLPSTAT_IDXA    0x02
+#define FLPSTAT_ENINTR  0x04
+#define FLPSTAT_ENDRQ   0x08
+#define FLPSTAT_INTRA   0x10
+#define FLPSTAT_DRQA    0x20
+// bit 6 is NC
+#define FLPSTAT_FRST    0x80
+
+#if 0
 #define FLPSTAT_BUSY 0
 #define FLPSTAT_IDXA 1
 #define FLPSTAT_ENINTR 2
@@ -69,12 +80,23 @@
 #define FLPSTAT_DRQA 5
 // bit 6 is NC
 #define FLPSTAT_FRST 7
-
+#endif
 
 #define FD_ADDR_CONTROL 0x740000
 
 // write only floppy control latch (13k)
 #define FD_ADDR_FLPCONT 0x760000
+
+#define FLPCONT_SEL0    0x01
+#define FLPCONT_SEL1    0x02
+#define FLPCONT_MOTOR0  0x04
+#define FLPCONT_MOTOR1  0x08
+#define FLPCONT_DLOCK0  0x10
+#define FLPCONT_DLOCK1  0x20
+#define FLPCONT_PRECOMP 0x40
+#define FLPCONT_SIDE    0x80
+
+#if 0
 #define FLPCONT_SEL0 0
 #define FLPCONT_SEL1 1
 #define FLPCONT_MOTOR0 2
@@ -83,6 +105,8 @@
 #define FLPCONT_DLOCK1 5
 #define FLPCONT_PRECOMP 6
 #define FLPCONT_SIDE 7
+#endif
+
 
 #define FD_INTNO 3
 
@@ -91,7 +115,8 @@
 // 386
 
 #define FD_ADDR_WD       0x780000
-#define FD_ADDR_BUFFER   0x7A0000
+// was 7a but fdfs writes/reads from 7b
+#define FD_ADDR_BUFFER   0x7B0000
 
 
 #define ADDR_IS_FD(ADDR) ((ADDR & FD_ADDR_MASK) == FD_ADDR)
@@ -103,6 +128,7 @@
 #define FD_CONT   0x06
 #define FD_WD1793 0x08
 #define FD_BUFF   0x0A
+#define FD_BUFF2  0x0B
 
 //#define FD8K
 /* this may be a 2K (default) or 8K ram */
@@ -192,8 +218,8 @@ typedef struct {
 #define WD1793_INT_IMMEDIATE         (1 << 3)
 
 // exec times
-#define FD_SEEK_EXEC_TIME 100
-#define FD_RW_EXEC_TIME 100
+#define FD_SEEK_EXEC_TIME 20000
+#define FD_RW_EXEC_TIME 20000
 
 // bit positions in cmd
 #define WS1793_CF_VERIFY 2
