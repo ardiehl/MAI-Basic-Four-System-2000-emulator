@@ -478,78 +478,91 @@ void cpu_write_long(unsigned int address, unsigned int value) {
 		cpu_write_word(address+2, value & 0xffff);
 }
 
+// memory access for debugger
 
-static unsigned int dbg_read_byte (unsigned int address, int forceSupervisorAddress) {
-	//return sys_read_byte (address,MEM_DISABLEBUSERROR);
-	unsigned int phys = address;
-	if (!forceSupervisorAddress)
-		if (!cpu_xlate(address,0,&phys)) { return 0xff; }
-	unsigned int res = sys_read_byte(phys,0);
-	return res;
+static int dbg_xlate(unsigned int logical, int isWrite, unsigned int * phys, int addressForceMode) {
+	if (addressForceMode & DBG_FORCE) {
+
+		if (addressForceMode & DBG_FORCE_USER) {
+			if (mmu_is_enabled()) {
+				if (mmu_translate(logical,isWrite,phys)) return 1;
+			}
+			*phys = 0xffffffff;
+			return 1;
+		} else *phys = logical;
+		return 1;
+	}
+	if (!cpu_in_user_mode() || !mmu_is_enabled()) { *phys = logical; return 1; }
+	if (mmu_translate(logical,isWrite,phys)) return 1;
+	return 0;
+}
+
+static unsigned int dbg_read_byte (unsigned int address, int addressForceMode) {
+	unsigned int phys;
+
+	if (!dbg_xlate(address,0,&phys, addressForceMode)) { return 0xff; }
+	return sys_read_byte(phys,0);
 }
 
 
-static unsigned int dbg_read_word (unsigned int address, int forceSupervisorAddress) {
-	//return sys_read_word (address,MEM_DISABLEBUSERROR);
-	unsigned int phys = address;
-	if (!forceSupervisorAddress)
-		if (!cpu_xlate(address,0,&phys)) { return 0xffff; }
-	unsigned int res = sys_read_word(phys,0);
-	return res;
+static unsigned int dbg_read_word (unsigned int address, int addressForceMode) {
+	unsigned int phys;
+
+	if (!dbg_xlate(address,0,&phys, addressForceMode)) { return 0xffff; }
+	return sys_read_word(phys,0);
 }
 
 
-static unsigned int dbg_read_long (unsigned int address, int forceSupervisorAddress) {
+static unsigned int dbg_read_long (unsigned int address, int addressForceMode) {
 	unsigned int data;
 
-	data = dbg_read_word(address,forceSupervisorAddress) << 16;
+	data = dbg_read_word(address,addressForceMode) << 16;
 	if (!(m68k_cpu.cpu_buserror_occurred))
-		data |= dbg_read_word(address+2,forceSupervisorAddress);
+		data |= dbg_read_word(address+2,addressForceMode);
 	return data;
 }
 
 
-static void dbg_write_byte(unsigned int address, unsigned int value, int forceSupervisorAddress) {
+static void dbg_write_byte(unsigned int address, unsigned int value, int addressForceMode) {
 	unsigned int phys = address;
-	if (!forceSupervisorAddress)
+	if (!addressForceMode)
 		if (!cpu_xlate(address,1,&phys)) { return; }
 	sys_write_byte(phys,value,0);
 	cpu_watch_check (phys,address, 1, 1);
 }
 
-static void dbg_write_word(unsigned int address, unsigned int value, int forceSupervisorAddress) {
+static void dbg_write_word(unsigned int address, unsigned int value, int addressForceMode) {
 	unsigned int phys = address;
-	if (!forceSupervisorAddress)
+	if (!addressForceMode)
 		if (!cpu_xlate(address,1,&phys)) { return; }
 	sys_write_word(phys,value,0);
 	cpu_watch_check (phys,address, 1, 2);
 }
 
-static void dbg_write_long(unsigned int address, unsigned int value, int forceSupervisorAddress) {
-	dbg_write_word(address, (value >> 16) & 0xffff, forceSupervisorAddress);
+static void dbg_write_long(unsigned int address, unsigned int value, int addressForceMode) {
+	dbg_write_word(address, (value >> 16) & 0xffff, addressForceMode);
 	if (!(m68k_cpu.cpu_buserror_occurred))
-		dbg_write_word(address+2, value & 0xffff, forceSupervisorAddress);
+		dbg_write_word(address+2, value & 0xffff, addressForceMode);
 }
 
+/*******************************************************************
+ * callbacks from musashi disassembler
+ *******************************************************************/
 
-
-
-// for mushasi disassembler
-
-int disassembleForceSupervisorAddress;
+int disassembleaddressForceMode;
 
 unsigned int m68k_read_disassembler_8  (unsigned int address) {
-	return dbg_read_byte (address,disassembleForceSupervisorAddress);
+	return dbg_read_byte (address,disassembleaddressForceMode);
 }
 
 
 unsigned int m68k_read_disassembler_16 (unsigned int address) {
-	return dbg_read_word (address,disassembleForceSupervisorAddress);
+	return dbg_read_word (address,disassembleaddressForceMode);
 }
 
 
 unsigned int m68k_read_disassembler_32 (unsigned int address) {
-	return dbg_read_long (address,disassembleForceSupervisorAddress);
+	return dbg_read_long (address,disassembleaddressForceMode);
 }
 
 
@@ -1241,9 +1254,9 @@ void dbgCmd_dbdwdw (int byteSize, int ascii, int numArgs, struct args_t *args) {
             for (i=0;i<args[1].value;i++) {
                 value = 0;	/* to avoid warning */
 	            switch (byteSize) {
-		            case 1: { value = dbg_read_byte(addr,args[0].forceSupervisorAddress); break; }
-		            case 2: { value = dbg_read_word(addr,args[0].forceSupervisorAddress); break; }
-		            case 4: { value = dbg_read_long(addr,args[0].forceSupervisorAddress); break; }
+		            case 1: { value = dbg_read_byte(addr,args[0].addressForceMode); break; }
+		            case 2: { value = dbg_read_word(addr,args[0].addressForceMode); break; }
+		            case 4: { value = dbg_read_long(addr,args[0].addressForceMode); break; }
 	            }
                 if (ascii) {
 		            c = (char)value;
@@ -1264,9 +1277,9 @@ void dbgCmd_dbdwdw (int byteSize, int ascii, int numArgs, struct args_t *args) {
     do {
 	  value = 0;	/* to avoid warning */
 	  switch (byteSize) {
-		  case 1: { value = dbg_read_byte(addr,args[0].forceSupervisorAddress); break; }
-		  case 2: { value = dbg_read_word(addr,args[0].forceSupervisorAddress); break; }
-		  case 4: { value = dbg_read_long(addr,args[0].forceSupervisorAddress); break; }
+		  case 1: { value = dbg_read_byte(addr,args[0].addressForceMode); break; }
+		  case 2: { value = dbg_read_word(addr,args[0].addressForceMode); break; }
+		  case 4: { value = dbg_read_long(addr,args[0].addressForceMode); break; }
 	  }
 	  valueOrg = value;
 	  if (ascii) {
@@ -1281,9 +1294,9 @@ void dbgCmd_dbdwdw (int byteSize, int ascii, int numArgs, struct args_t *args) {
 	  }
 	  if ((c != KEY_ESC) && (value != valueOrg)) {
 		  switch (byteSize) {
-  		    case 1: { dbg_write_byte(addr,value,args[0].forceSupervisorAddress); break; }
-		    case 2: { dbg_write_word(addr,value,args[0].forceSupervisorAddress); break; }
-		    case 4: { dbg_write_long(addr,value,args[0].forceSupervisorAddress); break; }
+  		    case 1: { dbg_write_byte(addr,value,args[0].addressForceMode); break; }
+		    case 2: { dbg_write_word(addr,value,args[0].addressForceMode); break; }
+		    case 4: { dbg_write_long(addr,value,args[0].addressForceMode); break; }
 	      }
 	  }
 	  printf("\n");
@@ -1335,7 +1348,7 @@ void dbgCmd_regs (int numArgs, struct args_t *args) {
 
 
 
-void dbgCmd_doDump (unsigned int addr, unsigned int endAddr, int lineLen, int forceSupervisorAddress) {
+void dbgCmd_doDump (unsigned int addr, unsigned int endAddr, int lineLen, int addressForceMode) {
 	unsigned int data;
 	int asciiLen = 0;
 	int hexLen;
@@ -1346,7 +1359,7 @@ void dbgCmd_doDump (unsigned int addr, unsigned int endAddr, int lineLen, int fo
 	hexData[0]=0; sprintf(hexData,"%08x: ",addr);
 	hexLen = strlen(hexData);
 	while (addr <= endAddr) {
-		data = dbg_read_byte(addr, forceSupervisorAddress);
+		data = dbg_read_byte(addr, addressForceMode);
 		if ((data < ' ') | (data > 0x7e)) ascii[asciiLen++] = '.'; else ascii[asciiLen++] = data;
 		ascii[asciiLen] = 0;
 		hexData[hexLen++] = hexNibble(data >> 4);
@@ -1376,7 +1389,7 @@ void dbgCmd_type (int numArgs, struct args_t *args) {
 	if (numArgs > 2) lineLen = args[2].value; else lineLen = 16;
 	if (numArgs < 2) endAddr = addr + 64;
 
-	dbgCmd_doDump (addr,endAddr,lineLen, args[0].forceSupervisorAddress);
+	dbgCmd_doDump (addr,endAddr,lineLen, args[0].addressForceMode);
 }
 
 
@@ -1386,7 +1399,7 @@ void dbgCmd_dump (int numArgs, struct args_t *args) {
 	int lineLen;
 	if (numArgs > 2) lineLen = args[2].value; else lineLen = 16;
 
-	dbgCmd_doDump (addr,endAddr-1,lineLen,args[0].forceSupervisorAddress);
+	dbgCmd_doDump (addr,endAddr-1,lineLen,args[0].addressForceMode);
 }
 
 
@@ -1396,12 +1409,12 @@ void dbgCmd_disass (int numArgs, struct args_t *args) {
 	int i = 0;
 	if (maxCount < 1) maxCount = 16;
 
-	disassembleForceSupervisorAddress = args[0].forceSupervisorAddress;
+	disassembleaddressForceMode = args[0].addressForceMode;
 	do {
 		addr += showInstruction(addr,"");
 		i++;
 	} while (i < maxCount);
-	disassembleForceSupervisorAddress = 0;
+	disassembleaddressForceMode = 0;
 }
 
 
@@ -2260,10 +2273,15 @@ void dbgCmd_vector (int numArgs, struct args_t *args) {
 
 void dbgCmd_translate (int numArgs, struct args_t *args) {
 	unsigned int phys;
-	if (cpu_xlate(args[0].value,0,&phys)) {
+
+	if (!mmu_is_enabled()) {
+		printf("%08x mmu disabled\n",args[0].value);
+		return;
+	}
+	if (mmu_translate(args[0].value,args[1].value,&phys)) {
 		printf("%08x\n",phys);
 	} else {
-		printf("invalid\n");
+		printf("%08x invalid\n",args[0].value);
 	}
 }
 
@@ -2305,7 +2323,7 @@ struct cmds_t cmds[] =
     { "rm"   ,    dbgCmd_rm    , 0,0,0,"Run until (enabled) message from emu"},
     { "step",     dbgCmd_step  , 0,1,1,"step one or more instructions"},
     { "type",     dbgCmd_type  , 1,3,1,"fromAdr toAddr - display memory dump"},
-    { "translate",dbgCmd_translate, 1,1,0,"translate virtual to physical address" },
+    { "translate",dbgCmd_translate, 1,2,0,"translate virtual to physical - address [1 for write]" },
     { "colors"   ,dbgCmd_color , 0,0,0,"color to list color 0 to disable, color err|notimp|warn|info|fatal|func colorName"},
     { "vector"   ,dbgCmd_vector, 0,1,1,"show vector table"},
 
@@ -2331,11 +2349,12 @@ void showHelp (char * caption, struct cmds_t * cmds, int extended) {
             i++;
         }
         if (extended) {
-            printf("args can be hex values, decimal values if started with # or register values\n");
-            printf("if started with -. + at end makes value a pointer.\n");
-            printf("A0+: pointer to addess 0xA0, -A0+: pointer to contents of A0\n");
-            printf("-A0: contents of A0\n");
-	    printf("You can break into the simulator debugger with control x or by by sending\nSIGINT to eagleemu.\n");
+            printf("args can be hex values, decimal values if started with # or register values\n" \
+                   "if started with -. + at end makes value a pointer.\n" \
+                   "A0+: pointer to addess 0xA0, -A0+: pointer to contents of A0\n" \
+                   "-A0: contents of A0\n" \
+                   "By default addresses will be translated in user mode, override in any mode by appending ! or @ for do not/do translation.\n"\
+	               "You can break into the simulator debugger with control x or by by sending\nSIGINT to eagleemu.\n");
         }
 }
 
@@ -2357,13 +2376,13 @@ void dbgCmd_help (int numArgs, struct args_t *args) {
  * -A0..7, -D0..7 return the register value
  * ======================================================================== */
 
-unsigned int strToULong(char * txt, unsigned int * value, int * forceSupervisorAddress) {
+unsigned int strToULong(char * txt, unsigned int * value, int * addressForceMode) {
 	char buf[255];
 	int regNum = -1;
 	int isPtr = 0;
 	int i;
 
-	*forceSupervisorAddress = 0;
+	*addressForceMode = 0;
 
 	strcpy(buf,txt);
 
@@ -2371,7 +2390,11 @@ unsigned int strToULong(char * txt, unsigned int * value, int * forceSupervisorA
 	if (p > &buf[0]) {
 	  p--;
 	  if (*p == '!') {
-		(*forceSupervisorAddress)++;
+		(*addressForceMode) = DBG_FORCE;
+		*p = 0;
+	  } else
+	  if (*p == '@') {
+		(*addressForceMode) = DBG_FORCE | DBG_FORCE_USER;
 		*p = 0;
 	  }
 	}
@@ -2521,7 +2544,7 @@ void commandHandler(char * oneCmd, int echo)
 		  while ((token) && (numArgs < MAXNUMARGS)) {
 			  strncpy(args[numArgs].txt,token,sizeof(args[numArgs].txt));
 			  args[numArgs].txt[sizeof(args[numArgs].txt)-1] = 0;
-			  args[numArgs].isValue = strToULong(args[numArgs].txt,&args[numArgs].value,&args[numArgs].forceSupervisorAddress);
+			  args[numArgs].isValue = strToULong(args[numArgs].txt,&args[numArgs].value,&args[numArgs].addressForceMode);
 			  token = strtok(NULL," ");
 			  numArgs++;
 		  }

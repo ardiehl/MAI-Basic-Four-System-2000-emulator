@@ -32,8 +32,6 @@
 #define MSG_MEM		9
 #define MSG_FD		10
 
-
-
 /* functions raised the message */
 #define MSG_NONE 0
 #define MSG_READB 1
@@ -118,11 +116,14 @@ char inputHexval (unsigned int * value, const char * exitChars);
 #define MAXNUMARGS 255
 #define MAXARGLEN 255
 
+#define DBG_FORCE      0x01
+#define DBG_FORCE_USER 0x02
+
 struct args_t {
 	char txt[MAXARGLEN+1];
 	int isValue;
 	unsigned int value;
-	int forceSupervisorAddress;
+	int addressForceMode;
   };
 
 struct cmds_t {
