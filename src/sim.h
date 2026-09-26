@@ -164,5 +164,6 @@ if (fwrite(&DATA,1,len,F) != len) return 0
     UINT32 len
 
 void fd_setContinueCounter (int countDown);
+int fd_getContinueCounter ();
 
 #endif /* SIM__HEADER */

@@ -25,6 +25,7 @@
 #ifndef FD_H
 #define FD_H
 
+#include "util.h"
 #include "sim.h"
 
 /*
@@ -50,14 +51,14 @@
 #define FD_ADDR_ARMASK  0x0F0000
 // floppy disk controller section options (13J)
 #define FD_ADDR_FLPOPT  0x700000
-#define FLPOPT_BUFWR 0
-#define FLPOPT_CMD   1
-#define FLPOPT_ENBINTR 2
-#define FLPOPT_ENBDRQ  3
-#define FLPOPT_HD_SD   4  /* 1=HD, 0=SD */
-#define FLPOPT_FM_MFM  5  /* 1=FM, 0=MFM */
+#define FLPOPT_BUFWR    0x01
+#define FLPOPT_CMD      0x02
+#define FLPOPT_ENBINTR  0x04
+#define FLPOPT_ENBDRQ   0x08
+#define FLPOPT_HD_SD    0x10  /* 1=HD, 0=SD */
+#define FLPOPT_FM_MFM   0x20  /* 1=FM, 0=MFM */
 /* bit 6 is not connected */
-#define FLPOPT_FRES    7  /* Reset incl wd1793 reset, fdfs writes 0x00, 0x80 */
+#define FLPOPT_FRES     0x80  /* Reset incl wd1793 reset, fdfs writes 0x00, 0x80 */
 
 // Status Transfer Control (13L) (read)
 #define FD_ADDR_FLPSTAT 0x720000
@@ -140,9 +141,11 @@
 #define FD_BUFFER_MASK  0x1fff
 #endif
 
-#define FD_MAX_REGISTERS 5
-#define FD_MAX_DRIVES    2
-#define FD_SECTOR_SIZE 512
+#define FD_MAX_REGISTERS       5
+#define FD_MAX_DRIVES          2
+#define FD_SECTOR_SIZE       512
+#define FD_SECTORS_PER_TRACK   8
+#define FD_SIDES               2
 
 typedef struct {
     FILE * img;
@@ -154,17 +157,17 @@ typedef struct {
 typedef struct {
     UINT8  regs[FD_MAX_REGISTERS];
     UINT32 bufferPos;
-    unsigned char buffer[FD_BUFFER_SIZE];
+    //unsigned char buffer[FD_BUFFER_SIZE];
     UINT8 flpopt_13J;      /* write 13J floppy disk controller section options */
     UINT8 flpstat_13L;     /* read 13L  Status Transfer Control */
     UINT8 flpcont_13K;     /* write 13K Floppy control (Sel,Motor,Precomp,Side,Doorlock) */
-    char flpBuf[FD_BUFFER_SIZE];
-	UINT8  cmdRunning;
-    INT8   lastStepDirection;  // 0 -1 or +1
-    UINT8  currTrack;
-	UINT8  intFlags;
+    UINT8 flpBufRam[FD_BUFFER_SIZE];
+	UINT8 cmdRunning;
+    INT8  lastStepDirection;  // 0 -1 or +1
+    UINT8 currTrack;
+	UINT8 intFlags;
 
-    UINT32 dummy2;
+    UINT32 commandCompleteCountdown;
     UINT32 dummy3;
     UINT32 dummy4;
 
@@ -218,8 +221,14 @@ typedef struct {
 #define WD1793_INT_IMMEDIATE         (1 << 3)
 
 // exec times
-#define FD_SEEK_EXEC_TIME 20000
-#define FD_RW_EXEC_TIME 20000
+//#define FD_SEEK_EXEC_TIME 20000
+//#define FD_RW_EXEC_TIME 20000
+// number of sys_device_ticks after fd_processContinue is called
+#define FD_CONTINUE_TICKS      3000
+
+// number of times fd_processContinue is called before command is complete
+#define FD_SEEK_EXEC_COUNT       4
+#define FD_RW_EXEC_COUNT         2
 
 // bit positions in cmd
 #define WS1793_CF_VERIFY 2

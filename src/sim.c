@@ -829,6 +829,10 @@ void fd_setContinueCounter (int countDown) {
 	fdInstrCount = countDown;
 }
 
+int fd_getContinueCounter () {
+	return fdInstrCount;
+}
+
 /*******************************************************************/
 
 
@@ -1352,8 +1356,8 @@ void dbgCmd_doDump (unsigned int addr, unsigned int endAddr, int lineLen, int ad
 	unsigned int data;
 	int asciiLen = 0;
 	int hexLen;
-	char hexData[100];
-	char ascii[17];
+	char hexData[255];
+	char ascii[lineLen+1];
 
 	printf("\n");
 	hexData[0]=0; sprintf(hexData,"%08x: ",addr);
