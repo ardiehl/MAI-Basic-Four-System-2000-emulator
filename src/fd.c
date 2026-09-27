@@ -173,25 +173,6 @@ static int fd_img_write (int driveNum, UINT32 blk, UINT8 * buf, UINT32 nblk) {
     return 1;
 }
 
-#if 0
-int fd_getIndexPulse() {
-	// only if a drive is selected and motor is on
-	UINT8 c;
-
-	int drive = -1;
-	c = FLPCONT_SEL0 | FLPCONT_MOTOR0;
-	if ((fd.flpcont_13K & c) == c) drive = 0;
-	else {
-		c = FLPCONT_SEL1 | FLPCONT_MOTOR1;
-		if ((fd.flpcont_13K & c) == c) drive = 1;
-	}
-	if (drive < 0) return 0;
-	// get the index pulse from the # instructions counter
-	// not accurate but some kind of pulse ;-)
-	return ((m68k_instruction_count & 0x07ff0) > 0);
-}
-#endif
-
 /*
    BFSID8079A
    Figure 10-2 Logic Diagram, Central Microprocessor Board (Sheet 47 of 58)
@@ -258,7 +239,9 @@ unsigned int fd_read_byte(unsigned int address, int flags) {
 		                MSG (MSGC_DEV,MYSELF,MSG_READB,"%08x (wd1793) regNum %d (%s), returning 0x%02x, ready: %d, type: %d",address,regNum,wd179x_regNames[regNum],res,driveIsReady(),getWdCommandType());
 						return res;
 		case FD_BUFF:											// 7AXXXX Both Floppy buffer READ/WRITE as in the service manual
-		case FD_BUFF2:	bufPos = address & FD_BUFFER_MASK;		// but fdfs is using 7Bxxxx ?
+		case FD_BUFF2:	bufPos = address & FD_BUFFER_MASK;		// but fdfs is using 7Bxxxx (assume on is for read, the other for write, need to check schematics)
+						if (bufPos == 0)	// only show the first byte, only to see if buffer ran was accessed
+							MSG (MSGC_DEV,MYSELF,MSG_READB,"%02x from %08x (buffer ram %04x)",fd.flpBufRam[bufPos],address,bufPos);
 						return fd.flpBufRam[bufPos];
 		default:		MSG (MSGC_ERR,MYSELF,MSG_READB,"%08x",address);
 	}
@@ -323,13 +306,15 @@ void fd_print_cmd (UINT8 value) {
 		  case 0xA0 : { strcpy(cmdName,"Write Sector"); break; }
 	  }
   }
-  MSG (MSGC_FUNC|MSGC_NOPC,MYSELF,MSG_NONE,"cmd: 0x%02x (%s %s)",value,cmdName,params);
+  MSG (MSGC_FUNC,MYSELF,MSG_NONE,"cmd: 0x%02x (%s %s)",value,cmdName,params);
 }
 
 
 void fd_exec_command(UINT8 cmd) {
 	int driveNum;
 	UINT32 lba;
+	int floppyStateMachineOn = (fd.flpopt_13J & FLPOPT_CMD) >> 1;
+	int floppyStateMachineRamWrite = fd.flpopt_13J & FLPOPT_CMD;
 
     fd_print_cmd(cmd);
     switch(cmd & 0xf0) {
@@ -357,19 +342,47 @@ void fd_exec_command(UINT8 cmd) {
 			if (fd.intFlags & WD1793_INT_IMMEDIATE)  // and gen int if requested
 				fd_genInterrupt (WD1793_IMMEDIATE);
 			break;
+
+		case WD179X_WRITE_REC:
+			if (driveIsReady()) {
+				driveNum = driveSelectedNum();
+				if (driveNum >= 0) {
+					if (fd_calc_lba (driveNum, &lba)) {
+						if (floppyStateMachineOn && floppyStateMachineRamWrite) {
+							if (fd_img_write (driveNum, lba, fd.flpBufRam, 1)) {
+								fd.regs[WD1793_R_STAT] = FLG_BUSY;
+								fd_setContinueCounter (FD_CONTINUE_TICKS);
+								fd.commandCompleteCountdown = FD_RW_EXEC_COUNT;
+								fd.cmdRunning = 1;
+								fd_genInterrupt (WD1793_CMD_START);      // in case this int is enabled
+								MSG (MSGC_FUNC|MSGC_NOPC,MYSELF,MSG_NONE,"started write %02x (wd1793), wd track reg: %d, sector: %d, wd status reg: %02x",cmd,fd.regs[WD1793_R_TRACK],fd.regs[WD1793_R_SECTOR],fd.regs[WD1793_R_STAT]);
+							} else fd.regs[WD1793_R_STAT] |= FLG_BADID;
+						} else {
+							fd.regs[WD1793_R_STAT] = FLG_LOSTDATA;
+							MSG (MSGC_ERR|MSGC_NOPC,MYSELF,MSG_NONE,"Read w/o state machine not supported, sm: %d, sm write: %d, wd status reg: %02x",floppyStateMachineOn,floppyStateMachineRamWrite,fd.regs[WD1793_R_STAT]);
+						}
+					} else fd.regs[WD1793_R_STAT] |= FLG_NOTFOUND;
+				}
+			}
+			break;
 		case WD179X_READ_REC:
 			if (driveIsReady()) {
 				driveNum = driveSelectedNum();
 				if (driveNum >= 0) {
 					if (fd_calc_lba (driveNum, &lba)) {
-						if (fd_img_read (driveNum, lba, fd.flpBufRam, 1)) {
-							fd.regs[WD1793_R_STAT] = FLG_BUSY;
-							fd_setContinueCounter (FD_CONTINUE_TICKS);
-							fd.commandCompleteCountdown = FD_RW_EXEC_COUNT;
-							fd.cmdRunning = 1;
-							fd_genInterrupt (WD1793_CMD_START);      // in case this int is enabled
-							MSG (MSGC_FUNC|MSGC_NOPC,MYSELF,MSG_NONE,"started read %02x (wd1793), wd track reg: %d, sector: %d, wd status reg: 0x%02x",cmd,fd.regs[WD1793_R_TRACK],fd.regs[WD1793_R_SECTOR],fd.regs[WD1793_R_STAT]);
-						} else fd.regs[WD1793_R_STAT] |= FLG_BADID;
+						if (floppyStateMachineOn && floppyStateMachineRamWrite) {
+							if (fd_img_read (driveNum, lba, fd.flpBufRam, 1)) {
+								fd.regs[WD1793_R_STAT] = FLG_BUSY;
+								fd_setContinueCounter (FD_CONTINUE_TICKS);
+								fd.commandCompleteCountdown = FD_RW_EXEC_COUNT;
+								fd.cmdRunning = 1;
+								fd_genInterrupt (WD1793_CMD_START);      // in case this int is enabled
+								MSG (MSGC_FUNC|MSGC_NOPC,MYSELF,MSG_NONE,"started read %02x (wd1793), wd track reg: %d, sector: %d, wd status reg: %02x",cmd,fd.regs[WD1793_R_TRACK],fd.regs[WD1793_R_SECTOR],fd.regs[WD1793_R_STAT]);
+							} else fd.regs[WD1793_R_STAT] |= FLG_BADID;
+						} else {
+							fd.regs[WD1793_R_STAT] = FLG_LOSTDATA;
+							MSG (MSGC_ERR|MSGC_NOPC,MYSELF,MSG_NONE,"Read w/o state machine not supported, sm: %d, sm write: %d, wd status reg: %02x",floppyStateMachineOn,floppyStateMachineRamWrite,fd.regs[WD1793_R_STAT]);
+						}
 					} else fd.regs[WD1793_R_STAT] |= FLG_NOTFOUND;
 				}
 			}
@@ -452,6 +465,8 @@ void fd_write_byte(unsigned int address, unsigned int value, int flags) {
 						return;
 		case FD_BUFF:
 		case FD_BUFF2:	bufPos = address & FD_BUFFER_MASK;
+						if (bufPos == 0)	// only show the first byte, only to see if buffer ran was accessed
+							MSG (MSGC_DEV,MYSELF,MSG_WRITEB,"%02x to %08x (buffer ram %04x)",value,address,bufPos);
 						fd.flpBufRam[bufPos] = value;
 						return;
 		default:		MSG (MSGC_ERR,MYSELF,MSG_WRITEB,"%02x to %08x",value,address);
@@ -471,10 +486,6 @@ void fd_pulse_reset(void) {
 
 
 void fd_genInterrupt(int kind) {
-    // TODO: check if ints are enabled on CMB - Status Transfer Control (13L)
-    // if not, exit here
-    //return;
-	// is command complete interrupt enabled in the wd1793 ?
 	switch (kind) {
         case WD1793_CMD_START:
         	fd.flpstat_13L &= ~FLPSTAT_INTRA;     // no int (from 1793 to 13L, set after command complete)
@@ -519,7 +530,7 @@ void fd_processContinue(void) {  /* called after n instructions if a ws1793 comm
 
 	isReady = driveIsReady();
 
-	// toggle index bit in flpstat_13L when floppy is inserted and selected + toggle index bit in wd status reg for type 1 commands
+	// toggle index bit in flpstat_13L when floppy is inserted and selected + toggle index bit in wd status reg for type 1 commands (floppy diags checks index pulse in wd status)
 	// TODO: timing, pulse instead of square wave
 	if (isReady) {
 		if (fd.flpstat_13L & FLPSTAT_IDXA) {
@@ -534,7 +545,7 @@ void fd_processContinue(void) {  /* called after n instructions if a ws1793 comm
 	} else {
 		if (fd.cmdRunning == 0) {
 			MSG (MSGC_FUNC|MSGC_NOPC,MYSELF,MSG_NONE,"index generation stopped, drive not ready and no active command");
-			return;		// we can stop as we do not need index pulses when drive is not ready
+			return;		// we can stop calling fd_processContinue as we do not need index pulses when drive is not ready
 		}
 	}
 
@@ -599,9 +610,12 @@ void fd_processContinue(void) {  /* called after n instructions if a ws1793 comm
                 fd_genInterrupt (WD1793_CMD_COMPLETE);
                 MSG (MSGC_FUNC|MSGC_NOPC,MYSELF,MSG_NONE,"finished seek, wd status reg 0x%02x wd track register: 0x%02x\n",fd.regs[WD1793_R_STAT],fd.regs[WD1793_R_TRACK]);
                 break;
-
+		case WD179X_WRITE_REC:
+			fd.regs[WD1793_R_STAT] &= ~FLG_BUSY;     // no longer busy
+			fd_genInterrupt (WD1793_CMD_COMPLETE);
+			MSG (MSGC_FUNC|MSGC_NOPC,MYSELF,MSG_NONE,"finished write, wd status reg 0x%02x\n",fd.regs[WD1793_R_STAT]);
+			break;
 		case WD179X_READ_REC:
-			// do we need to inc sector ?
 			fd.regs[WD1793_R_STAT] &= ~FLG_BUSY;     // no longer busy
 			fd_genInterrupt (WD1793_CMD_COMPLETE);
 			MSG (MSGC_FUNC|MSGC_NOPC,MYSELF,MSG_NONE,"finished read, wd status reg 0x%02x\n",fd.regs[WD1793_R_STAT]);

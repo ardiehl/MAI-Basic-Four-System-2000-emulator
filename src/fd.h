@@ -2,7 +2,7 @@
  * fd.h
  *
  *  Created: Dec, 12 2011
- *  Changed: May, 06 2015
+ *
  *  Armin Diehl <ad@ardiehl.de>
  ****************************************************************************/
 /*
@@ -51,7 +51,9 @@
 #define FD_ADDR_ARMASK  0x0F0000
 // floppy disk controller section options (13J)
 #define FD_ADDR_FLPOPT  0x700000
+// BUFW/R- controls the direction of the data transfer between the sector buffer and the floppy disk controller chip
 #define FLPOPT_BUFWR    0x01
+// CMD+ enables the state machine logic.
 #define FLPOPT_CMD      0x02
 #define FLPOPT_ENBINTR  0x04
 #define FLPOPT_ENBDRQ   0x08
@@ -229,6 +231,7 @@ typedef struct {
 // number of times fd_processContinue is called before command is complete
 #define FD_SEEK_EXEC_COUNT       4
 #define FD_RW_EXEC_COUNT         2
+#define FD_FORCE_EXEC_COUNT      0
 
 // bit positions in cmd
 #define WS1793_CF_VERIFY 2

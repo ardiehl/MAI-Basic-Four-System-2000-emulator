@@ -1,0 +1,7 @@
+#!/bin/sh
+IMG=$1
+[ "$IMG." == "." ] && IMG="0.img"
+echo -n "$IMG "
+#dd if=/dev/zero of=$IMG bs=655360 count=1
+dd if=/dev/zero bs=1 count=655360 | tr '\0' '\345' > $IMG
+

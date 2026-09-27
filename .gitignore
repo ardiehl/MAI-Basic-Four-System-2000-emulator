@@ -9,7 +9,6 @@ pdf/
 *.bak
 *.save
 *.o
-*.img
 sendsrec
 *.cbp
 *.layout
