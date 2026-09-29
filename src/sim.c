@@ -594,6 +594,7 @@ int sys_int_ack (device_t *device, int int_level){
     if (vector == M68K_INT_ACK_SPURIOUS) vector = wd_irq_ack(int_level);
     if (vector == M68K_INT_ACK_SPURIOUS) vector = fw_irq_ack(int_level);
     if (vector == M68K_INT_ACK_SPURIOUS) vector = pit_irq_ack(int_level);
+    if (vector == M68K_INT_ACK_SPURIOUS) vector = fd_irq_ack(int_level);  // fd is level 3 autovector, we have this to deactivate interrupt line
 	/* A device that claims the level but has no vector to give, the timer being
 	   the case here since TIACK is not wired, returns the autovector marker.
 	   Reporting that as "vector ffffffff" reads like a device handing back a
@@ -807,11 +808,6 @@ void sys_device_tick (void) {
 		wdInstrCount = 0;
 	}
 
-	if (fdInstrCount) {
-		fdInstrCount -= (fdInstrCount > step) ? step : fdInstrCount;
-		if (fdInstrCount == 0) fd_processContinue();
-	}
-
 	fwPendingIntCount -= (fwPendingIntCount > step) ? step : fwPendingIntCount;
 	if (fwPendingIntCount == 0) {
 		fwPendingIntCount = FW_PENDING_INT_INSTRUCTIONS;
@@ -822,6 +818,12 @@ void sys_device_tick (void) {
 	if (sccPollCount == 0) {
 		sccPollCount = SCC_POLL_INSTRUCTIONS;
 		scc_pollStatus ();
+	}
+
+	step = idle ? 500 : 1;
+	if (fdInstrCount) {
+		fdInstrCount -= (fdInstrCount > step) ? step : fdInstrCount;
+		if (fdInstrCount == 0) fd_processContinue();
 	}
 }
 

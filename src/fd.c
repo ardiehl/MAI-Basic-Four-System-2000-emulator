@@ -173,6 +173,28 @@ static int fd_img_write (int driveNum, UINT32 blk, UINT8 * buf, UINT32 nblk) {
     return 1;
 }
 
+static int fdIntAsserted;
+
+static void fd_update_irq (int want) {
+    if (want != fdIntAsserted) {
+        fdIntAsserted = want;
+        MSG (MSGC_INFO,MYSELF,MSG_NONE,"interrupt line %s",
+                want ? "asserted" : "negated");
+
+        m68k_set_int_line (FD_INTNO, want ? 1 : 0);
+    }
+}
+
+int fd_irq_ack(int level) {
+	if (fdIntAsserted && level == FD_INTNO) {
+		fd_update_irq (0);
+		return M68K_INT_ACK_AUTOVECTOR;
+	}
+	return M68K_INT_ACK_SPURIOUS;
+}
+
+
+
 /*
    BFSID8079A
    Figure 10-2 Logic Diagram, Central Microprocessor Board (Sheet 47 of 58)
@@ -225,7 +247,7 @@ unsigned int fd_read_byte(unsigned int address, int flags) {
 							else
 								fd.regs[WD1793_R_STAT] &= ~FLG_READONLY;
 
-							if (ready && (getWdCommandType() == 1)) 	// update head loaded if drive is ready and type 1 command in wd cmd register
+							if (ready && ((getWdCommandType() == 1) || (getWdCommandType() == 4))) 	// update head loaded if drive is ready and type 1 command in wd cmd register
 								fd.regs[WD1793_R_STAT] |= FLG_HEADLOAD;
 							else
 								fd.regs[WD1793_R_STAT] &= ~FLG_HEADLOAD;
@@ -339,8 +361,10 @@ void fd_exec_command(UINT8 cmd) {
 			fd.intFlags = cmd & 0x0f;
 			fd.cmdRunning = 0;                       // abort command
 			fd.regs[WD1793_R_STAT] &= ~FLG_BUSY;     // no longer busy
+			fd_update_irq (0);
 			if (fd.intFlags & WD1793_INT_IMMEDIATE)  // and gen int if requested
 				fd_genInterrupt (WD1793_IMMEDIATE);
+			fd_setContinueCounter (FD_CONTINUE_TICKS);
 			break;
 
 		case WD179X_WRITE_REC:
@@ -492,7 +516,7 @@ void fd_genInterrupt(int kind) {
             if (fd.intFlags & WD1793_INT_NOTREADY) {
 				if (fd.flpopt_13J & FLPOPT_ENBINTR) {
 					MSG (MSGC_INFO|MSGC_NOPC,MYSELF,MSG_NONE,"generating fd intr READY->NOT READY");
-					m68k_pulse_interrupt (FD_INTNO);
+					fd_update_irq (1);
 				}
             }
             break;
@@ -500,7 +524,7 @@ void fd_genInterrupt(int kind) {
         	fd.flpstat_13L |= FLPSTAT_INTRA;
             if (fd.flpopt_13J & FLPOPT_ENBINTR) {
                 MSG (MSGC_INFO|MSGC_NOPC,MYSELF,MSG_NONE,"generating fd intr CPMPLETE");
-                m68k_pulse_interrupt (FD_INTNO);
+                fd_update_irq (1);
             }
             break;
         case WD1793_INDEX:
@@ -508,7 +532,7 @@ void fd_genInterrupt(int kind) {
             if (fd.intFlags & WD1793_INT_INDEX) {
 				if (fd.flpopt_13J & FLPOPT_ENBINTR) {
 					MSG (MSGC_INFO|MSGC_NOPC,MYSELF,MSG_NONE,"generating fd intr INDEX");
-					m68k_pulse_interrupt (FD_INTNO);
+					fd_update_irq (1);
 				}
             }
             break;
@@ -516,7 +540,7 @@ void fd_genInterrupt(int kind) {
             if (fd.intFlags & WD1793_INT_IMMEDIATE) {
 				if (fd.flpopt_13J & FLPOPT_ENBINTR) {
 					MSG (MSGC_INFO|MSGC_NOPC,MYSELF,MSG_NONE,"generating fd intr IMMEDIATE");
-					m68k_pulse_interrupt (FD_INTNO);
+					fd_update_irq (1);
 				}
             }
             break;
@@ -535,11 +559,11 @@ void fd_processContinue(void) {  /* called after n instructions if a ws1793 comm
 	if (isReady) {
 		if (fd.flpstat_13L & FLPSTAT_IDXA) {
 			fd.flpstat_13L &= ~FLPSTAT_IDXA;
-			if (getWdCommandType() == 1)
+			if ((getWdCommandType() == 1) || (getWdCommandType() == 4))
 				fd.regs[WD1793_R_STAT] &= ~FLG_INDEX;
 		} else {
 			fd.flpstat_13L |= FLPSTAT_IDXA;
-			if (getWdCommandType() == 1)
+			if ((getWdCommandType() == 1) || (getWdCommandType() == 4))
 				fd.regs[WD1793_R_STAT] |= FLG_INDEX;
 		}
 	} else {

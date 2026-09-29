@@ -226,11 +226,11 @@ typedef struct {
 //#define FD_SEEK_EXEC_TIME 20000
 //#define FD_RW_EXEC_TIME 20000
 // number of sys_device_ticks after fd_processContinue is called
-#define FD_CONTINUE_TICKS      3000
+#define FD_CONTINUE_TICKS      5000
 
 // number of times fd_processContinue is called before command is complete
-#define FD_SEEK_EXEC_COUNT       4
-#define FD_RW_EXEC_COUNT         2
+#define FD_SEEK_EXEC_COUNT       1
+#define FD_RW_EXEC_COUNT         1
 #define FD_FORCE_EXEC_COUNT      0
 
 // bit positions in cmd
@@ -285,12 +285,15 @@ typedef struct {
 #define S_DENSITY  0x20
 
 
+
 unsigned int fd_read_byte(unsigned int address, int flags);
 unsigned int fd_read_word(unsigned int address, int flags);
 void fd_write_byte(unsigned int address, unsigned int value, int flags);
 void fd_write_word(unsigned int address, unsigned int value, int flags);
 void fd_pulse_reset(void);
 int fd_dbgCmd(int numArgs, struct args_t * args);
+
+int  fd_irq_ack(int level);
 
 int fd_save_state(FILE * f);
 int fd_load_state(FILE * f);

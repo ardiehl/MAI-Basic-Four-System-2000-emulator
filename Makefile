@@ -112,7 +112,7 @@
 # note that VER_EXTRA can be overridden on the command line, e.g.:
 # make VER_EXTRA=12345 all
 VER_MAJOR	= 0
-VER_MINOR	= 6
+VER_MINOR	= 7
 VER_EXTRA	?=
 
 # build platform: win32 or linux
