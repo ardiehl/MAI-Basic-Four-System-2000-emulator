@@ -823,20 +823,19 @@ static void sock_poll() {
 }
 
 
-void dumpChar(char prefix, char data) {
-	char tmpBuf[20];
+void dumpChars(char prefix, char *data, int len) {
+	char *p = data;
+	printf("%c:",prefix);
 
-	snprintf(tmpBuf,sizeof(tmpBuf)-1,"%c: 0x%02x %c ",prefix,data,data > ' ' && data < 127 ? data : ' ');
-	printf("%s",tmpBuf);
+	while (len) {
+		if ((*p >= 32) && (*p < 127)) putchar(*p); else printf("<%02x>",*p);
+		len --; p++;
+	}
+	putchar(' ');
 	fflush(stdout);
 }
 
-void dumpStr(char prefix, char *data) {
-	while (*data) {
-		dumpChar(prefix,*data);
-		data++;
-	}
-}
+
 
 void sock_putchar(int portNum, char data) {
 	if (portNum < 0 || portNum > SOCK_MAX-1) return;
@@ -856,16 +855,17 @@ void sock_putchar(int portNum, char data) {
 		char outSeqBuffer[OUT_BUF_SIZE];
 												// bfseq_processChar will process the character and fill outSeqBuffer when we have a complete sequence
 
+		if (socks[portNum].dumpIO_console) dumpChars('S',&data,1);
 		int bufLen = bfseq_processChar (&socks[portNum].outSeqSta,data, outSeqBuffer, sizeof(outSeqBuffer));
-		if (socks[portNum].dumpIO_console) dumpChar('s',data);
 		if (bufLen) {
+			if (socks[portNum].dumpIO_console) dumpChars('s',outSeqBuffer,bufLen);
 			send(socks[portNum].fd,(char *)&outSeqBuffer,bufLen,0); //MSG_DONTWAIT);
 			//if (socks[portNum].dumpIO_console) dumpStr('s',outSeqBuffer);
 		}
 
 	} else {
 		send(socks[portNum].fd,&data,1,0); //MSG_DONTWAIT);
-		if (socks[portNum].dumpIO_console) dumpChar('s',data);
+		if (socks[portNum].dumpIO_console) dumpChars('S',&data,1);
 	}
 }
 
@@ -889,7 +889,7 @@ int sock_getchar(int portNum, char * data) {
 #endif
 
 	if (rc)
-		if (socks[portNum].dumpIO_console) dumpChar('R',*data);
+		if (socks[portNum].dumpIO_console) dumpChars('R',data,1);
 	return rc;
 }
 

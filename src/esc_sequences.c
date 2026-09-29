@@ -37,22 +37,22 @@ struct bfescseq_t {
 // for ESC g
 struct bfescseqaux_t bfescseq_g_tab[] =
 {
-	{ '0', "\033[0m"	},						// mormal
-	{ '1', "\033[0m\033[4m"	},					// b underline
-	{ '2', "\033[0m\033[5m"	},					// b blink
-	{ '3', "\033[0m\033[4\033[5m"	},				// b link underline
-	{ '4', "\033[0m\033[7m"	},					// b reverse
-	{ '5', "\033[0m\033[7m\033[4m"	},			// b reverse underline
-	{ '6', "\033[0m\033[7m\033[5m"	},			// b reverse blink
-	{ '7', "\033[0m\033[7m\033[4m\033[5m"	},		// b blink underline reverse
-	{ '8', "\033[0m\033[2m"	},					// dark normal
-	{ '9', "\033[0m\033[2m\033[4m"	},			// dark underline
-	{ 'A', "\033[0m\033[2m\033[5m"	},			// dark blink
-	{ 'B', "\033[0m\033[2m\033[4m\033[5m"	},		// d_blink_underline
-	{ 'C', "\033[0m\033[2m\033[7m"	},			// d_reverse
-	{ 'D', "\033[0m\033[2m\033[7m\033[4m"	},		// d_reverse_underline
-	{ 'E', "\033[0m\033[2m\033[7m\033[5m"	},		// d_reverse_blink
-	{ 'F', "\033[0m\033[2m\033[7m\033[5m\033[4m"	}	// d_reverse_blink underline
+	{ '0', "\033[0\"q\033[0m"	},						// mormal
+	{ '1', "\033[0\"q\033[0m\033[4m"	},					// b underline
+	{ '2', "\033[0\"q\033[0m\033[5m"	},					// b blink
+	{ '3', "\033[0\"q\033[0m\033[4\033[5m"	},				// b link underline
+	{ '4', "\033[0\"q\033[0m\033[7m"	},					// b reverse
+	{ '5', "\033[0\"q\033[0m\033[7m\033[4m"	},			// b reverse underline
+	{ '6', "\033[0\"q\033[0m\033[7m\033[5m"	},			// b reverse blink
+	{ '7', "\033[0\"q\033[0m\033[7m\033[4m\033[5m"	},		// b blink underline reverse
+	{ '8', "\033[1\"q\033[0m\033[2m"	},					// dark normal
+	{ '9', "\033[1\"q\033[0m\033[2m\033[4m"	},			// dark underline
+	{ 'A', "\033[1\"q\033[0m\033[2m\033[5m"	},			// dark blink
+	{ 'B', "\033[1\"q\033[0m\033[2m\033[4m\033[5m"	},		// d_blink_underline
+	{ 'C', "\033[1\"q\033[0m\033[2m\033[7m"	},			// d_reverse
+	{ 'D', "\033[1\"q\033[0m\033[2m\033[7m\033[4m"	},		// d_reverse_underline
+	{ 'E', "\033[1\"q\033[0m\033[2m\033[7m\033[5m"	},		// d_reverse_blink
+	{ 'F', "\033[1\"q\033[0m\033[2m\033[7m\033[5m\033[4m"	}	// d_reverse_blink underline
 
 };
 
@@ -67,12 +67,12 @@ struct bfescseq_t bfescseq_tab[] =
 	{ 1, 0, NULL }, // 0x23 (35) - '#' lock_keyboard
 	{ 0, 0, NULL }, // 0x24 (36) - '$'
 	{ 0, 0, NULL }, // 0x25 (37) - '%'
-	{ 1, 0, NULL }, // 0x26 (38) - '&' clear_foreground 1 (start protected)
-	{ 1, 0, NULL }, // 0x27 (39) - ''' clear_foreground 3
+	{ 1, 0, "\033[1\"q" }, // 0x26 (38) - '&' start protected (vt220)
+	{ 1, 0, "\033[0\"q" }, // 0x27 (39) - ''' end protected (vt220)
 	{ 0, 0, NULL }, // 0x28 (40) - '('
 	{ 0, 0, NULL }, // 0x29 (41) - ')'
 	{ 1, 0, "\033[2J\033[H" }, // 0x2A (42) - '*' clear screen
-	{ 1, 0, NULL }, // 0x2B (43) - '+' clear_foreground 2
+	{ 1, 0, "\033[?2J" }, // 0x2B (43) - '+' clear_foreground (vt220)
 	{ 0, 0, NULL }, // 0x2C (44) - ','
 	{ 0, 0, NULL }, // 0x2D (45) - '-'
 	{ 0, 0, NULL }, // 0x2E (46) - '.'
