@@ -18,6 +18,17 @@
 int cmb_status_word;
 unsigned int cmb_writeRegs;
 
+/* Signal MMERR+ is latched and held by a 74LS109 flip-flop (10R) at the end of the current cycle.
+   The latched error becomes signal MMERF+ (Memory Management Error Flag) and is read in a CMB status
+   read cycle, as described in paragraph 3.2.4. The error is reset at the end of the read, because
+   the input of the flip-flop is low from CMBSTRE- (CMB Status Read) asserted. */
+
+int MemoryManagementErrorFlag;
+
+void setCmb_MemoryManagementErrorFlag() {
+	MemoryManagementErrorFlag = 1;
+}
+
 /* adress must be a valid cmb port (2xxxxy) */
 /* The parity error address registers and the general status register were
  * recognised but fell through to the unhandled path below, which returns all
@@ -29,6 +40,7 @@ unsigned int cmb_writeRegs;
  * latched by this emulator yet, so the honest answer is zero, no fault.
  */
 unsigned int cmb_read_byte(unsigned int address) {
+  int res;
   switch (address & CMB_ADDR_REG_MASK) {
 	  case CMBW_TSTOL		: { MSG (MSGC_ERR,MSG_CMB,MSG_READB,"attempt to read write only port TSTOL"); break; }
 	  case CMBR_MEMPAR_HI	: { MSG (MSGC_INFO,MSG_CMB,MSG_READB,"read CMB_MEMPAR_HI, no fault latched"); return 0; }
@@ -37,8 +49,10 @@ unsigned int cmb_read_byte(unsigned int address) {
 	  case CMBR_MEMPAR_LO+1	: { MSG (MSGC_INFO,MSG_CMB,MSG_READB,"read CMB_MEMPAR_LO low byte, no fault latched"); return 0; }
 	  case CMBW_PARDATA		: { MSG (MSGC_ERR,MSG_CMB,MSG_READB,"attempt to read write only port PARDATA"); break; }
 	  case CMBW_INHSER		: { MSG (MSGC_ERR,MSG_CMB,MSG_READB,"attempt to read write only port INHSER"); break; }
-	  case CMBR_STATUS		: { MSG (MSGC_INFO,MSG_CMB,MSG_READB,"read STATUS8: %02x",cmb_status_word); return cmb_status_word & 0xff; }
-	  case CMBR_STATUS+1	: { MSG (MSGC_INFO,MSG_CMB,MSG_READB,"read STATUS8 low byte: %02x",cmb_status_word & 0xff); return cmb_status_word & 0xff; }
+	  case CMBR_STATUS		: { res = cmb_status_word | MemoryManagementErrorFlag; MemoryManagementErrorFlag = 0;
+	  	                        MSG (MSGC_INFO,MSG_CMB,MSG_READB,"read STATUS8: %02x",res); return res & 0xff; }
+	  case CMBR_STATUS+1	: { res = cmb_status_word | MemoryManagementErrorFlag; MemoryManagementErrorFlag = 0;
+	  	                        MSG (MSGC_INFO,MSG_CMB,MSG_READB,"read STATUS8 low byte: %02x",res & 0xff); return res & 0xff; }
 	  case CMBR_GENSTATUS	: { MSG (MSGC_INFO,MSG_CMB,MSG_READB,"read GENSTATUS, no fault latched"); return 0; }
 	  case CMBR_GENSTATUS+1	: { MSG (MSGC_INFO,MSG_CMB,MSG_READB,"read GENSTATUS low byte, no fault latched"); return 0; }
   }
@@ -53,7 +67,8 @@ unsigned int cmb_read_word(unsigned int address) {
 	  case CMBR_MEMPAR_LO	: { MSG (MSGC_INFO,MSG_CMB,MSG_READW,"read CMB_MEMPAR_LO, no fault latched"); return 0; }
 	  case CMBW_PARDATA		: { MSG (MSGC_ERR,MSG_CMB,MSG_READW,"attempt to read write only port PARDATA"); break; }
 	  case CMBW_INHSER		: { MSG (MSGC_ERR,MSG_CMB,MSG_READW,"attempt to read write only port INHSER"); break; }
-	  case CMBR_STATUS		: { MSG (MSGC_INFO,MSG_CMB,MSG_READW,"read STATUS16: %04x",cmb_status_word); return cmb_status_word; }
+	  case CMBR_STATUS		: { int res = cmb_status_word | MemoryManagementErrorFlag;
+	  	                        MSG (MSGC_INFO,MSG_CMB,MSG_READW,"read STATUS16: %04x",res); return res; }
 	  case CMBR_GENSTATUS	: { MSG (MSGC_INFO,MSG_CMB,MSG_READW,"read GENSTATUS, no fault latched"); return 0; }
   }
   MSG (MSGC_ERR,MSG_CMB,MSG_READW,"unhandled read word from address %08",address);

@@ -26,6 +26,7 @@
 #include "mmu.h"
 #include "sim.h"
 #include "memory.h"
+#include "cmb.h"
 
 #define MYSELF MSG_MEM
 
@@ -94,12 +95,30 @@ void mmu_write_byte (unsigned int address, unsigned int value) {
 unsigned int mmu_read_word (unsigned int address) {
     int seg = mmu_seg_of(address);
 
-    if (ADDR_IS_MMU_BASE(address)) return mmuBase[seg];
+    if (ADDR_IS_MMU_BASE(address)) {
+		msgout (MSGC_INFO,MYSELF,MSG_READW,"%08x mmu seg %d, returning mmuBase %04x",address,seg,mmuBase[seg]);
+		return mmuBase[seg];
+    }
+
+    // AXXXXX    MMU limit write/status READ
+    if (ADDR_IS_MMU_LIMIT(address)) {
+		msgout (MSGC_INFO,MYSELF,MSG_READW,"%08x mmu seg %d, returning mmuStat %02x",address,seg,mmuStat[seg]);
+		return mmuStat[seg];
+    }
+
+    msgout (MSGC_INFO,MYSELF,MSG_READW,"%08x mmu seg %d, returning mmuLimit %04x",address,seg,mmuLimit[seg]);
     return mmuLimit[seg];
 }
 
 unsigned int mmu_read_byte (unsigned int address) {
     int seg = mmu_seg_of(address);
+
+    // AXXXXX    MMU limit write/status READ
+    if (ADDR_IS_MMU_LIMIT(address)) {
+		msgout (MSGC_INFO,MYSELF,MSG_READB,"%08x mmu seg %d, returning mmuStat %02x",address,seg,mmuStat[seg]);
+		return mmuStat[seg];
+    }
+
     UINT16 v = ADDR_IS_MMU_BASE(address) ? mmuBase[seg] : mmuLimit[seg];
 
     if (address & 1) return v & 0xff;
@@ -153,6 +172,7 @@ int mmu_translate (unsigned int logical, int isWrite, unsigned int * phys) {
     if (viol) {
         mmuStat[seg] |= MMU_ST_LIMITERR;
         mmuErrCount++;
+        setCmb_MemoryManagementErrorFlag();
         msgout (MSGC_ERR,MYSELF,MSG_NONE,"mmu %s violation, seg %d off %03x limit %03x type %d, logical %08x",
                 (type == MMU_TYPE_ABSENT) ? "absent segment" : "limit",seg,off,limit,type,logical);
         return 0;
@@ -160,6 +180,7 @@ int mmu_translate (unsigned int logical, int isWrite, unsigned int * phys) {
     if (isWrite && (mmuBase[seg] & MMU_BASE_R)) {
         mmuStat[seg] |= MMU_ST_WRITEERR;
         mmuErrCount++;
+        setCmb_MemoryManagementErrorFlag();
         msgout (MSGC_ERR,MYSELF,MSG_NONE,"mmu write to read only seg %d, logical %08x",seg,logical);
         return 0;
     }

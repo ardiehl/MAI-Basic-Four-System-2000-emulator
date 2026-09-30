@@ -85,5 +85,6 @@ void cmb_pulse_reset(void);
 unsigned int cmb_getStatusWord (void);
 unsigned int cmb_getWriteRegs (void);
 int cmb_dbgCmd(int numArgs, struct args_t * args);
+void setCmb_MemoryManagementErrorFlag();
 
 #endif
