@@ -41,8 +41,8 @@
 #define ADDR_IS_MMU(A)       (ADDR_IS_MMU_BASE(A) || ADDR_IS_MMU_LIMIT(A))
 
 /* base descriptor bits, see 3.2.16.5 and 3.2.16.6 */
-#define MMU_BASE_R          0x8000      /* segment is read only              */
-#define MMU_BASE_X          0x4000      /* segment is data only, no execute  */
+#define MMU_BASE_R          0x4000      /* segment is read only              */
+#define MMU_BASE_X          0x8000      /* segment is data only, no execute  */
 #define MMU_BASE_TYPE_MASK  0x3000      /* limit comparison policy           */
 #define MMU_BASE_TYPE_SHIFT 12
 #define MMU_ADDR_FIELD      0x0fff      /* A20 through A09                   */
