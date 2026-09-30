@@ -4,7 +4,7 @@
  *  Created: Dec, 10 2011
  *  Changed: Dec, 21 2011
  *  Armin Diehl <ad@ardiehl.de>
- * 
+ *
  * Compatibility routines to use musashi 4.x (from mame) with 3.3 like
  * interfaces
  ****************************************************************************/
@@ -25,6 +25,17 @@ void m68k_set_cpu_type(int cpu_type) {
 		case M68K_CPU_TYPE_68010: { cpu_init_m68010 (&m68k_cpu,NULL); break; }
 		default: { fatalerror("unsupported cpu\n"); }
 	}
+}
+
+/* return 1 if the current memory access is an instruction fetch */
+int m68k_is_user_instruction_fetch(unsigned int address) {
+	//if (m68k_cpu.s_flag & FUNCTION_CODE_USER_PROGRAM) return 1;
+	unsigned int pc = m68k_get_reg(NULL, M68K_REG_PC);
+
+	if (address == pc) return 1;
+	/* does not work for longer instructions but should work for the diags */
+
+	return 0;
 }
 
 /* Pulse the RESET pin on the CPU.
@@ -49,10 +60,10 @@ int m68k_execute(int num_cycles) {
  */
 unsigned int m68k_get_reg(void* context, m68k_register_t reg) {
 	m68ki_cpu_core * m68k = context;
-	if (m68k == NULL) 
-		m68k = &m68k_cpu; 
-	
-	switch (reg) {	        
+	if (m68k == NULL)
+		m68k = &m68k_cpu;
+
+	switch (reg) {
 		case (M68K_REG_D0): return (REG_D(m68k)[0]);
         case (M68K_REG_D1): return (REG_D(m68k)[1]);
         case (M68K_REG_D2): return (REG_D(m68k)[2]);
@@ -72,8 +83,8 @@ unsigned int m68k_get_reg(void* context, m68k_register_t reg) {
         case (M68K_REG_PC): return (REG_PC(m68k));
         case (M68K_REG_SR): return m68ki_get_sr(m68k);
         case (M68K_REG_SP): return (REG_SP(m68k));
-        case (M68K_REG_USP): return (REG_USP(m68k));          
-        case (M68K_REG_ISP): return (REG_ISP(m68k));          
+        case (M68K_REG_USP): return (REG_USP(m68k));
+        case (M68K_REG_ISP): return (REG_ISP(m68k));
         case (M68K_REG_MSP): return (REG_MSP(m68k));
 		case M68K_REG_SFC:      return m68k->sfc;
         case M68K_REG_DFC:      return m68k->dfc;
@@ -101,7 +112,7 @@ unsigned int m68k_get_reg(void* context, m68k_register_t reg) {
 
 /* Poke values into the internals of the currently running CPU context */
 void m68k_set_reg(m68k_register_t reg, unsigned int value) {
-       
+
 	m68ki_cpu_core * m68k = &m68k_cpu;
 	switch(reg)
     {
@@ -147,7 +158,7 @@ void m68k_set_reg(m68k_register_t reg, unsigned int value) {
         case M68K_REG_PPC:      m68k->ppc = MASK_OUT_ABOVE_32(value); return;
         case M68K_REG_IR:       m68k->ir = MASK_OUT_ABOVE_16(value); return;
         case M68K_REG_CPU_TYPE: m68k_set_cpu_type(value); return;
-		default : fatalerror("m68k_set_reg: unsupported reg %d\n",reg); 
+		default : fatalerror("m68k_set_reg: unsupported reg %d\n",reg);
 	}
 }
 
@@ -162,7 +173,7 @@ unsigned int m68k_is_valid_instruction(unsigned int instruction, unsigned int cp
  */
 /*
 unsigned int m68k_disassemble(char* str_buff, unsigned int pc, unsigned int cpu_type) {
-	
+
 }
 */
 
@@ -211,7 +222,7 @@ int cpu_save_state(FILE * f)  {
     STATEWRITEVARS("cpu");
 
     STATEWRITE(id,f);
-    
+
     STATEWRITELEN(m68k_cpu.cpu_type,f);     /* CPU Type: 68000, 68008, 68010, 68EC020, 68020, 68EC030, 68030, 68EC040, or 68040 */
 	STATEWRITELEN(m68k_cpu.dasm_type,f);	 /* disassembly type */
 	STATEWRITELEN(m68k_cpu.dar,f);      /* Data and Address Registers */
@@ -337,11 +348,11 @@ int cpu_save_state(FILE * f)  {
 	UINT16 ic_data[M68K_IC_SIZE];      /* instruction cache content data */
 
 	/* external instruction hook (does not depend on debug mode) */
-	
+
 	instruction_hook_t instruction_hook;
 #endif
     return 1;
-    
+
 }
 
 int cpu_load_state(FILE * f) {
@@ -476,7 +487,7 @@ int cpu_load_state(FILE * f) {
 	UINT16 ic_data[M68K_IC_SIZE];      /* instruction cache content data */
 
 	/* external instruction hook (does not depend on debug mode) */
-	
+
 	instruction_hook_t instruction_hook;
 #endif
     return 1;

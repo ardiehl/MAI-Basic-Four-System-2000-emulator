@@ -184,6 +184,16 @@ int mmu_translate (unsigned int logical, int isWrite, unsigned int * phys) {
         msgout (MSGC_ERR,MYSELF,MSG_NONE,"mmu write to read only seg %d, logical %08x",seg,logical);
         return 0;
     }
+    /* check if an instruction fetch happened for a data only, no execute segment */
+    if (mmuBase[seg] & MMU_BASE_X) {
+			if (m68k_is_user_instruction_fetch(logical)) {
+				mmuStat[seg] |= MMU_ST_EXECERR;
+				mmuErrCount++;
+				setCmb_MemoryManagementErrorFlag();
+				msgout (MSGC_ERR,MYSELF,MSG_NONE,"mmu instruction fetch from a non executable seg %d, logical %08x",seg,logical);
+				return 0;
+			}
+    }
 
     /* physical A09 through A20 is base plus logical, three 4 bit adders */
     sum = (base + off) & MMU_ADDR_FIELD;
@@ -199,18 +209,18 @@ int mmu_translate (unsigned int logical, int isWrite, unsigned int * phys) {
 
 void mmu_showRegs (int numArgs, struct args_t *args) {
     int i, type;
-    static const char * typeName[4] = {"absent","addr>=lim","addr<lim","addr<=lim"};
+    static const char * typeName[4] = {"absent   ","addr>=lim","addr<lim ","addr<=lim"};
 
     printf("mmu %s, %u translations, %u faults\n",
             mmuLoaded ? "loaded" : "never written to",mmuXlateCount,mmuErrCount);
-    printf("seg  base  limit  attr        maps logical           to physical\n");
+    printf("seg  base  limit attr              maps logical        to physical\n");
     for (i = 0; i < MMU_SEGMENTS; i++) {
         type = (mmuBase[i] & MMU_BASE_TYPE_MASK) >> MMU_BASE_TYPE_SHIFT;
         printf(" %d   %03x   %03x   %-9s %s%s  %08x..%08x  %06x\n",
                 i,mmuBase[i] & MMU_ADDR_FIELD,mmuLimit[i] & MMU_ADDR_FIELD,
                 typeName[type],
                 (mmuBase[i] & MMU_BASE_R) ? "RO " : "rw ",
-                (mmuBase[i] & MMU_BASE_X) ? "NX" : "x ",
+                (mmuBase[i] & MMU_BASE_X) ? "NX " : "x  ",
                 i << 21, (i << 21) | 0x1fffff,
                 (unsigned int)((mmuBase[i] & MMU_ADDR_FIELD) << 9));
     }

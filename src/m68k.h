@@ -4,7 +4,7 @@
  *  Created: Dec, 10 2011
  *  Changed: Dec, 21 2011
  *  Armin Diehl <ad@ardiehl.de>
- * 
+ *
  * Compatibility routines to use musashi 4.x (from mame) with 3.3 like
  * interfaces
  ****************************************************************************/
@@ -80,6 +80,9 @@ typedef enum
 
 
 void m68k_set_cpu_type(int cpu_type);
+
+/* return 1 if the current memory access is an instruction fetch */
+int m68k_is_user_instruction_fetch(unsigned int address);
 
 /* Pulse the RESET pin on the CPU.
  * You *MUST* reset the CPU at least once to initialize the emulation

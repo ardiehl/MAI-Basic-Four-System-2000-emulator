@@ -489,10 +489,10 @@ void cpu_write_long(unsigned int address, unsigned int value) {
 
 static int dbg_xlate(unsigned int logical, int isWrite, unsigned int * phys, int addressForceMode) {
 	if (addressForceMode & DBG_FORCE) {
-
 		if (addressForceMode & DBG_FORCE_USER) {
 			if (mmu_is_enabled()) {
-				if (mmu_translate(logical,isWrite,phys)) return 1;
+				if (mmu_peek_translate (logical,phys)) return 1;
+				printf("mmu_peek_translate failed\n");
 			}
 			*phys = 0xffffffff;
 			return 1;
@@ -500,7 +500,8 @@ static int dbg_xlate(unsigned int logical, int isWrite, unsigned int * phys, int
 		return 1;
 	}
 	if (!cpu_in_user_mode() || !mmu_is_enabled()) { *phys = logical; return 1; }
-	if (mmu_translate(logical,isWrite,phys)) return 1;
+	if (mmu_peek_translate (logical,phys)) return 1;
+	*phys = logical;
 	return 0;
 }
 
@@ -532,16 +533,16 @@ static unsigned int dbg_read_long (unsigned int address, int addressForceMode) {
 
 static void dbg_write_byte(unsigned int address, unsigned int value, int addressForceMode) {
 	unsigned int phys = address;
-	if (!addressForceMode)
-		if (!cpu_xlate(address,1,&phys)) { return; }
+	if (addressForceMode)
+		if (!dbg_xlate(address,1,&phys,addressForceMode)) { return; }
 	sys_write_byte(phys,value,0);
 	cpu_watch_check (phys,address, 1, 1);
 }
 
 static void dbg_write_word(unsigned int address, unsigned int value, int addressForceMode) {
 	unsigned int phys = address;
-	if (!addressForceMode)
-		if (!cpu_xlate(address,1,&phys)) { return; }
+	if (addressForceMode)
+		if (!dbg_xlate(address,1,&phys,addressForceMode)) { return; }
 	sys_write_word(phys,value,0);
 	cpu_watch_check (phys,address, 1, 2);
 }
@@ -1000,7 +1001,7 @@ void fatalerror(char * msg, ...) {
 /* ======================================================================== */
 
 
-int showInstruction(unsigned int pc, char * comment)
+int showInstruction(unsigned int pc, char * comment, int addressForceMode)
 {
 	char buf[255];
 	char hx[5];
@@ -1011,7 +1012,7 @@ int showInstruction(unsigned int pc, char * comment)
 	instrLen = m68k_disassemble(&buf[0], pc, M68K_CPU_TYPE_68010) & DASMFLAG_LENGTHMASK;
 	instHex[0]=0;
 	for (i=0;i<instrLen;i++) {
-		sprintf(hx,"%02x ",cpu_read_byte(pc+i));
+		sprintf(hx,"%02x ",dbg_read_byte(pc+i,addressForceMode));
 		strcat(instHex,hx);
 	}
 	printf("%08x %-24s  %-35s %s\n",pc,instHex,buf,comment);
@@ -1424,7 +1425,7 @@ void dbgCmd_disass (int numArgs, struct args_t *args) {
 
 	disassembleaddressForceMode = args[0].addressForceMode;
 	do {
-		addr += showInstruction(addr,"");
+		addr += showInstruction(addr,"",args[0].addressForceMode);
 		i++;
 	} while (i < maxCount);
 	disassembleaddressForceMode = 0;
@@ -1710,7 +1711,7 @@ void dbgCmd_step (int numArgs, struct args_t *args) {
 
 	g_busErrorCount = 0;
 	pc = m68k_get_reg(NULL, M68K_REG_PC);
-    if (pc != prevShownPC) showInstruction(pc,"");
+    if (pc != prevShownPC) showInstruction(pc,"",0);
 	if (numArgs > 0)
 		if (args[0].value) instrCount = args[0].value;
 	if (m68k_is_stopped())
@@ -1734,7 +1735,7 @@ void dbgCmd_step (int numArgs, struct args_t *args) {
 			}
 		}
 
-		showInstruction(pc,changedRegs);
+		showInstruction(pc,changedRegs,0);
         prevShownPC = pc;
         if (g_busErrorCount) {
 			showBusError ("break due to");
@@ -1788,8 +1789,8 @@ void dbgCmd_rm (int numArgs, struct args_t *args) {
 			printf("CPU is stopped (a STOP instruction executed), waiting for an interrupt.\n");
 	} else
 		if (brkpt) printf("breakpoint %d @ %08x\n",brkpt-1,breakpoints[brkpt-1].addr);
-	showInstruction(g_currPC,"");
-	showInstruction(pc,"");
+	showInstruction(g_currPC,"",0);
+	showInstruction(pc,"",0);
 }
 
 
@@ -1819,8 +1820,8 @@ void dbgCmd_go (int numArgs, struct args_t *args) {
 		g_ctrlCpressed = 0;
 	} else
 		if (brkpt > 0) printf("breakpoint %d @ %08x\n",brkpt-1,breakpoints[brkpt-1].addr);
-	showInstruction(g_currPC,"");
-	showInstruction(pc,"");
+	showInstruction(g_currPC,"",0);
+	showInstruction(pc,"",0);
 }
 
 /* skip over next instruction */
