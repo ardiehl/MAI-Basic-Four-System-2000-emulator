@@ -432,9 +432,16 @@ static int cpu_xlate(unsigned int logical, int isWrite, unsigned int * phys) {
 	return 0;
 }
 
+static void cpu_mmu_fault(unsigned int address, int isWrite, int isByte, unsigned int value) {
+	m68k_cpu.cpu_buserror_address = address;
+	m68k_cpu.cpu_buserror_on_write = isWrite;
+	m68k_cpu.cpu_buserror_byte_transfer = isByte;
+	if (isWrite) m68k_cpu.cpu_buserror_writeval = value;
+}
+
 unsigned int cpu_read_byte(unsigned int address) {
 	unsigned int phys;
-	if (!cpu_xlate(address,0,&phys)) { BUSERROR(0,address,MSG_READB); return 0xff; }
+	if (!cpu_xlate(address,0,&phys)) { cpu_mmu_fault(address,0,1,0); BUSERROR(0,address,MSG_READB); return 0xff; }
 	unsigned int res = sys_read_byte(phys,0);
 	cpu_watch_check (phys,address, 1, 0);
 	return res;
@@ -442,7 +449,7 @@ unsigned int cpu_read_byte(unsigned int address) {
 
 unsigned int cpu_read_word(unsigned int address) {
 	unsigned int phys;
-	if (!cpu_xlate(address,0,&phys)) { BUSERROR(0,address,MSG_READW); return 0xffff; }
+	if (!cpu_xlate(address,0,&phys)) { cpu_mmu_fault(address,0,0,0); BUSERROR(0,address,MSG_READW); return 0xffff; }
 	unsigned int res = sys_read_word(phys,0);
 	cpu_watch_check (phys,address, 2, 0);
 	return res;
@@ -460,14 +467,14 @@ unsigned int cpu_read_long(unsigned int address)
 
 void cpu_write_byte(unsigned int address, unsigned int value) {
 	unsigned int phys;
-	if (!cpu_xlate(address,1,&phys)) { BUSERROR(0,address,MSG_WRITEB); return; }
+	if (!cpu_xlate(address,1,&phys)) { cpu_mmu_fault(address,1,1,value); BUSERROR(0,address,MSG_WRITEB); return; }
 	sys_write_byte(phys,value,0);
 	cpu_watch_check (phys,address, 1, 1);
 }
 
 void cpu_write_word(unsigned int address, unsigned int value) {
 	unsigned int phys;
-	if (!cpu_xlate(address,1,&phys)) { BUSERROR(0,address,MSG_WRITEW); return; }
+	if (!cpu_xlate(address,1,&phys)) { cpu_mmu_fault(address,1,0,value); BUSERROR(0,address,MSG_WRITEW); return; }
 	sys_write_word(phys,value,0);
 	cpu_watch_check (phys,address, 1, 2);
 }
