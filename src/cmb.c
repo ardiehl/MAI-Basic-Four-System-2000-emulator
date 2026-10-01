@@ -67,7 +67,7 @@ unsigned int cmb_read_word(unsigned int address) {
 	  case CMBR_MEMPAR_LO	: { MSG (MSGC_INFO,MSG_CMB,MSG_READW,"read CMB_MEMPAR_LO, no fault latched"); return 0; }
 	  case CMBW_PARDATA		: { MSG (MSGC_ERR,MSG_CMB,MSG_READW,"attempt to read write only port PARDATA"); break; }
 	  case CMBW_INHSER		: { MSG (MSGC_ERR,MSG_CMB,MSG_READW,"attempt to read write only port INHSER"); break; }
-	  case CMBR_STATUS		: { int res = cmb_status_word | MemoryManagementErrorFlag;
+	  case CMBR_STATUS		: { int res = cmb_status_word | MemoryManagementErrorFlag; MemoryManagementErrorFlag = 0;
 	  	                        MSG (MSGC_INFO,MSG_CMB,MSG_READW,"read STATUS16: %04x",res); return res; }
 	  case CMBR_GENSTATUS	: { MSG (MSGC_INFO,MSG_CMB,MSG_READW,"read GENSTATUS, no fault latched"); return 0; }
   }
