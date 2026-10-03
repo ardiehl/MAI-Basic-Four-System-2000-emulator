@@ -56,17 +56,6 @@
 /* Prototypes */
 void exit_error(char* fmt, ...);
 
-
-unsigned int cpu_read_byte(unsigned int address);
-unsigned int cpu_read_word(unsigned int address);
-unsigned int cpu_read_long(unsigned int address);
-void cpu_write_byte(unsigned int address, unsigned int value);
-void cpu_write_word(unsigned int address, unsigned int value);
-void cpu_write_long(unsigned int address, unsigned int value);
-unsigned int m68k_read_disassembler_8  (unsigned int address);
-unsigned int m68k_read_disassembler_16 (unsigned int address);
-unsigned int m68k_read_disassembler_32 (unsigned int address);
-
 void cpu_pulse_reset(void);
 void cpu_set_fc(unsigned int fc);
 
@@ -81,6 +70,8 @@ INT32 g_msgBreakEnabled = 0;
 unsigned int g_currPC;
 int fwPendingIntCount;
 int sccPollCount = SCC_POLL_INSTRUCTIONS;
+/* current memory access FUNCTION_CODE_USER_DATA | FUNCTION_CODE_USER_PROGRAM | FUNCTION_CODE_SUPERVISOR_DATA | FUNCTION_CODE_SUPERVISOR_PROGRAM | FUNCTION_CODE_CPU_SPACE */
+unsigned int g_fc;	/* set via callback from Musashi */
 
 /* Write watchpoints. The breakpoints above trigger on the program counter,
  * which is no use when the question is "who writes this variable". These
@@ -114,12 +105,17 @@ void sys_watch_check (unsigned int address, unsigned int value, int size) {
     }
 }
 
-extern m68ki_cpu_core m68k_cpu;
 
-void sim_pulse_bus_error (void) {
+
+
+int cpu_buserror_occurred;
+
+void sim_pulse_bus_error (UINT32 address) {
 	if (g_breakOnBusError) g_busErrorCount++;
+	cpu_buserror_occurred = 1;
 	/* printf("sim_pulse_bus_error\n"); */
-	m68k_cpu.cpu_buserror_occurred = 1;  	 /* flag that bus error has occurred from cpu */
+	m68k_set_bus_error_address(address);  /* address must be set before pulse */
+	m68k_pulse_bus_error();
 }
 
 void ctrlChandler(int sig) {
@@ -186,13 +182,13 @@ unsigned int sys_read_byte(unsigned int address, int memFlags)
 		BUSERROR(memFlags,address,MSG_READB);
 		value = 0xff;
 	}
-
+#ifdef USE_MUSASHI_MAME
 	if (m68k_cpu.cpu_buserror_occurred) {
 		m68k_cpu.cpu_buserror_address = address;
 		m68k_cpu.cpu_buserror_on_write = 0;
 		m68k_cpu.cpu_buserror_byte_transfer = 1;
 	}
-
+#endif
 	return value;
 }
 
@@ -208,6 +204,7 @@ unsigned int m68k_read_unaligned_32 (unsigned int address) {
 unsigned int sys_read_word(unsigned int address, int memFlags)
 {
 	unsigned int value;
+	cpu_buserror_occurred = 0;
 
 	if (ADDR_IS_RAMSPACE(address) || ADDR_IS_ROM(address))
 		value = mem_read_word(address,memFlags);
@@ -243,11 +240,13 @@ unsigned int sys_read_word(unsigned int address, int memFlags)
 		BUSERROR(memFlags,address,MSG_READW);
 		value = 0xffff;
 	}
+#ifdef USE_MUSASHI_MAME
 	if (m68k_cpu.cpu_buserror_occurred) {
 		m68k_cpu.cpu_buserror_address = address;
 		m68k_cpu.cpu_buserror_on_write = 0;
 		m68k_cpu.cpu_buserror_byte_transfer = 0;
 	}
+#endif
 	return value;
 }
 
@@ -255,7 +254,7 @@ unsigned int sys_read_long (unsigned int address, int memFlags) {
     unsigned int data;
 
 	data = sys_read_word(address,0) << 16;
-	if (!(m68k_cpu.cpu_buserror_occurred))
+	if (!(cpu_buserror_occurred))
 		data |= sys_read_word(address+2,0);
 	return data;
 }
@@ -264,6 +263,8 @@ unsigned int sys_read_long (unsigned int address, int memFlags) {
 /* Write data to RAM or a device */
 void sys_write_byte(unsigned int address, unsigned int value, int memFlags)
 {
+	cpu_buserror_occurred = 0;
+
 	sys_watch_check(address,value,1);
 	if (ADDR_IS_RAMSPACE(address) || ADDR_IS_ROM(address))
 			mem_write_byte(address,value,memFlags);
@@ -295,19 +296,21 @@ void sys_write_byte(unsigned int address, unsigned int value, int memFlags)
 	if (ADDR_IS_FW(address))
 		fw_write_byte(address,value,memFlags);
 	else
-		/*msgout (MSGC_ERR,MSG_NONE,MSG_WRITEB,"%02x to unknown memory %08x",value,address);*/
 		BUSERROR(memFlags,address,MSG_WRITEB);
-
+#ifdef USE_MUSASHI_MAME
 	if (m68k_cpu.cpu_buserror_occurred) {
 		m68k_cpu.cpu_buserror_address = address;
 		m68k_cpu.cpu_buserror_on_write = 1;
 		m68k_cpu.cpu_buserror_writeval = value;
 		m68k_cpu.cpu_buserror_byte_transfer = 1;
 	}
+#endif
 }
 
 void sys_write_word(unsigned int address, unsigned int value, int memFlags)
 {
+	cpu_buserror_occurred = 0;
+
 	sys_watch_check(address,value,2);
 	if (ADDR_IS_RAMSPACE(address) || ADDR_IS_ROM(address))
 		mem_write_word(address,value,memFlags);
@@ -341,19 +344,20 @@ void sys_write_word(unsigned int address, unsigned int value, int memFlags)
 	else
 		/*msgout (MSGC_ERR,MSG_NONE,MSG_WRITEW,"%04x to unknown memory %08x",value,address);*/
 		BUSERROR(memFlags,address,MSG_WRITEW);
-
+#ifdef USE_MUSASHI_MAME
 	if (m68k_cpu.cpu_buserror_occurred) {
 		m68k_cpu.cpu_buserror_address = address;
 		m68k_cpu.cpu_buserror_on_write = 1;
 		m68k_cpu.cpu_buserror_writeval = value;
 		m68k_cpu.cpu_buserror_byte_transfer = 0;
 	}
+#endif
 }
 
 
 void sys_write_long(unsigned int address, unsigned int value, int memFlags) {
     cpu_write_word(address, (value >> 16) & 0xffff);
-	if (!(m68k_cpu.cpu_buserror_occurred))
+	if (!(cpu_buserror_occurred))
 		cpu_write_word(address+2, value & 0xffff);
 }
 
@@ -422,25 +426,30 @@ void cpu_watch_check (unsigned int address, unsigned int addressVirtual, int siz
  * "68010 memory management trap".
  */
 
-static int cpuIsInUserMode() {
+static int cpuIsInUserMode(void) {
 	return (cpu_in_user_mode() && mmu_is_enabled());
 }
 
 static int cpu_xlate(unsigned int logical, int isWrite, unsigned int * phys) {
 	if (!cpu_in_user_mode() || !mmu_is_enabled()) { *phys = logical; return 1; }
-	if (mmu_translate(logical,isWrite,phys)) return 1;
+	if (mmu_translate(logical,isWrite,g_fc,phys)) return 1;
 	return 0;
 }
 
 static void cpu_mmu_fault(unsigned int address, int isWrite, int isByte, unsigned int value) {
+#ifdef USE_MUSASHI_MAME
 	m68k_cpu.cpu_buserror_address = address;
 	m68k_cpu.cpu_buserror_on_write = isWrite;
 	m68k_cpu.cpu_buserror_byte_transfer = isByte;
 	if (isWrite) m68k_cpu.cpu_buserror_writeval = value;
+#else
+	sim_pulse_bus_error(address);
+#endif
 }
 
 unsigned int cpu_read_byte(unsigned int address) {
 	unsigned int phys;
+	cpu_buserror_occurred = 0;
 	if (!cpu_xlate(address,0,&phys)) { cpu_mmu_fault(address,0,1,0); BUSERROR(0,address,MSG_READB); return 0xff; }
 	unsigned int res = sys_read_byte(phys,0);
 	cpu_watch_check (phys,address, 1, 0);
@@ -449,6 +458,7 @@ unsigned int cpu_read_byte(unsigned int address) {
 
 unsigned int cpu_read_word(unsigned int address) {
 	unsigned int phys;
+	cpu_buserror_occurred = 0;
 	if (!cpu_xlate(address,0,&phys)) { cpu_mmu_fault(address,0,0,0); BUSERROR(0,address,MSG_READW); return 0xffff; }
 	unsigned int res = sys_read_word(phys,0);
 	cpu_watch_check (phys,address, 2, 0);
@@ -460,13 +470,14 @@ unsigned int cpu_read_long(unsigned int address)
 	unsigned int data;
 
 	data = cpu_read_word(address) << 16;
-	if (!(m68k_cpu.cpu_buserror_occurred))
+	if (!(cpu_buserror_occurred))
 		data |= cpu_read_word(address+2);
 	return data;
 }
 
 void cpu_write_byte(unsigned int address, unsigned int value) {
 	unsigned int phys;
+	cpu_buserror_occurred = 0;
 	if (!cpu_xlate(address,1,&phys)) { cpu_mmu_fault(address,1,1,value); BUSERROR(0,address,MSG_WRITEB); return; }
 	sys_write_byte(phys,value,0);
 	cpu_watch_check (phys,address, 1, 1);
@@ -474,6 +485,7 @@ void cpu_write_byte(unsigned int address, unsigned int value) {
 
 void cpu_write_word(unsigned int address, unsigned int value) {
 	unsigned int phys;
+	cpu_buserror_occurred = 0;
 	if (!cpu_xlate(address,1,&phys)) { cpu_mmu_fault(address,1,0,value); BUSERROR(0,address,MSG_WRITEW); return; }
 	sys_write_word(phys,value,0);
 	cpu_watch_check (phys,address, 1, 2);
@@ -481,7 +493,7 @@ void cpu_write_word(unsigned int address, unsigned int value) {
 
 void cpu_write_long(unsigned int address, unsigned int value) {
 	cpu_write_word(address, (value >> 16) & 0xffff);
-	if (!(m68k_cpu.cpu_buserror_occurred))
+	if (!(cpu_buserror_occurred))
 		cpu_write_word(address+2, value & 0xffff);
 }
 
@@ -525,7 +537,7 @@ static unsigned int dbg_read_long (unsigned int address, int addressForceMode) {
 	unsigned int data;
 
 	data = dbg_read_word(address,addressForceMode) << 16;
-	if (!(m68k_cpu.cpu_buserror_occurred))
+	if (!(cpu_buserror_occurred))
 		data |= dbg_read_word(address+2,addressForceMode);
 	return data;
 }
@@ -549,7 +561,7 @@ static void dbg_write_word(unsigned int address, unsigned int value, int address
 
 static void dbg_write_long(unsigned int address, unsigned int value, int addressForceMode) {
 	dbg_write_word(address, (value >> 16) & 0xffff, addressForceMode);
-	if (!(m68k_cpu.cpu_buserror_occurred))
+	if (!(cpu_buserror_occurred))
 		dbg_write_word(address+2, value & 0xffff, addressForceMode);
 }
 
@@ -590,7 +602,12 @@ char * intDevices[]=
 	"","pit","wd","fd","cs","scc","pit timer"
 };
 
-int sys_int_ack (device_t *device, int int_level){
+void sys_fc (unsigned int new_fc) {
+	g_fc = new_fc;
+}
+
+int sys_int_ack (int int_level) {
+
     unsigned int vector;
     char *deviceName;
 
@@ -734,14 +751,22 @@ static void sys_trace_traps (unsigned int pc) {
     trapPending = 1;
 }
 
+UINT32 history_getLastPC(void) {
+	int idx;
+
+	if (pcHistoryCount < 1) return 0;
+	idx = (pcHistoryIdx - 1) & (PCHISTORY_SIZE - 1);
+	return pcHistory[idx];
+}
+
+
 unsigned char timerInstrCount = 0;
 unsigned char wdInstrCount = 0;
 int fdInstrCount = 0;
 unsigned int m68k_instruction_count = 0;
 
-void sys_instr_hook (device_t * device, unsigned int pc) {
+void sys_instr_hook (unsigned int pc) {
     m68k_instruction_count++;  // used by fd
-
 	pcHistory[pcHistoryIdx] = pc;
 	pcHistSuper[pcHistoryIdx] = (m68k_get_reg(NULL,M68K_REG_SR) & 0x2000) ? 1 : 0;
 	pcHistoryIdx = (pcHistoryIdx + 1) & (PCHISTORY_SIZE - 1);
@@ -839,7 +864,7 @@ void fd_setContinueCounter (int countDown) {
 	fdInstrCount = countDown;
 }
 
-int fd_getContinueCounter () {
+int fd_getContinueCounter (void) {
 	return fdInstrCount;
 }
 
@@ -1021,12 +1046,14 @@ int showInstruction(unsigned int pc, char * comment, int addressForceMode)
 
 
 void showBusError (char *txt) {
+#ifdef USE_MUSASHI_MAME
 	if (m68k_cpu.cpu_buserror_on_write)
 		printf("%s bus error @%08x write to %08x\n",txt,m68k_cpu.cpu_buserror_instraddr,m68k_cpu.cpu_buserror_address);
 	else if (m68k_cpu.cpu_buserror_instrfetch)
 		printf("%s bus error @%08x while fetching instruction from %08x\n",txt,m68k_cpu.cpu_buserror_instraddr,m68k_cpu.cpu_buserror_address);
 	else
 		printf("%s bus error @%08x read from %08x\n",txt,m68k_cpu.cpu_buserror_instraddr,m68k_cpu.cpu_buserror_address);
+#endif
 }
 
 void flagsTxt (unsigned int flags, char * txt) {
@@ -1454,7 +1481,8 @@ void dbgCmd_rese (int numArgs, struct args_t *args) {
 	fw_pulse_reset();
 	fd_pulse_reset();
 	pit_pulse_reset();
-	m68k_set_instr_callback(sys_instr_hook);	/* agghh: cleaed by reset */
+
+	m68k_set_instr_hook_callback(sys_instr_hook);
 }
 
 
@@ -1703,15 +1731,16 @@ unsigned int prevShownPC = 0xffffffff;
 void dbgCmd_step (int numArgs, struct args_t *args) {
 	int instrCount = 1;
 	int i,j;
-	unsigned int pc;
+	//unsigned int pc;
 	unsigned int regsBefore[NUMREGS];
 	unsigned int regsAfter[NUMREGS];
 	char changedRegs[512];
 	char buff[255];
+	unsigned int lastPC;
 
 	g_busErrorCount = 0;
-	pc = m68k_get_reg(NULL, M68K_REG_PC);
-    if (pc != prevShownPC) showInstruction(pc,"",0);
+	g_currPC = m68k_get_reg(NULL, M68K_REG_PC);
+    if (g_currPC != prevShownPC) showInstruction(g_currPC,"",0);
 	if (numArgs > 0)
 		if (args[0].value) instrCount = args[0].value;
 	if (m68k_is_stopped())
@@ -1720,9 +1749,11 @@ void dbgCmd_step (int numArgs, struct args_t *args) {
 	for (i=0; i<instrCount; i++) {
 		if (numArgs == 1 && args[0].value == 0) i--;  // run forever with step 0 (ctrl c will stop it)
 		for (j=0; j<NUMREGS;j++) regsBefore[j]=m68k_get_reg(NULL, j);
+		g_currPC = m68k_get_reg(NULL, M68K_REG_PC);
+		lastPC = g_currPC;
 		m68k_execute(1);
 		sys_device_tick();
-		pc = m68k_get_reg(NULL, M68K_REG_PC);
+		g_currPC = m68k_get_reg(NULL, M68K_REG_PC);
 		for (j=0; j<NUMREGS;j++) regsAfter[j]=m68k_get_reg(NULL, j);
 		changedRegs[0]=0;
 		for (j=0; j<NUMREGS;j++) {
@@ -1734,9 +1765,11 @@ void dbgCmd_step (int numArgs, struct args_t *args) {
 				}
 			}
 		}
-
-		showInstruction(pc,changedRegs,0);
-        prevShownPC = pc;
+		/* in case of a buserror one instruction was already executed, show it here */
+		if (lastPC != history_getLastPC())
+			showInstruction(history_getLastPC(),"",0);
+		showInstruction(g_currPC,changedRegs,0);
+        prevShownPC = g_currPC;
         if (g_busErrorCount) {
 			showBusError ("break due to");
 			i = instrCount;
@@ -1756,7 +1789,7 @@ void dbgCmd_step (int numArgs, struct args_t *args) {
 			return;
 		}
 
-        if (breakpointReached (pc)) return;
+        if (breakpointReached (g_currPC)) return;
 
 	}
 }
@@ -1835,7 +1868,7 @@ void dbgCmd_over (int numArgs, struct args_t *args) {
 
 /* generate NMI */
 void dbgCmd_nmi (int numArgs, struct args_t *args) {
-	m68k_cpu.nmi_pending = 1;
+	m68ki_cpu.nmi_pending = 1;
 	dbgCmd_go (0,NULL);
 }
 
@@ -2292,7 +2325,7 @@ void dbgCmd_translate (int numArgs, struct args_t *args) {
 		printf("%08x mmu disabled\n",args[0].value);
 		return;
 	}
-	if (mmu_translate(args[0].value,args[1].value,&phys)) {
+	if (mmu_peek_translate(args[0].value,&phys)) {
 		printf("%08x\n",phys);
 	} else {
 		printf("%08x invalid\n",args[0].value);
@@ -2337,7 +2370,7 @@ struct cmds_t cmds[] =
     { "rm"   ,    dbgCmd_rm    , 0,0,0,"Run until (enabled) message from emu"},
     { "step",     dbgCmd_step  , 0,1,1,"step one or more instructions"},
     { "type",     dbgCmd_type  , 1,3,1,"fromAdr toAddr - display memory dump"},
-    { "translate",dbgCmd_translate, 1,2,0,"translate virtual to physical - address [1 for write]" },
+    { "translate",dbgCmd_translate, 1,1,0,"translate virtual to physical - address" },
     { "colors"   ,dbgCmd_color , 0,0,0,"color to list color 0 to disable, color err|notimp|warn|info|fatal|func colorName"},
     { "vector"   ,dbgCmd_vector, 0,1,1,"show vector table"},
 
@@ -2620,11 +2653,7 @@ int main(int argc, char* argv[])
   #endif
 #endif
 
-	/*wd_pulse_reset();
-	test();
-	return 0;*/
-
-	printf("eagleemu %s %s(%s %s)\nControl x will break into the command line\n",VER_FULLSTR,platform,VER_COMPILE_BY,VER_COMPILE_DATE);
+    printf("eagleemu %s %s(%s %s)\nControl x will break into the command line\n",VER_FULLSTR,platform,VER_COMPILE_BY,VER_COMPILE_DATE);
 
 	/* disable all messages */
 	memset(msgClassFlags,0x00,sizeof(msgClassFlags));
@@ -2635,9 +2664,10 @@ int main(int argc, char* argv[])
 
 
 	scc_setSockCom(1,1); /* set scc port B to socket connection by default (for using the load command in rom debugger) */
-
+	m68k_init();
     m68k_set_cpu_type(M68K_CPU_TYPE_68010);
 	m68k_set_int_ack_callback(sys_int_ack);
+	m68k_set_fc_callback(sys_fc);
 
 	dbgCmd_rese(0,args);  /* reset system */
 

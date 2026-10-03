@@ -1,6 +1,8 @@
 #ifndef SIM__HEADER
 #define SIM__HEADER
 
+#include "m68k.h"
+
 #define HISTORY_FILENAME "./sim.history"
 
 #define SCC_POLL_INSTRUCTIONS	3000
@@ -46,7 +48,8 @@
 
 #define MEM_DISABLEBUSERROR 1
 /* to avoid bus errors while disassembling */
-#define BUSERROR(F,A,PROC) if (!(F & MEM_DISABLEBUSERROR)) { msgout (MSGC_ERR,MYSELF,PROC,"%08x: generating BUSERR",address); sim_pulse_bus_error(); }
+#define BUSERROR(F,A,PROC) if (!(F & MEM_DISABLEBUSERROR)) { msgout (MSGC_ERR,MYSELF,PROC,"%08x: generating BUSERR",address); sim_pulse_bus_error(A); }
+
 
 typedef enum {
 	nullColor=0, none, black, red, green, brown, blue, purple, cyan, white, boldblack, boldred, boldgreen, boldbrown, boldblue, boldpurple, boldcyan, boldwhite
@@ -141,7 +144,7 @@ int findAndExecCommand (	char * cmd,
                  			struct cmds_t *cmds, int numArgs,
                  			struct args_t *args);
 
-void sim_pulse_bus_error (void);
+void sim_pulse_bus_error (UINT32 address);
 
 /* for write state to file */
 
@@ -164,6 +167,17 @@ if (fwrite(&DATA,1,len,F) != len) return 0
     UINT32 len
 
 void fd_setContinueCounter (int countDown);
-int fd_getContinueCounter ();
+int fd_getContinueCounter (void);
+
+unsigned int cpu_read_byte(unsigned int address);
+unsigned int cpu_read_word(unsigned int address);
+unsigned int cpu_read_long(unsigned int address);
+void cpu_write_byte(unsigned int address, unsigned int value);
+void cpu_write_word(unsigned int address, unsigned int value);
+void cpu_write_long(unsigned int address, unsigned int value);
+unsigned int m68k_read_disassembler_8  (unsigned int address);
+unsigned int m68k_read_disassembler_16 (unsigned int address);
+unsigned int m68k_read_disassembler_32 (unsigned int address);
+
 
 #endif /* SIM__HEADER */

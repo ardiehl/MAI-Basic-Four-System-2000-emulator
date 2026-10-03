@@ -97,7 +97,7 @@ static void decode_flpstat (char *dst, UINT8 value) {
 }
 
 // FD1793 type 1,2,3 or 4
-static int getWdCommandType() {
+static int getWdCommandType(void) {
 	int cmd = fd.regs[WD1793_R_CMD] & 0xf0;
 	if (cmd <= WD179X_STEP_OUT_U) return 1;
 	if (cmd == WD179X_FORCE_INTR) return 4;
@@ -106,19 +106,19 @@ static int getWdCommandType() {
 }
 
 // is one drive selected ?
-static int driveIsSelected() {
+static int driveIsSelected(void) {
 	if ((fd.flpcont_13K & (FLPCONT_SEL0 | FLPCONT_SEL0)) != 0) return 1;
 	return 0;
 }
 
-static int driveSelectedNum() {
+static int driveSelectedNum(void) {
 	if ((fd.flpcont_13K & FLPCONT_SEL0) != 0) return 0;
 	if ((fd.flpcont_13K & FLPCONT_SEL1) != 0) return 1;
 	return -1;
 }
 
 // should we check motor on as well ?
-static int driveIsReady() {
+static int driveIsReady(void) {
 	int driveNum;
 
 	if (!driveIsSelected()) return 0;
@@ -127,7 +127,7 @@ static int driveIsReady() {
 	return 0;
 }
 
-static int driveIsWriteProtected() {
+static int driveIsWriteProtected(void) {
 	if (!driveIsReady()) return 0;
 	return fd.units[driveSelectedNum()].imgReadonly;
 }
@@ -241,7 +241,7 @@ unsigned int fd_read_byte(unsigned int address, int flags) {
 
 		                if (regNum == WD1793_R_STAT) {
 							ready = driveIsReady();
-							flpstat_13L &= ~FLPSTAT_ENDRQ;	// read of 1793 status or new command clears WD1793 IRQ line connected to 13L
+							fd.flpstat_13L &= ~FLPSTAT_ENDRQ;	// read of 1793 status or new command clears WD1793 IRQ line connected to 13L
 							if (driveIsWriteProtected())	// set/reset the readonly flag in the wd status register
 								fd.regs[WD1793_R_STAT] |= FLG_READONLY;
 							else

@@ -66,7 +66,7 @@ int file_getSize(char * filename);
 char* stpcpy(char* dest, const char* src);
 #endif
 
-void console_init();
+void console_init(void);
 
 // return a string of hex bytes, returned pointer must be freed
 char * dumpData(char *p, int len);

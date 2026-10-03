@@ -113,7 +113,7 @@
 #define ADDR_IS_FW(A)  (fw_decode(A) >= 0)
 
 int  fw_decode (unsigned int address);   /* board index, or -1 */
-void fw_processPendingCompletes();
+void fw_processPendingCompletes(void);
 
 unsigned int fw_read_byte (unsigned int address, int flags);
 unsigned int fw_read_word (unsigned int address, int flags);

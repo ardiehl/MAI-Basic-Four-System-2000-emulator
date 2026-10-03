@@ -211,7 +211,7 @@ static void fw_complete (int n, int port, int condition) {
 }
 
 
-void fw_processPendingCompletes() {
+void fw_processPendingCompletes(void) {
 	int i;
 	int numAdded = 0;
 

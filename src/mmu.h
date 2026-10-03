@@ -67,7 +67,7 @@ unsigned int mmu_read_byte (unsigned int address);
 
 /* returns 1 if the access is allowed and stores the physical address in phys,
    returns 0 and leaves the status bits set if it is a management violation */
-int mmu_translate (unsigned int logical, int isWrite, unsigned int * phys);
+int mmu_translate (unsigned int logical, int isWrite, unsigned int m68k_fc, unsigned int * phys);
 int mmu_peek_translate (unsigned int logical, unsigned int * phys);
 
 int mmu_is_enabled (void);

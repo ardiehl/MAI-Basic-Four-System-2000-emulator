@@ -22,7 +22,7 @@
 
 char nvram[NV_SIZE];	/* only lower 4 bits are used */
 
-void nvram_save() {
+void nvram_save(void) {
 	FILE* fhandle;
 
 	if((fhandle = fopen(NV_FILENAME, "wb")) == NULL) {
@@ -39,7 +39,7 @@ void nvram_save() {
 }
 
 
-void nvram_load() {
+void nvram_load(void) {
 	FILE* fhandle;
 
 	if((fhandle = fopen(NV_FILENAME, "rb")) == NULL) {

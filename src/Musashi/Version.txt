@@ -1,0 +1,22 @@
+This is 313ebf1 of https://github.com/kstenerud/Musashi
+with pull request #118 applied plus the following changes:
+
+
+1) `tst.b (A0) where A0=04ce0006`
+The address compare in m68ki_rerun_match failed, this fixes it (added ADDRESS_68K):
+`if(m68ki_cpu.rerun[i].address == ADDRESS_68K(address) &&`
+
+2) a long read failed because m68ki_cpu.rerun_count was set to zero in m68ki_rerun_expire while the buserror handler was executed, changed it from:
+`if(m68ki_cpu.rerun_count != 0 && REG_PPC != m68ki_cpu.rerun_pc)`
+to:
+`if(m68ki_cpu.rerun_count != 0 && REG_PPC != m68ki_cpu.rerun_pc && CPU_RUN_MODE != RUN_MODE_BERR_AERR_RESET)`
+
+3) a long write failed because the compare for one 32 bit access in m68ki_write_32_fc never matches. Not a real fix but the rom code is testing the existing memory and without that it hung forever.
+`if(m68ki_rerun_match(address, 4, 1, &supplied))
+       return;                       /* software already ran this cycle */`
+changed it to:
+`if(m68ki_cpu.rerun_count != 0 &&`
+`           (m68ki_rerun_match(address, 2, 1, &supplied) ||`
+`            m68ki_rerun_match(address + 2, 2, 1, &supplied)))`
+`                return;`
+

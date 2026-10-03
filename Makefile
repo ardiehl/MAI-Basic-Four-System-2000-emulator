@@ -112,8 +112,12 @@
 # note that VER_EXTRA can be overridden on the command line, e.g.:
 # make VER_EXTRA=12345 all
 VER_MAJOR	= 0
-VER_MINOR	= 7
+VER_MINOR	= 8
 VER_EXTRA	?=
+
+# optimize, use -O0 for debugging
+#OPTIMIZE	= -O3
+OPTIMIZE	= -O0
 
 # build platform: win32 or linux
 PLATFORM	?=	linux
@@ -140,10 +144,12 @@ DEPDIR = dep_win64
 endif
 
 
-
 # source files that produce object files
 SRC			=	cmb.c load.c memory.c nvram.c scc.c sim.c util.c wd.c pit.c fd.c cs.c m68k.c mmu.c fourway.c esc_sequences.c socket_connections.c eagle_superblock.c
-SRC			+=	musashi/m68kcpu.c musashi/m68kdasm.c musashi/m68kops.c
+MUSASHIDIR = Musashi
+SRC			+= $(MUSASHIDIR)/m68kcpu.c $(MUSASHIDIR)/m68kdasm.c $(MUSASHIDIR)/m68kops.c $(MUSASHIDIR)/softfloat/softfloat.c
+LIB			+= m
+
 SRC			+=  vtparse/vtparse.c vtparse/vtparse_table.c charringbuffer.c
 
 ifdef LINENOISE
@@ -158,25 +164,24 @@ EXT_OBJ		=
 # libraries to link in -- these will be specified as "-l" parameters, the -l
 # is prepended automatically
 ifndef LINENOISE
-LIB			= readline
+LIB			+= readline
 endif
+
 ifeq ($(PLATFORM),win64)
-#STATICLIBS			= -Wl,--allow-multiple-definition -static-libgcc /usr/x86_64-w64-mingw32/sys-root/mingw/lib/libreadline.a /usr/x86_64-w64-mingw32/sys-root/mingw/lib/libtermcap.a
 STATIC			= -static
 LIB			+= ws2_32 msvcrt
 endif
 ifeq ($(PLATFORM),win32)
 LIB			+= ws2_32 msvcrt
-#STATICLIBS			= -Wl,--allow-multiple-definition -static-libgcc /usr/x86_64-w64-mingw32/sys-root/mingw/lib/libreadline.a /usr/x86_64-w64-mingw32/sys-root/mingw/lib/libtermcap.a
 STATIC			= -static
 endif
 # library paths -- where to search for the above libraries
 LIBPATH		=
 # include paths -- where to search for #include files (in addition to the
 # standard paths
-INCPATH		=
+INCPATH		= $(MUSASHIDIR)
 # garbage files that should be deleted on a 'make clean' or 'make tidy'
-GARBAGE		=	$(OBJDIR)/musashi/m68kmake $(OBJDIR)/musashi/m68kmake.o
+GARBAGE		=	$(OBJDIR)/$(MUSASHIDIR)/m68kmake $(OBJDIR)/$(MUSASHIDIR)/m68kmake.o
 
 # extra dependencies - files that we don't necessarily know how to build, but
 # that are required for building the application; e.g. object files or
@@ -216,10 +221,11 @@ endif
 ####
 MAKE	=	make
 CC	=	$(C_PREFIX)gcc
+#CC	=	$(C_PREFIX)clang
 CXX	=	$(C_PREFIX)g++
 #BITS    =	-m32
-CFLAGS	=	-Wall -pedantic -std=gnu99 $(STATIC) $(EXT_CFLAGS) $(BITS)
-CXXFLAGS=	-Wall -pedantic -std=gnu++0x $(STATIC) $(EXT_CXXFLAGS) $(BITS)
+CFLAGS	=	-Wall -pedantic -std=gnu99 $(OPTIMIZE) $(STATIC) $(EXT_CFLAGS) $(BITS) $(DEFS)
+CXXFLAGS=	-Wall -pedantic $(OPTIMIZE) $(STATIC) $(EXT_CXXFLAGS) $(BITS)
 LDFLAGS	=	$(BITS) $(EXT_LDFLAGS)
 RM		=	rm
 STRIP	=	$(C_PREFIX)strip
@@ -348,6 +354,11 @@ endif
 # object files
 OBJ	=	$(addprefix $(OBJDIR)/, $(addsuffix .o, $(basename $(SRC))) $(EXT_OBJ)) $(addsuffix .o, $(basename $(EXTSRC)))
 
+# disable unused variable warning for Musashi
+$(OBJDIR)/$(MUSASHIDIR)/m68kops.o:	CFLAGS += -Wno-unused-variable
+$(OBJDIR)/$(MUSASHIDIR)/m68kcpu.o:	CFLAGS += -Wno-unused-variable
+$(OBJDIR)/$(MUSASHIDIR)/softfloat/softfloat.o:	CFLAGS += -Wno-unused-variable
+
 # dependency files
 DEPFILES =	$(addprefix $(DEPDIR)/, $(addsuffix .d, $(basename $(SRC))) $(EXT_OBJ)) $(addsuffix .d, $(basename $(EXTSRC)))
 
@@ -472,18 +483,18 @@ endif
 ## musashi build rules
 # 68k CPU builder
 
-$(OBJDIR)/musashi/m68kmake.o:	src/musashi/m68kmake.c
+$(OBJDIR)/$(MUSASHIDIR)m68kmake.o:	src/$(MUSASHIDIR)/m68kmake.c
 	@echo "compiling $@"
 	@mkdir -p $(dir $@) $(dir $(DEPDIR)/$*.d)
 	@$(HOSTCC) -c $< -o $@
 
-$(OBJDIR)/musashi/m68kmake:	$(OBJDIR)/musashi/m68kmake.o
+$(OBJDIR)/$(MUSASHIDIR)/m68kmake:	$(OBJDIR)/$(MUSASHIDIR)/m68kmake.o
 	@echo "compiling $@"
-	@$(HOSTCC) $(OBJDIR)/musashi/m68kmake.o -o $@
+	@$(HOSTCC) $(OBJDIR)/$(MUSASHIDIR)/m68kmake.o -o $@
 # 68k CPU sources
-src/musashi/m68kops.h src/musashi/m68kops.c:	$(OBJDIR)/musashi/m68kmake src/musashi/m68k_in.c
+src/$(MUSASHIDIR)/m68kops.h src/$(MUSASHIDIR)/m68kops.c:	$(OBJDIR)/$(MUSASHIDIR)/m68kmake src/$(MUSASHIDIR)/m68k_in.c
 	@echo "generating m68 handler from m68k_in.c"
-	@./$(OBJDIR)/musashi/m68kmake src/musashi src/musashi/m68k_in.c
+	@./$(OBJDIR)/$(MUSASHIDIR)/m68kmake src/$(MUSASHIDIR) src/$(MUSASHIDIR)/m68k_in.c
 
 ####
 # make object files from C source files
@@ -496,7 +507,7 @@ $(OBJDIR)/%.o:	src/%.c
 # make object files from C++ source files
 $(OBJDIR)/%.o:	src/%.cc
 	@echo "compiling $@"
-	$(CXX) -c $(CXXFLAGS) $(CPPFLAGS) $< -o $@
+	@$(CXX) -c $(CXXFLAGS) $(CPPFLAGS) $< -o $@
 
 $(OBJDIR)/%.o:	src/%.cpp
 	@echo "compiling $@"

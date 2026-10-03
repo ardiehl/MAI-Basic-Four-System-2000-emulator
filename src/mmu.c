@@ -151,7 +151,7 @@ int mmu_peek_translate (unsigned int logical, unsigned int * phys) {
     return 1;
 }
 
-int mmu_translate (unsigned int logical, int isWrite, unsigned int * phys) {
+int mmu_translate (unsigned int logical, int isWrite, unsigned int m68k_fc, unsigned int * phys) {
     int seg, type, viol;
     unsigned int off, base, limit, sum;
 
@@ -186,7 +186,7 @@ int mmu_translate (unsigned int logical, int isWrite, unsigned int * phys) {
     }
     /* check if an instruction fetch happened for a data only, no execute segment */
     if (mmuBase[seg] & MMU_BASE_X) {
-			if (m68k_is_user_instruction_fetch(logical)) {
+			if (m68k_fc == FUNCTION_CODE_USER_PROGRAM) {
 				mmuStat[seg] |= MMU_ST_EXECERR;
 				mmuErrCount++;
 				setCmb_MemoryManagementErrorFlag();

@@ -25,7 +25,7 @@ unsigned int cmb_writeRegs;
 
 int MemoryManagementErrorFlag;
 
-void setCmb_MemoryManagementErrorFlag() {
+void setCmb_MemoryManagementErrorFlag(void) {
 	MemoryManagementErrorFlag = 1;
 }
 

@@ -75,11 +75,11 @@ static pthread_mutex_t criticalSectionMutex;
 #define ENTER_CRIT pthread_mutex_lock (&criticalSectionMutex);
 #define LEAVE_CRIT pthread_mutex_unlock (&criticalSectionMutex);
 
-static void initCriticalSections() {
+static void initCriticalSections(void) {
 	pthread_mutex_init (&criticalSectionMutex, NULL);
 }
 
-static void deInitCriticalSections() {
+static void deInitCriticalSections(void) {
 	pthread_mutex_destroy (&criticalSectionMutex);
 }
 
@@ -88,7 +88,7 @@ static pthread_t pollThreadId;
 static void *pollThread (void *ptr);
 
 
-int sock_pollThreadStart () {
+int sock_pollThreadStart (void) {
 	//puts("start");
 	int rc;
 	pollThreadTerminate = 0;
@@ -123,7 +123,7 @@ static DWORD pollThreadId;
 static DWORD WINAPI pollThread(LPVOID ptr);
 
 
-int sock_pollThreadStart () {
+int sock_pollThreadStart (void) {
 	pollThreadTerminate = 0;
 	pollThreadRunning = 0;
 	if (CreateThread(NULL,0,pollThread,NULL,0,&pollThreadId) == 0) return -1;
@@ -132,7 +132,7 @@ int sock_pollThreadStart () {
 
 #endif
 
-static void sock_poll();
+static void sock_poll(void);
 
 #ifdef _WIN32
 DWORD WINAPI pollThread(LPVOID ptr) {
@@ -150,7 +150,7 @@ static void *pollThread (void *ptr) {
 	return 0;
 }
 
-void sock_pollThreadEnd () {
+void sock_pollThreadEnd (void) {
 	if (pollThreadRunning) {
 		pollThreadTerminate = 1;
 		while (pollThreadRunning)usleep(10000);
@@ -597,7 +597,7 @@ int recvWithTimeout (socket_t client_sock, char *buffer, size_t buffer_size, int
 }
 
 void dumpBuffer (char *info, char *c, int len) {
-	if (info) printf(info);
+	if (info) printf("%s",info);
 	for (int i=0; i<len; i++) {
 		printf("%02x ",*(uint8_t *)c); c++;
 	}
@@ -706,7 +706,7 @@ void sock_setupListen (int portNum, bool doClose) {
 #define RECV_BUFSIZE 128
 
 // check for incomping connections or data on all open ports and set the status field for each connection
-static void sock_poll() {
+static void sock_poll(void) {
 	if (!sock_initialize_done) return;
 	pollfd_t *pfds;
 	int i,fd,numFds=0,res;
@@ -931,7 +931,7 @@ void sock_init(int startingPortNumber) {
 
 
 // deinit: close all open sockets
-void sock_deinit() {
+void sock_deinit(void) {
 	int i;
 
 	for (i=0;i<SOCK_MAX;i++) {
@@ -1180,21 +1180,21 @@ int sock_dbgCmd(int numArgs, struct args_t * args) {
 
 
 #ifndef _WIN32
-void sock_initialize() {
+void sock_initialize(void) {
 	initCriticalSections();
 	sock_initialize_done = 1;
 	//signal(SIGPIPE, SIG_IGN);
 }
 
 
-void sock_deinitialize() {
+void sock_deinitialize(void) {
 	sock_pollThreadEnd ();
 	deInitCriticalSections();
 }
 #else
 
 // winsock init
-void sock_initialize() {
+void sock_initialize(void) {
 	WORD wVersionRequested;
     WSADATA wsaData;
     int err;
@@ -1220,7 +1220,7 @@ void sock_initialize() {
     sock_initialize_done = 1;
 }
 
-void sock_deinitialize() {
+void sock_deinitialize(void) {
 	if (!sock_initialize_done) return;
 	sock_pollThreadEnd ();
 	deInitCriticalSections();

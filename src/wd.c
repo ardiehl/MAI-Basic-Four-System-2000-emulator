@@ -434,7 +434,7 @@ static void wd_buserr_int (wd_regs_t * wd) {
 	wd_update_irq (wd,1);
 }
 
-static void processPendingInterrupts() {
+static void processPendingInterrupts(void) {
 	int i,u;
     int wdIntAsserted = 0;
 
@@ -1132,32 +1132,6 @@ void wa(char c) {
 	for (i=0; i<wd->scsiIdx; i++)
 		printf("%02x ",wd->scsiBuf[i]);
 	printf(" dataLen: %d\n",numNonDmaBytesToBeTransferedFromHost(wd));
-}
-
-void test() {
-	wd_regs_t *wd = &wdr[0];
-
-	wd->scsiIdx = 0;
-	wa(0x04); // format
-	wa(1 << 4);  // defect list
-	wa(0x55);  // data pattern
-	wa(0x00);wa(0x00); // interleave
-	wa(0x00);  // reserved
-
-	// data
-	wa(0x00);wa(0x00);  // reserved
-
-	wa(0x00);wa(0x05);  // 5 bytes
-	wa(0x00);wa(0x00);wa(0x00);wa(0x00);wa(0x00);
-
-	wa(0x00);wa(0x04);  // 4 bytes
-	wa(0x00);wa(0x00);wa(0x00);wa(0x00);
-
-	wa(0x00);wa(0x00);  // 0 bytes
-
-
-
-
 }
 
 

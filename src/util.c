@@ -282,7 +282,7 @@ char* stpcpy(char* dest, const char* src) {
 #endif
 
 
-void console_init() {
+void console_init(void) {
 #ifdef _WIN32
     HANDLE hInput = GetStdHandle(STD_INPUT_HANDLE);
     DWORD mode = 0;

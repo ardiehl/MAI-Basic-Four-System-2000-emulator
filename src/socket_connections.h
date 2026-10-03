@@ -26,7 +26,7 @@
 void sock_init(int startingPortNumber);
 
 // deinit: close all open sockets
-void sock_deinit();
+void sock_deinit(void);
 
 // check for incoming connections or data on all open ports and set the status field for each connection
 //void sock_poll();
@@ -44,11 +44,11 @@ void sock_putstr(int portNum, char * data);
 int sock_dbgCmd(int numArgs, struct args_t * args);
 
 // create the polling thread, -1 on error
-int sock_pollThreadStart ();
-void sock_pollThreadEnd ();
+int sock_pollThreadStart (void);
+void sock_pollThreadEnd (void);
 
-void sock_initialize();
-void sock_deinitialize();
+void sock_initialize(void);
+void sock_deinitialize(void);
 
 char * sockStrerror (int errCode);
 

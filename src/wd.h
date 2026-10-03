@@ -270,6 +270,5 @@ int  wd_irq_ack(int level);
 int wd_save_state(FILE * f);
 int wd_load_state(FILE * f);
 
-void test();
 
 #endif
