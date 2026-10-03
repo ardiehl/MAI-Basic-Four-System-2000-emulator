@@ -5,12 +5,11 @@ History
 I have worked with that machine in the 80s and got a working one in 2011 out of the US. It is an 110 Volt model so i have to run it with a transformer from 230 to 100 V. 
 As i had a lot of documentation (scanned and made available at bitsavers/pdf/mai) i decided to start writing an emulator for it. Not a very good idea because i has no experience with 68000 assembler at all.
 
-I started with the basics, got the excellent mushshi 68k emulator, implemented memory in supervisor mode and
-made the tape drive working to be able to load diagnoistics from tape.
-That was a challenge as there was no documentation for the tape controller available. The rescue was a utility that came with the diags, mcsfs, that one had a lot of information in that made it possible to write an emulation
-for it, of cause, it was not perfect but it was able load the diagnostics from tape.
+I started with the basics, got the excellent [Mushshi 68k](https://github.com/kstenerud/Musashi) emulator, implemented memory in supervisor mode and
+made the tape drive working to be able to load diagnostics from tape.
+That was a challenge as there was no documentation for the tape controller available. The rescue was a utility that came with the diags, mcsfs, that one had a lot of information in that made it possible to write an emulation for it, of cause, it was not perfect but it was able load the diagnostics from tape.
 
-As i had already done some basic support for the 2 serials on the CMB, i tried ti implement the harddisk controller wd0. I tried it used in diags fixing test for test but i struggled fixing the required status register changes. Mainly due to my lack of 68000 assembler knowledge.
+As i had already done some basic support for the 2 serials on the CMB, i tried to implement the harddisk controller wd0. I tried it used in diags fixing test for test but i struggled fixing the required status register changes. Mainly due to my lack of 68000 assembler knowledge.
 
 I also started implementing the floppy disk controller but never finished it.
 
@@ -32,21 +31,58 @@ And than came Enrique
 =
 And than, 15 years later, came Enrique. He send me an eMail "I am a collector of vintage OS. I like to see them running in emulation." with some screenshots of a booted MAI 2000. The screenshot had the serial number that my one had, i was not sure if that screenshot was from a real or an emulated machine. But later he sated that his work was based on my unfinished emulator.
 
-He did an amazing work on adding all the missing peaces like the mmu, the fourway controller, implemented wd and fixed a lot of badly errors in my code, only to mention parts of his work, see NOTES.md for details.
+He did an amazing work on adding all the missing peaces like the mmu, the fourway controller output, implemented wd and fixed a lot of badly errors in my code, only to mention parts of his work, see [NOTES.md](https://github.com/ardiehl/MAI-Basic-Four-System-2000-emulator/blob/main/NOTES.md) for details.
 
 The emulator is now at a stage where it can not only boot the diagnostics from tape but also a full system from harddisk including entering multi user mode and having multiple terminals connected via telnet.
 
 How to run it
 =
-The design is fully based on debugging. It is aligned to the internal debugger that is included in the 2000 boot roms for stepping and breakpoints.
-? will show the available commands
-```
+Compile should work on linux systems, simply run make. The only library required is readline so you may have to install the dev version of it. For Fedora/Redhat it is
 
-Help for the 68010 emulator debugger
+    dnf install readline-devel
+
+After compiling you could directly start ./eagleemu, type g <enter> to start the cpu. After the self test is completed, you will get an error message as there is no harddisk image attached and the prompt
+
+    Boot Device:
+As we have not attached a harddisk nor a floppy disk we can only boot from tape as the diagnostics tape is part of the source directory. Valid boot devices are
+
+    wdN harddisk, N=0 or N=1 for disk 0 or 1
+    fdN floppy, N=0 or N=1 for floppy drive 0 or 1
+    cs tape
+Enter cs to boot the diagnostics from tape.
+
+## Booting the operating system from disk
+
+For booting BOSS/IX (a licensed version of Charles River Data Systems (CDRS) UNOS from about 1984) you need a disk image, you can download it from basicfour.de 
+[bossix_micropolis_2011.dsk.bz2](http://www.basicfour.de/download/mai2000/bossix_micropolis_2011.dsk.bz2) is an image that boots into single user mode and allows multi user after pressing ^D
+http://www.basicfour.de/download/mai2000/bossix_micropolis_2011.dsk.multi.bz2 boots directly into multi user mode
+Create a directory "wd" in the directory of eagleemu and place the extracted images there.
+There is a bash (cmd for windows) script included that allows a simplified start, try ./boot -?.
+If you have placed bossix_micropolis_2011.dsk in ./wd you can start the operating system with
+
+    ./boot -0 -1 -g
+This will start the emulator with one xterm on the console (-0) and one xterm on the first port of the fourway controller (-1). The -g parameter will start the cpu and boot the system. Use ^x in the emulator window to stop and "quit" to exit the emulator.
+## Documentation
+I have scanned all the documentation i have and made it available on [bitsavers](http://bitsavers.org/pdf/mai/).
+To get started, use:
+[MAI 2000 User Guide](http://bitsavers.org/pdf/mai/M6201A_MAI2000_UserGuide_Aug1987.pdf)
+[BOSS/IX command line reference (Technical Reference Manual)](http://bitsavers.org/pdf/mai/M6225A_MAI2000_TechnicalReferenceManaual_Aug1985.pdf)
+[Diagnostics and Error Log Manual](https://bitsavers.org/pdf/mai/M6204C_BOSS_IX_DiagnosticsErrorlogManual_1989.pdf)
+[Business Basic86 Refence Manual](https://bitsavers.org/pdf/mai/M6262A_Business_Basic86_RefenceManual_Apr87.pdf)
+
+## How it works
+The design is fully based on debugging. It is aligned to the internal debugger that is included in the 2000 boot roms for stepping and breakpoints.
+The boot script simply builds commands that are executed in the emulator. An unlimited number of commands can be specified when starting eagleemu, e.g.:
+
+    ./eagleemu "dev wd image wd/bossix_micropolis_2011.dsk" "dev fd image fd/unos_boot.img" "dev nv fd" g
+
+? will show the available commands
+```Help for the 68010 emulator debugger
  ====================================
  an         aX - change register A0 to A7
  break      BrkNum address [count] - set breakpoint 0 to 3
  watch      WatchNum [address] [len] - log writes to an address
+ cwatch     WatchNum [address] [len] [rw,r or w] [1 = virtual]- log cpu access to an address
  history    [count] - show recently executed instructions
  msave      [file] - dump all RAM to a file
  traptrace  [0|1] - log TRAP instructions executed in user mode
@@ -61,7 +97,8 @@ Help for the 68010 emulator debugger
  dump       fromAdr len    - display memory dump
  dup        {0|1} disable/enable showing of duplicate messages
  dw         [count] - change/display count word(s)
- exec       [load address] - load exec
+ exec       command - start a new process
+ execa      command - start a new process
  go         [address] - run, optional from address
  image      save|load [filename] save/load current state to/from file
  int        generate interrupt n
@@ -76,12 +113,16 @@ Help for the 68010 emulator debugger
  rm         Run until (enabled) message from emu
  step       step one or more instructions
  type       fromAdr toAddr - display memory dump
+ translate  translate virtual to physical - address
+ colors     color to list color 0 to disable, color err|notimp|warn|info|fatal|func colorName
+ vector     show vector table
  help       show this help
  quit       terminate emulator
 args can be hex values, decimal values if started with # or register values
 if started with -. + at end makes value a pointer.
 A0+: pointer to addess 0xA0, -A0+: pointer to contents of A0
 -A0: contents of A0
+By default addresses will be translated in user mode, override in any mode by appending ! or @ for do not/do translation.
 You can break into the simulator debugger with control x or by by sending
 SIGINT to eagleemu.
 ```
@@ -90,8 +131,7 @@ go	to start
 ^x	to break
 quit	to exit the emulator
 
-The more useful command for non developers is the dev command. It provides device based command as setting the image file for the harddisk or the directory for tape files. There are also commands for redirecting ports
-to the local console or tcp to connect via telnet to.
+The more useful command for non developers is the dev command. It provides device based command as setting the image file for the harddisk or the directory for tape files. There are also commands for redirecting ports to the local console or tcp to connect via telnet to.
 ```
 dev ? lists valid devices
 dev device ? lists valid command for a device
@@ -153,11 +193,73 @@ the tape directory "cs/diag" you can start the emulator with
 ```
 ./eagleemu "dev wd img wd/bossix_micropolis_2011.dsk" "dev cs dir cs/diag" g
 ```
-Redirecting devices
+Redirecting terminals
 =
-By default, the port A of the main board are console, the other ports are listening for telnet connections starting from port 4000. You can change that with the dev scc command.
-The 2 supported fourway controllers are always on tcp starting with port 4002.
-There is some translation of basic four escape sequences to vt100 sequences. This is settable via dev sock command, try dev sock ?
+
+## Output translation
+
+By default, the port A of the main board is the console, the other ports are listening for telnet connections starting from port 4000. You can change the starting portnumber with the command line parameter -p.
+Port numbers are:
+
+    0: scc0 - console port, 1 st serial port on cmb
+    1: scc1 - second serial port on cmb (mainboard)
+    2: fw0:0 - first port on first fourway serial controller
+    ...
+    6:fw1:0 - first port on second fourway serial controller
+
+The emulator will translate basic four evdt escape sequences send to a terminal into ANSI/VT sequences by default for port 0 (console) and the first 4 serial ports. This can be changed by the
+
+    dev sock outtrans
+
+command. Example, enable output translation for the first port of the second 4-way controller:
+
+    dev sock outt 6 1
+
+The current settings can by inspected by "dev sock status":
+
+    dbg>dev sock sta
+
+    portNum   fd revents  Status              Telnet init  Trans out in   port
+    ==========================================================================
+          0   -1 00000000 STAT_CLOSED                   1          1  1   4000
+          1   -1 00000000 STAT_CLOSED                   1          1  1   4001
+          2   -1 00000000 STAT_CLOSED                   1          1  1   4002
+          3   -1 00000000 STAT_CLOSED                   1          1  1   4003
+          4   -1 00000000 STAT_CLOSED                   1          1  1   4004
+          5   -1 00000000 STAT_CLOSED                   1          1  1   4005
+          6   -1 00000000 STAT_CLOSED                   0          0  0   4006
+          7   -1 00000000 STAT_CLOSED                   0          0  0   4007
+          8   -1 00000000 STAT_CLOSED                   0          0  0   4008
+          9   -1 00000000 STAT_CLOSED                   0          0  0   4009
+Basic programs often use input masks displayed in dimmed characters while the input is shown non dimmed. The mnemnotic 'CF' (Clear Foreground Characters) is used to clear the input data. This is supported but requires a VT220 compatible telnet client, the only one i found working is xterm.
+## Input translation
+By default, input translation is enabled for ports 0 to 5.
+ANSI/VT keycodes will be translated into keycodes expected by ved (the os editor) and the basic EDIT command. The F12 key can be used to switch backspace to work with the command line (the default) or ved/EDIT. F1..F4 are mapped to MB I .. MB IV.
+Input translation can be set for each port via the
+
+    dev sock intrans
+
+command.
+## Port redirection
+The Serial ports of the 2 4-way controllers are always on TCP starting with port 4002, port 0 (console) is by default on the terminal. The 2 ports on the cmb (mainboard) can be changed via the
+
+    dev socketio
+
+command
+e.g. redirect the console to tcp:
+
+    dev sock 0 1
+
+By default, the port A of the main board is the console, the other ports are listening for telnet 
+
+You can change that with the
+
+    dev scc
+
+command.
+
+# The System Boots
+
 ```
 eaglesim 0.3.45 (ad Sun 30-Aug-2026)
 Control x will break into the command line
@@ -237,4 +339,7 @@ Wed Nov 16 2011 09:19:18
 
         MAI 2000 (Terminal tty1) -- Press 'CTRL'+'C' or 'ESCAPE'...
 ```
+
+
+
 
