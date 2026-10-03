@@ -184,6 +184,14 @@ unsigned int scc_read_word(unsigned int address) {
 }
 
 
+/* A channel reset clears that channel's pending bits and the interrupt
+ * enables in WR1 (bits 7, 6, 4, 3, 1 and 0), a hardware reset does both */
+static void scc_channel_reset (int port) {
+	sccTxPend[port] = 0;
+	sccRxPend[port] = 0;
+	scc[port].wr[1] &= 0x24;
+}
+
 void scc_cmdWrite (int port, int value) {
 	int idx;
 
@@ -211,6 +219,8 @@ void scc_cmdWrite (int port, int value) {
 	/* WR9 is shared, so either channel can enable or disable the whole chip */
 	if (idx == 9) {
 		sccWr9 = value & 0xff;
+		if (value & 0x80) scc_channel_reset(0);
+		if (value & 0x40) scc_channel_reset(1);
 		scc_update_irq();
 	}
 }
