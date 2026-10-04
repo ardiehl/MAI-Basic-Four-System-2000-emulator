@@ -65,11 +65,12 @@ Create a directory "wd" in the directory of eagleemu and place the extracted ima
 There is a bash (cmd for windows) script included that allows a simplified start, try ./boot -?.
 If you have placed bossix_micropolis_2011.dsk in ./wd you can start the operating system with
 
-    ./boot -0 -1 -g
-This will start the emulator with one xterm on the console (-0) and one xterm on the first port of the fourway controller (-1). The -g parameter will start the cpu and boot the system. Use ^x in the emulator window to stop and "quit" to exit the emulator.
+    ./boot -0 -2 -g
+This will start the emulator with one xterm on the console (-0) and one xterm on the first port of the fourway controller (-2). The -g parameter will start the cpu and boot the system. Use ^x in the emulator window to stop and "quit" to exit the emulator.
 ## Documentation
 I have scanned all the documentation i have and made it available on [bitsavers](http://bitsavers.org/pdf/mai/).
 To get started, use:
+
 [MAI 2000 User Guide](http://bitsavers.org/pdf/mai/M6201A_MAI2000_UserGuide_Aug1987.pdf)
 
 [BOSS/IX command line reference (Technical Reference Manual)](http://bitsavers.org/pdf/mai/M6225A_MAI2000_TechnicalReferenceManaual_Aug1985.pdf)
