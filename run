@@ -1,3 +1,0 @@
-#!/bin/sh
-reset
-./eagleemu "msg all -" "bus -" "dup -" "mb 0" g

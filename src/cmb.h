@@ -86,5 +86,6 @@ unsigned int cmb_getStatusWord (void);
 unsigned int cmb_getWriteRegs (void);
 int cmb_dbgCmd(int numArgs, struct args_t * args);
 void setCmb_MemoryManagementErrorFlag(void);
+void setCmb_MemoryManagementStackOverflowFlag(void);
 
 #endif

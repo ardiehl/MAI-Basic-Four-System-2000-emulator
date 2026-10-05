@@ -28,7 +28,7 @@
 #include "memory.h"
 #include "cmb.h"
 
-#define MYSELF MSG_MEM
+#define MYSELF MSG_MMU
 
 static UINT16 mmuBase [MMU_SEGMENTS];
 static UINT16 mmuLimit[MMU_SEGMENTS];
@@ -162,18 +162,42 @@ int mmu_translate (unsigned int logical, int isWrite, unsigned int m68k_fc, unsi
     limit = mmuLimit[seg] & MMU_ADDR_FIELD;
     type = (mmuBase[seg] & MMU_BASE_TYPE_MASK) >> MMU_BASE_TYPE_SHIFT;
 
+    /* TODO:
+		3.2.16.6 Segment Attributes
+		If a write is attempted in that segment When the segment is to be read only, then the high output of
+		D03 will be ANDed with SEGWRT+ (SEGment WRiTe) and PAENB- to produce the MMWERR+ and MMWERR- (Memory
+		Management Write ERRor) signals. So this check is not depending on type.
+
+		Similarly, when a segment is to be data only, the bit corresponding to the D04 output of the 74S189 is a logical 1.
+		If a program fetch is attempted in that segment, then the high output of D04 will be ANDed with FDC2+ (Function DeCode,
+		user mode) to create MMXERR+ and MMXERR- (Memory Management eXecute ERRor).
+		So this check is not depending on type.
+
+		Finally, type is used to generate four error signals, all of which translate into the Memory Management ERRor (MMERR-)
+
+		MMU_TYPE_ABSENT: ABSEG-Generates a memory management error (MMERR-)when an absent segment is addressed
+		MMU_TYPE_LIMIT_GE: Generates a memory management error when the logical address is equal to or greater than the limit address
+		MMU_TYPE_LIMIT_LE: Generates a memory management error when the logical address is less than the limit address. Used for stack overflow
+		MMU_TYPE_LIMIT_LE: Generates a memory management error when the logical address is less than or equal to the the limit address. Used for stack overflow (less than) and for warning of an impending stack overflow (equal to)
+    */
+    mmuStat[seg] &= MMU_ST_WRITTEN; /* try to clear it, may not be needed, hardware will do that */
     viol = 0;
     switch (type) {
         case MMU_TYPE_ABSENT:   viol = 1; break;                /* ABSEG-  */
-        case MMU_TYPE_LIMIT_GE: viol = (off >= limit); break;    /* SEGDC1- */
-        case MMU_TYPE_LIMIT_LT: viol = (off <  limit); break;    /* SEGDC2- */
-        case MMU_TYPE_LIMIT_LE: viol = (off <= limit); break;    /* SEGDC3- */
+        case MMU_TYPE_LIMIT_GE: viol = (off >= limit); break;   /* SEGDC1- */
+        case MMU_TYPE_LIMIT_LT: viol = (off <  limit); break;   /* SEGDC2- */
+        case MMU_TYPE_LIMIT_LE: viol = (off <= limit);          /* SEGDC3- */
+								if (viol) {
+									setCmb_MemoryManagementStackOverflowFlag();	/* needed for test 7: Stack overflow */
+									//msgout (MSGC_ERR,MYSELF,MSG_NONE,"MMU_TYPE_LIMIT_LT violation, stack overflow set");
+								}
+								break;
     }
     if (viol) {
         mmuStat[seg] |= MMU_ST_LIMITERR;
         mmuErrCount++;
         setCmb_MemoryManagementErrorFlag();
-        msgout (MSGC_ERR,MYSELF,MSG_NONE,"mmu %s violation, seg %d off %03x limit %03x type %d, logical %08x",
+        msgout (MSGC_ERR,MYSELF,MSG_NONE,"%s violation, seg %d off %03x limit %03x type %d, logical %08x",
                 (type == MMU_TYPE_ABSENT) ? "absent segment" : "limit",seg,off,limit,type,logical);
         return 0;
     }
@@ -181,7 +205,7 @@ int mmu_translate (unsigned int logical, int isWrite, unsigned int m68k_fc, unsi
         mmuStat[seg] |= MMU_ST_WRITEERR;
         mmuErrCount++;
         setCmb_MemoryManagementErrorFlag();
-        msgout (MSGC_ERR,MYSELF,MSG_NONE,"mmu write to read only seg %d, logical %08x",seg,logical);
+        msgout (MSGC_ERR,MYSELF,MSG_NONE,"write to read only seg %d, logical %08x",seg,logical);
         return 0;
     }
     /* check if an instruction fetch happened for a data only, no execute segment */
@@ -190,7 +214,7 @@ int mmu_translate (unsigned int logical, int isWrite, unsigned int m68k_fc, unsi
 				mmuStat[seg] |= MMU_ST_EXECERR;
 				mmuErrCount++;
 				setCmb_MemoryManagementErrorFlag();
-				msgout (MSGC_ERR,MYSELF,MSG_NONE,"mmu instruction fetch from a non executable seg %d, logical %08x",seg,logical);
+				msgout (MSGC_ERR,MYSELF,MSG_NONE,"instruction fetch from a non executable seg %d, logical %08x",seg,logical);
 				return 0;
 			}
     }

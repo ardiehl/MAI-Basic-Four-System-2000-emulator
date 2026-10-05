@@ -25,8 +25,15 @@ unsigned int cmb_writeRegs;
 
 int MemoryManagementErrorFlag;
 
+#define MASK_MMERF 1
+#define MASK_SSWARNF (1<<7)
+
 void setCmb_MemoryManagementErrorFlag(void) {
-	MemoryManagementErrorFlag = 1;
+	MemoryManagementErrorFlag |= MASK_MMERF;
+}
+
+void setCmb_MemoryManagementStackOverflowFlag(void) {
+	MemoryManagementErrorFlag |= MASK_SSWARNF;
 }
 
 /* adress must be a valid cmb port (2xxxxy) */

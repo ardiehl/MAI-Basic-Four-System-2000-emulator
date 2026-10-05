@@ -33,6 +33,7 @@
 #define MSG_PIT		8
 #define MSG_MEM		9
 #define MSG_FD		10
+#define MSG_MMU     11
 
 /* functions raised the message */
 #define MSG_NONE 0

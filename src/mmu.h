@@ -59,6 +59,7 @@
 #define MMU_ST_WRITEERR     0x04        /* D03, write error                  */
 #define MMU_ST_LIMITERR     0x08        /* D04, limit or absent segment      */
 
+
 void mmu_pulse_reset (void);
 void mmu_write_word (unsigned int address, unsigned int value);
 void mmu_write_byte (unsigned int address, unsigned int value);

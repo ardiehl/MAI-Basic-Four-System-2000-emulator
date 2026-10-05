@@ -959,6 +959,7 @@ int msgout(unsigned int msgClass,
 		case (MSG_PIT)	: { strcat(classSrc,"pit: "); break; }
 		case (MSG_MEM)	: { strcat(classSrc,"memory: "); break; }
 		case (MSG_FD)	: { strcat(classSrc,"fd: "); break; }
+		case (MSG_MMU)  : { strcat(classSrc,"mmu: "); break; }
 	}
 	switch (routine) {
 		case (MSG_READB)	: { strcat(classSrc,"read8 "); break; }
@@ -1129,7 +1130,7 @@ void dbgCmd_dup(int numArgs, struct args_t *args) {
 /* msg {source|all} {-|+|{+|-}warn | {+|-}err | {+|-}info} */
 
 char *msgClasses[] = {"err","notimp","warn","info","fatal","func","dev"};
-char *msgSources[] = {"other","cpu","cmb","nv","fw","wd","scc","cs","pit","mem","fd",""};
+char *msgSources[] = {"other","cpu","cmb","nv","fw","wd","scc","cs","pit","mem","fd","mmu",""};
 
 void listMsg(int msgSource) {
 	int i=0;
