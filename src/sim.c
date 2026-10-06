@@ -61,7 +61,10 @@ void cpu_set_fc(unsigned int fc);
 
 void dbgCmd_help (int numArgs, struct args_t *args);
 
+#define OPT_SHOW_STEP_REG     1  /* show registers after each step */
+#define OPT_SHOW_STEP_REG_MON 2  /* show regieters in monitor format after each step */
 
+int stepOptions;
 int g_ctrlCpressed = 0;
 int g_busErrorCount = 0;
 INT32 g_breakOnBusError = 0;
@@ -1366,6 +1369,38 @@ void dbgCmd_dl (int numArgs, struct args_t *args) {
 	dbgCmd_dbdwdw (4,0,numArgs,args);
 }
 
+/*
+PC : 0140D2   SR : 2700   CC : .....      SSP : 01A438   USP : 003304
+   D0       D1       D2       D3       D4       D5       D6       D7
+00003FFF 000000FE 0000000C 00000000 00000000 00000000 0001A476 00000A20
+   A0       A1       A2       A3       A4       A5       A6       SP
+00019A96 00200000 00000000 00000000 00000000 00000000 00000000 0001A438 */
+
+void dbgCmd_mon_regs (int numArgs, struct args_t *args) {
+	unsigned int sr = m68k_get_reg(NULL,M68K_REG_SR);
+	char flags[30];
+	flagsTxt (sr,flags);
+
+	printf(
+		"PC : %06x   SR : %04x   CC : %s      SSP : %06x   USP : %06x\n" \
+		"   D0       D1       D2       D3       D4       D5       D6       D7\n" \
+		"%08x %08x %08x %08x %08x %08x %08x %08x\n" \
+		"   A0       A1       A2       A3       A4       A5       A6       SP\n" \
+		"%08x %08x %08x %08x %08x %08x %08x %08x\n", \
+		m68k_get_reg(NULL,M68K_REG_PC),sr,flags,
+		m68k_get_reg(NULL,M68K_REG_MSP),m68k_get_reg(NULL,M68K_REG_USP),
+		m68k_get_reg(NULL,M68K_REG_D0),m68k_get_reg(NULL,M68K_REG_D1),
+		m68k_get_reg(NULL,M68K_REG_D2),m68k_get_reg(NULL,M68K_REG_D3),
+		m68k_get_reg(NULL,M68K_REG_D4),m68k_get_reg(NULL,M68K_REG_D5),
+		m68k_get_reg(NULL,M68K_REG_D6),m68k_get_reg(NULL,M68K_REG_D7),
+		m68k_get_reg(NULL,M68K_REG_A0),m68k_get_reg(NULL,M68K_REG_A1),
+		m68k_get_reg(NULL,M68K_REG_A2),m68k_get_reg(NULL,M68K_REG_A3),
+		m68k_get_reg(NULL,M68K_REG_A4),m68k_get_reg(NULL,M68K_REG_A5),
+		m68k_get_reg(NULL,M68K_REG_A6),m68k_get_reg(NULL,M68K_REG_SP)
+		);
+
+}
+
 
 void dbgCmd_regs (int numArgs, struct args_t *args) {
 	char flags[30];
@@ -1755,6 +1790,9 @@ void dbgCmd_step (int numArgs, struct args_t *args) {
 		m68k_execute(1);
 		sys_device_tick();
 		g_currPC = m68k_get_reg(NULL, M68K_REG_PC);
+		if (stepOptions & OPT_SHOW_STEP_REG) dbgCmd_regs(0,NULL);
+		else if (stepOptions & OPT_SHOW_STEP_REG_MON) dbgCmd_mon_regs(0,NULL);
+
 		for (j=0; j<NUMREGS;j++) regsAfter[j]=m68k_get_reg(NULL, j);
 		changedRegs[0]=0;
 		for (j=0; j<NUMREGS;j++) {
@@ -2333,6 +2371,14 @@ void dbgCmd_translate (int numArgs, struct args_t *args) {
 	}
 }
 
+void dbgCmd_setOpt (int numArgs, struct args_t *args) {
+	if ((strcmp(args[0].txt,"showreg") == 0) || (strcmp(args[0].txt,"sr") == 0)) {
+		stepOptions = args[1].value;
+		return;
+	}
+	printf("invalid option\n");
+}
+
 struct cmds_t cmds[] =
 {
     { "an",       dbgCmd_an    , 0,1,0,"aX - change register A0 to A7"},
@@ -2367,6 +2413,7 @@ struct cmds_t cmds[] =
     { "msg",      dbgCmd_msg   , 0,0,0,"set message level, {source|all} {-|+|{+|-}warn | {+|-}err | {+|-}info}" },
     { "pc"  ,     dbgCmd_pc    , 0,1,1,"change pc"},
     { "regs",     dbgCmd_regs  , 0,0,0,"show registers"},
+    { "mregs",dbgCmd_mon_regs  , 0,0,0,"show registers in monitor format"},
     { "reset",    dbgCmd_rese  , 0,0,0,"reset cpu"},
     { "rm"   ,    dbgCmd_rm    , 0,0,0,"Run until (enabled) message from emu"},
     { "step",     dbgCmd_step  , 0,1,1,"step one or more instructions"},
@@ -2374,6 +2421,7 @@ struct cmds_t cmds[] =
     { "translate",dbgCmd_translate, 1,1,0,"translate virtual to physical - address" },
     { "colors"   ,dbgCmd_color , 0,0,0,"color to list color 0 to disable, color err|notimp|warn|info|fatal|func colorName"},
     { "vector"   ,dbgCmd_vector, 0,1,1,"show vector table"},
+    { "opt"      ,dbgCmd_setOpt, 0,0,0,"set options: showreg|sr 0:off, 1:std, 2: show registers after each step in monitor format"},
 
     { "?",        dbgCmd_help  , 0,0,0,""},
     { "help",     dbgCmd_help  , 0,0,0,"show this help"},

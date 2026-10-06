@@ -63,7 +63,7 @@ unsigned int cmb_read_byte(unsigned int address) {
 	  case CMBR_GENSTATUS	: { MSG (MSGC_INFO,MSG_CMB,MSG_READB,"read GENSTATUS, no fault latched"); return 0; }
 	  case CMBR_GENSTATUS+1	: { MSG (MSGC_INFO,MSG_CMB,MSG_READB,"read GENSTATUS low byte, no fault latched"); return 0; }
   }
-  MSG (MSGC_ERR,MSG_CMB,MSG_READB,"unhandled read byte from address %08",address);
+  MSG (MSGC_ERR,MSG_CMB,MSG_READB,"unhandled read byte from address %08x",address);
   return 0xff;
 }
 
@@ -78,7 +78,7 @@ unsigned int cmb_read_word(unsigned int address) {
 	  	                        MSG (MSGC_INFO,MSG_CMB,MSG_READW,"read STATUS16: %04x",res); return res; }
 	  case CMBR_GENSTATUS	: { MSG (MSGC_INFO,MSG_CMB,MSG_READW,"read GENSTATUS, no fault latched"); return 0; }
   }
-  MSG (MSGC_ERR,MSG_CMB,MSG_READW,"unhandled read word from address %08",address);
+  MSG (MSGC_ERR,MSG_CMB,MSG_READW,"unhandled read word from address %08x",address);
   return 0xffff;
 }
 
@@ -92,7 +92,7 @@ unsigned int cmb_read_long(unsigned int address) {
 	  case CMBR_STATUS		: { MSG (MSGC_INFO,MSG_CMB,MSG_READL,"read STATUS16: %04x",cmb_status_word); return cmb_status_word; }
 	  case CMBR_GENSTATUS	: { MSG (MSGC_INFO,MSG_CMB,MSG_READL,"read GENSTATUS"); break; }
   }
-  MSG (MSGC_ERR,MSG_CMB,MSG_READL,"unhandled read long from address %08",address);
+  MSG (MSGC_ERR,MSG_CMB,MSG_READL,"unhandled read long from address %08x",address);
   return 0xffffffff;
 }
 

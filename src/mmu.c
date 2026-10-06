@@ -154,6 +154,7 @@ int mmu_peek_translate (unsigned int logical, unsigned int * phys) {
 int mmu_translate (unsigned int logical, int isWrite, unsigned int m68k_fc, unsigned int * phys) {
     int seg, type, viol;
     unsigned int off, base, limit, sum;
+    int res = 1;
 
     /* in user mode the segment number comes from A21 A22 A23 */
     seg  = (logical >> 21) & (MMU_SEGMENTS-1);
@@ -180,6 +181,8 @@ int mmu_translate (unsigned int logical, int isWrite, unsigned int m68k_fc, unsi
 		MMU_TYPE_LIMIT_LE: Generates a memory management error when the logical address is less than the limit address. Used for stack overflow
 		MMU_TYPE_LIMIT_LE: Generates a memory management error when the logical address is less than or equal to the the limit address. Used for stack overflow (less than) and for warning of an impending stack overflow (equal to)
     */
+
+    /* todo: hardware will reset the flop flop holding the written bit in supervisor mode */
     mmuStat[seg] &= MMU_ST_WRITTEN; /* try to clear it, may not be needed, hardware will do that */
     viol = 0;
     switch (type) {
@@ -196,27 +199,29 @@ int mmu_translate (unsigned int logical, int isWrite, unsigned int m68k_fc, unsi
     if (viol) {
         mmuStat[seg] |= MMU_ST_LIMITERR;
         mmuErrCount++;
-        setCmb_MemoryManagementErrorFlag();
         msgout (MSGC_ERR,MYSELF,MSG_NONE,"%s violation, seg %d off %03x limit %03x type %d, logical %08x",
                 (type == MMU_TYPE_ABSENT) ? "absent segment" : "limit",seg,off,limit,type,logical);
-        return 0;
+        res = 0;
     }
     if (isWrite && (mmuBase[seg] & MMU_BASE_R)) {
         mmuStat[seg] |= MMU_ST_WRITEERR;
         mmuErrCount++;
-        setCmb_MemoryManagementErrorFlag();
         msgout (MSGC_ERR,MYSELF,MSG_NONE,"write to read only seg %d, logical %08x",seg,logical);
-        return 0;
+        res = 0;
     }
     /* check if an instruction fetch happened for a data only, no execute segment */
     if (mmuBase[seg] & MMU_BASE_X) {
-			if (m68k_fc == FUNCTION_CODE_USER_PROGRAM) {
-				mmuStat[seg] |= MMU_ST_EXECERR;
-				mmuErrCount++;
-				setCmb_MemoryManagementErrorFlag();
-				msgout (MSGC_ERR,MYSELF,MSG_NONE,"instruction fetch from a non executable seg %d, logical %08x",seg,logical);
-				return 0;
-			}
+		if (m68k_fc == FUNCTION_CODE_USER_PROGRAM) {
+			mmuStat[seg] |= MMU_ST_EXECERR;
+			mmuErrCount++;
+			msgout (MSGC_ERR,MYSELF,MSG_NONE,"instruction fetch from a non executable seg %d, logical %08x",seg,logical);
+			res = 0;
+		}
+    }
+
+    if (res == 0) {
+		setCmb_MemoryManagementErrorFlag();
+		return res;
     }
 
     /* physical A09 through A20 is base plus logical, three 4 bit adders */
