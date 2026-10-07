@@ -1257,7 +1257,7 @@ static inline int m68ki_rerun_match(uint address, uint size, uint write, uint* d
 
 	for(i = 0; i < m68ki_cpu.rerun_count; i++)
 	{
-		if(m68ki_cpu.rerun[i].address == ADDRESS_68K(address) &&
+		if(ADDRESS_68K(m68ki_cpu.rerun[i].address) == ADDRESS_68K(address) &&
 		   m68ki_cpu.rerun[i].size    == size    &&
 		   m68ki_cpu.rerun[i].write   == write)
 		{
@@ -1879,6 +1879,7 @@ static inline void m68ki_stack_frame_buserr(uint sr)
  * 68010 only.  This is the 29 word bus/address error frame.
  */
 #define M68KI_FLOW_MARK 0x464c4f57
+#define M68KI_RESTART_MARK 0x52535452
 
 static inline void m68ki_stack_frame_1000(uint pc, uint sr, uint vector)
 {
@@ -1906,7 +1907,8 @@ static inline void m68ki_stack_frame_1000(uint pc, uint sr, uint vector)
 	 * INTERNAL INFORMATION, 16 WORDS
 	 */
 	m68ki_push_32(m68ki_cpu.berr_flow ? m68ki_cpu.berr_flow_target : 0);
-	m68ki_push_32(m68ki_cpu.berr_flow ? M68KI_FLOW_MARK : 0);
+	m68ki_push_32(m68ki_cpu.berr_flow == 1 ? M68KI_FLOW_MARK :
+	              m68ki_cpu.berr_flow == 2 ? M68KI_RESTART_MARK : 0);
 	m68ki_fake_push_32();
 	m68ki_fake_push_32();
 	m68ki_fake_push_32();
@@ -2163,7 +2165,8 @@ static inline void m68ki_exception_bus_error(void)
 
 	/* Snapshot the faulted cycle before the frame pushes overwrite it */
 	m68ki_cpu.berr_address = m68ki_cpu.berr_address_override != 0xFFFFFFFF
-	                       ? m68ki_cpu.berr_address_override
+	                       ? (m68ki_cpu.berr_address_override & CPU_ADDRESS_MASK) |
+	                         (m68ki_cpu.access_address & ~CPU_ADDRESS_MASK)
 	                       : m68ki_cpu.access_address;
 	m68ki_cpu.berr_fc      = m68ki_cpu.access_fc;
 	m68ki_cpu.berr_size    = m68ki_cpu.access_size;
@@ -2197,6 +2200,13 @@ static inline void m68ki_exception_bus_error(void)
 		m68ki_cpu.berr_flow = 1;
 		m68ki_cpu.berr_flow_target = REG_PPC;
 		pc = m68ki_cpu.opcode_flow_pc;
+	}
+	else if(!m68ki_cpu.opcode_fetch)
+	{
+		/* the 68010 stacks the PC after the first instruction word */
+		m68ki_cpu.berr_flow = 2;
+		m68ki_cpu.berr_flow_target = REG_PPC;
+		pc = REG_PPC + 2;
 	}
 	m68ki_cpu.opcode_fetch = 0;
 

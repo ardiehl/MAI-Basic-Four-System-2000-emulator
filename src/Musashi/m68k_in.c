@@ -9252,6 +9252,10 @@ M68KMAKE_OP(rte, 32, ., .)
 				uint flow_mark = m68ki_pull_32();
 				uint flow_target = m68ki_pull_32();
 
+				/* restart the instruction, not the stacked PC after its first word */
+				if(flow_mark == M68KI_RESTART_MARK)
+					new_pc = flow_target;
+
 				/* RR set: the handler ran the cycle itself, so resume from
 				 * the data input buffer rather than repeating the access.
 				 */
