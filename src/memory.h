@@ -8,7 +8,7 @@
 #define MEMORY_H
 
 #define MEM_BOARDSIZE		0x40000		/* 256K per board */
-#define MEM_BOARDS			5
+#define MEM_BOARDS			8
 #if MEM_BOARDS == 8
 // we can not use 2 MB due to a bug in musashi and the rom and diags wants steps of 128k
 // so we can only use half of the last board
