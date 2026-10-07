@@ -9249,14 +9249,16 @@ M68KMAKE_OP(rte, 32, ., .)
 				m68ki_fake_pull_32();
 				m68ki_fake_pull_32();
 				m68ki_fake_pull_32();
-				m68ki_fake_pull_32();
-				m68ki_fake_pull_32();
+				uint flow_mark = m68ki_pull_32();
+				uint flow_target = m68ki_pull_32();
 
 				/* RR set: the handler ran the cycle itself, so resume from
 				 * the data input buffer rather than repeating the access.
 				 */
 				if(ssw & SSW_RR)
 					m68ki_rerun_supply(new_pc, ssw, fault_address, dib);
+				else if(flow_mark == M68KI_FLOW_MARK)
+					new_pc = flow_target;
 
 				m68ki_jump(new_pc);
 				m68ki_set_sr(new_sr);

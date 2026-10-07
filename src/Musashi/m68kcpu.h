@@ -1052,6 +1052,17 @@ typedef struct
 	 * to one instruction.
 	 */
 	uint rerun_pc;
+
+	/* End of the last instruction stream read and the mode it was made in.
+	 * When the opcode fetch at a jump target faults, a 68010 is still in the
+	 * jump and stacks the PC that follows it, which is this value. */
+	uint fetch_end;
+	uint fetch_end_s;
+	uint opcode_fetch;
+	uint opcode_flow_pc;
+	uint opcode_flow_s;
+	uint berr_flow;
+	uint berr_flow_target;
 	uint rerun_count;
 	struct {
 		uint address;
@@ -1127,6 +1138,8 @@ static inline uint m68ki_read_imm_16(void)
 }
 #else
 	REG_PC += 2;
+	m68ki_cpu.fetch_end = REG_PC;
+	m68ki_cpu.fetch_end_s = FLAG_S;
 	return m68k_read_immediate_16(ADDRESS_68K(REG_PC-2));
 #endif /* M68K_EMULATE_PREFETCH */
 }
@@ -1172,6 +1185,8 @@ static inline uint m68ki_read_imm_32(void)
 	m68ki_set_fc(FLAG_S | FUNCTION_CODE_USER_PROGRAM); /* auto-disable (see m68kcpu.h) */
 	m68ki_check_address_error(REG_PC, MODE_READ, FLAG_S | FUNCTION_CODE_USER_PROGRAM); /* auto-disable (see m68kcpu.h) */
 	REG_PC += 4;
+	m68ki_cpu.fetch_end = REG_PC;
+	m68ki_cpu.fetch_end_s = FLAG_S;
 	return m68k_read_immediate_32(ADDRESS_68K(REG_PC-4));
 #endif /* M68K_EMULATE_PREFETCH */
 }
@@ -1863,6 +1878,8 @@ static inline void m68ki_stack_frame_buserr(uint sr)
 /* Format 8 stack frame (68010).
  * 68010 only.  This is the 29 word bus/address error frame.
  */
+#define M68KI_FLOW_MARK 0x464c4f57
+
 static inline void m68ki_stack_frame_1000(uint pc, uint sr, uint vector)
 {
 	/* Captured before the pushes below overwrite the access state. */
@@ -1888,8 +1905,8 @@ static inline void m68ki_stack_frame_1000(uint pc, uint sr, uint vector)
 	 * NUMBER
 	 * INTERNAL INFORMATION, 16 WORDS
 	 */
-	m68ki_fake_push_32();
-	m68ki_fake_push_32();
+	m68ki_push_32(m68ki_cpu.berr_flow ? m68ki_cpu.berr_flow_target : 0);
+	m68ki_push_32(m68ki_cpu.berr_flow ? M68KI_FLOW_MARK : 0);
 	m68ki_fake_push_32();
 	m68ki_fake_push_32();
 	m68ki_fake_push_32();
@@ -2173,10 +2190,20 @@ static inline void m68ki_exception_bus_error(void)
 		REG_DA[i] = REG_DA_SAVE[i];
 	}
 
+	uint pc = REG_PPC;
+	m68ki_cpu.berr_flow = 0;
+	if(m68ki_cpu.opcode_fetch && m68ki_cpu.opcode_flow_s == FLAG_S && m68ki_cpu.opcode_flow_pc != REG_PPC)
+	{
+		m68ki_cpu.berr_flow = 1;
+		m68ki_cpu.berr_flow_target = REG_PPC;
+		pc = m68ki_cpu.opcode_flow_pc;
+	}
+	m68ki_cpu.opcode_fetch = 0;
+
 	uint sr = m68ki_init_exception();
 
 	/* Note: This is implemented for 68010 only! */
-	m68ki_stack_frame_1000(REG_PPC, sr, EXCEPTION_BUS_ERROR);
+	m68ki_stack_frame_1000(pc, sr, EXCEPTION_BUS_ERROR);
 
 	m68ki_jump_vector(EXCEPTION_BUS_ERROR);
 

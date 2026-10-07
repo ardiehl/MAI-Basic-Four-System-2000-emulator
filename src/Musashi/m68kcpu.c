@@ -1006,7 +1006,11 @@ int m68k_execute(int num_cycles)
 			}
 
 			/* Read an instruction and call its handler */
+			m68ki_cpu.opcode_flow_pc = m68ki_cpu.fetch_end;
+			m68ki_cpu.opcode_flow_s = m68ki_cpu.fetch_end_s;
+			m68ki_cpu.opcode_fetch = 1;
 			REG_IR = m68ki_read_imm_16();
+			m68ki_cpu.opcode_fetch = 0;
 			m68ki_instruction_jump_table[REG_IR]();
 			USE_CYCLES(CYC_INSTRUCTION[REG_IR]);
 

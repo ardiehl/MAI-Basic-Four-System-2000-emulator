@@ -20,3 +20,5 @@ changed it to:
 `            m68ki_rerun_match(address + 2, 2, 1, &supplied)))`
 `                return;`
 
+
+4) mmu diag test 5 (execute protect) walked through all segments. After jmp (A1) into a no execute segment the opcode fetch at the target faulted with REG_PPC already set to the target, so the format 8 frame held 200000 where a 68010 stacks 3a34, the PC after the jmp. m68ki_read_imm_16/32 now remember where the last instruction stream read ended; when the opcode fetch itself faults and that differs from REG_PPC, m68ki_exception_bus_error stacks it. The target is kept in two of the internal information words, so an rte of that frame with RR clear still completes the jump.
