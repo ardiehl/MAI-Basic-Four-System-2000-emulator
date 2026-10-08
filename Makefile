@@ -483,6 +483,8 @@ endif
 ## musashi build rules
 # 68k CPU builder
 
+$(OBJDIR)/$(MUSASHIDIR)/m68kops.o:	src/$(MUSASHIDIR)/m68k_in.c
+
 $(OBJDIR)/$(MUSASHIDIR)/m68kmake.o:	src/$(MUSASHIDIR)/m68kmake.c
 	@echo "compiling $@"
 	@mkdir -p $(dir $@) $(dir $(DEPDIR)/$*.d)
