@@ -49,8 +49,9 @@ emulator leaves the disk image unbootable.
 
 `bxos.c` replaces the generic `os.c` of the tape and `crt0.s` starts the
 program. Tested on BOSS/IX 7.5B: printf, stdin, argc/argv, fopen for reading
-and writing, fprintf, fseek/ftell, unlink; `seektest.c` exercises most of
-it. Floating point and time are not mapped.
+and writing, fprintf, fseek/ftell, unlink, malloc with a growing memory
+limit, time and localtime; `seektest.c` exercises most of it. Floating point
+is not mapped.
 
 ## BOSS/IX notes
 
@@ -72,6 +73,8 @@ it. Floating point and time are not mapped.
   | 2f | file information, 0x60 bytes, the size is the long at 14 |
   | 17 | unlink |
   | 29 | exit |
+  | 11 / 12 | set / get the memory limit |
+  | 36 | seconds since 1 January 1980 |
 
 - Files are created with `trap #0` followed by the word 0x0089 and eight longs
   on the stack: type, path, 0, 0, 1, 0, 0, 0 make a string file, as Business
