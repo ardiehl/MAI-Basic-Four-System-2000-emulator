@@ -4,6 +4,7 @@
 # from the TUHS 4.3BSD directory and boot42 (Computer History Wiki, page
 # "Boot42") into $GHS_WORK/bsd43 first.
 #   SIMH=/path/to/vax780 ./install43.sh
+
 set -e
 D=$(cd "$(dirname "$0")" && pwd)
 W=${GHS_WORK:-$D/work}/bsd43
