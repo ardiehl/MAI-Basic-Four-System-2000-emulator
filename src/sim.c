@@ -76,6 +76,26 @@ int sccPollCount = SCC_POLL_INSTRUCTIONS;
 /* current memory access FUNCTION_CODE_USER_DATA | FUNCTION_CODE_USER_PROGRAM | FUNCTION_CODE_SUPERVISOR_DATA | FUNCTION_CODE_SUPERVISOR_PROGRAM | FUNCTION_CODE_CPU_SPACE */
 unsigned int g_fc;	/* set via callback from Musashi */
 
+char * colorsNames [] = {
+	"null", "none", "black", "red", "green", "brown", "blue", "purple", "cyan", "white", "boldblack", "boldred", "boldgreen", "boldbrown", "boldblue", "boldpurple", "boldcyan", "boldwhite"
+};
+
+char * colors [] = {
+	"", "\033[0m", "\033[0;30m", "\033[0;31m", "\033[0;32m", "\033[0;33m", "\033[0;34m", "\033[0;35m", "\033[0;36m", "\033[0;37m",  "\033[1;30m", "\033[1;31m", "\033[1;32m", "\033[1;33m", "\033[1;34m", "\033[1;35m", "\033[1;36m", "\033[1;37m"
+};
+
+//#define COLOR_NONE colors[0]
+colors_t classColors[] = {
+	boldred,    // MSGC_ERR
+	cyan,		// MSGC_NOTIMP
+	boldwhite,  // MSGC_WARN
+	none,       // MSGC_INFO
+	boldred,    // MSGC_FATAL
+	white,      // MSGC_FUNC
+	boldcyan    // MSGC_DEV
+};
+
+
 /* Write watchpoints. The breakpoints above trigger on the program counter,
  * which is no use when the question is "who writes this variable". These
  * trigger on a store to an address range and print the storing instruction.
@@ -645,6 +665,192 @@ unsigned char pcHistSuper[PCHISTORY_SIZE];
 unsigned int pcHistoryIdx = 0;
 unsigned int pcHistoryCount = 0;
 
+typedef struct {
+	int trapNo;
+	int syscall;        /* syscall number */
+	char * name;
+	char * description;
+	uint32_t showDReg;	/* show Dx register(s) as text */
+} syscallDesc_t;
+
+#define SY_SH_D0 0x0001
+#define SY_SH_D1 0x0002
+#define SY_SH_D2 0x0004
+#define SY_SH_D3 0x0008
+#define SY_SH_D4 0x0010
+#define SY_SH_D5 0x0020
+#define SY_SH_D6 0x0040
+#define SY_SH_D7 0x0080
+
+
+syscallDesc_t syscallDescs[] = {
+	{ 0, 0x89, "bxcreate", NULL, 0 },
+	{ 2, 0x04, "open", NULL, SY_SH_D0 | SY_SH_D1 },
+	{ 2, 0x05, "close", "D0 fileno" },
+	{ 2, 0x0a, "seek", NULL },
+	{ 2, 0x0c, "creat", NULL },
+	{ 2, 0x0d, "read", NULL, SY_SH_D0 | SY_SH_D1 },
+	{ 2, 0x0e, "write", NULL },
+	{ 2, 0x10, "tell", NULL },
+	{ 2, 0x11, "setmemlimit", NULL },
+	{ 2, 0x12, "getmemlimit", NULL },
+	{ 2, 0x16, NULL, NULL, SY_SH_D1 },
+	{ 2, 0x17, "unlink", NULL },
+	{ 2, 0x1c, "chdir", NULL, SY_SH_D0 },
+	{ 2, 0x22, "umount", "D0=directory", SY_SH_D0 },
+	//{ 5, 0x27, "?", NULL, SY_SH_D0 | SY_SH_D1 },
+	{ 2, 0x29, "exit", NULL },
+	{ 2, 0x2a, "chmod", "" },
+
+	{ 2, 0x2e, "sync", NULL },
+	{ 2, 0x2f, "fstat", NULL },
+	{ 2, 0x35, "settime", NULL },
+	{ 2, 0x36, "gettime", "Time in sec since 1 Jan 1980 in D0" },
+	{ 2, 0x3b, "suspend", "D0=pid" },
+	{ 2, 0x41, "kill", "D0=pid" },
+	{ 2, 0x47, "?" , NULL, SY_SH_D0 | SY_SH_D1 },
+	{ 2, 0x4a, "gettimemilli", "Time in millisec in D0" },
+	{ 2, 0x4b, "exec/fork ?", NULL, SY_SH_D0 | SY_SH_D1 },
+	{ 2, 0x66, "fileopen?", NULL, SY_SH_D0 | SY_SH_D1 },
+	{ 2, 0x8b, "nopen", NULL },
+	{ 2, 0x99, "mount", "D0=device, D1=directory", SY_SH_D0 | SY_SH_D1 },
+	{ 2, 0x9b, "?", NULL, SY_SH_D0 | SY_SH_D1 },
+	{ 0, 0, NULL, NULL }
+};
+
+typedef struct {
+	int errno;
+	char *desc;
+} sysErrno_t;
+
+sysErrno_t sysErrnos[] = {
+	{ -32768 , "EINTERRUPTED" },
+	{ -32767 , "EBUSERR" },
+	{ -1 , "ENDOFFILE" },
+	{ -2 , "EIOERR" },
+	{ -3 , "EBADSECT" },
+	{ -4 , "ETOOBIG" },
+	{ -5 , "ENOFILE" },
+	{ -6 , "ENOSTREAM" },
+	{ -7 , "EBADMODE" },
+	{ -8 , "ENOFD" },
+	{ -9 , "ENOLU" },
+	{ -10 , "ENOTOPEN" },
+	{ -11 , "ETOODEEP" },
+	{ -12 , "ECANTCREATE" },
+	{ -13 , "EMISSING" },
+	{ -14 , "EBADNAME" },
+	{ -15 , "EBADFS" },
+	{ -16 , "ENOTONLINE" },
+	{ -17 , "ENOSPACE" },
+	{ -18 , "EBADOBJFILE" },
+	{ -19 , "ENOTADIR" },
+	{ -20 , "EMISSDIR" },
+	{ -21 , "EDIRNOTEMPTY" },
+	{ -22 , "EISADIR" },
+	{ -23 , "EWRITEDIR" },
+	{ -24 , "ENOMNT" },
+	{ -25 , "ENOTADEV" },
+	{ -26 , "EMNTBUSY" },
+	{ -27 , "ENOTMOUNTED" },
+	{ -28 , "ENOSWAP" },
+	{ -29 , "ENOPROC" },
+	{ -30 , "ENOTAFILE" },
+	{ -31 , "EFBUSY" },
+	{ -32 , "EBADDEV" },
+	{ -33 , "EBADCALL" },
+	{ -34 , "EODDADDR" },
+	{ -35 , "EODDCNT" },
+	{ -36 , "EEXTDEV" },
+	{ -37 , "EEXISTS" },
+	{ -38 , "ENOCHILD" },
+	{ -39 , "ETRAP" },
+	{ -40 , "ENOTANEC" },
+	{ -41 , "ENOTDBLEC" },
+	{ -42 , "EBADLU" },
+	{ -43 , "ENOECS" },
+	{ -44 , "ENORDPERM" },
+	{ -45 , "ENOWRPERM" },
+	{ -46 , "ENOPIPE" },
+	{ -47 , "EBRKNPIPE" },
+	{ -48 , "EACCESS" },
+	{ -49 , "EBADHEADER" },
+	{ -50 , "EBADOFFSET" },
+	{ -51 , "ENOLOCK" },
+	{ -52 , "EDEADLOCK" },
+	{ -53 , "ETOOMANY" },
+	{ -54 , "ERDONLY" },
+	{ -55 , "ENOSEG" },
+	{ -56 , "ENOMORESEG" },
+	{ -57 , "ENOTDONE" },
+	{ -58 , "ENEEDLOCK" },
+	{ -59 , "ENOTBUFFER" },
+	{ -60 , "ENOTBUSY" },
+	{ -61 , "EOUTOFORDER" },
+	{ -62 , "ENOASYNCBUF" },
+	{ -63 , "EBADADDR" },
+	{ -64 , "EPREVIOERR" },
+	{ -65 , "ERECTOOBIG" },
+	{ -66 , "EFSCRASHED" },
+	{ -67 , "EINVALSEG" },
+	{ -68 , "EBADALIGN" },
+	{ -69 , "ESEGBUSY" },
+	{ -70 , "EBADSPFUN" },
+	{ -71 , "EWRPIPE" },
+	{ -72 , "EQEXIST" },
+	{ -73 , "ENOQUE" },
+	{ -74 , "ENOQSPACE" },
+	{ -75 , "ENOIPC" },
+	{ -76 , "EBADQ" },
+	{ -77 , "EQGONE" },
+	{ -78 , "EQTYPE" },
+	{ -79 , "ENOPKT" },
+	{ -80 , "EPKT2BIG" },
+	{ -81 , "EQFULL" },
+	{ -82 , "EBADQOP" },
+	{ -83 , "ECONTIGNOALLOC" },
+	{ -84 , "ECONTIGNOSPACE" },
+	{ -85 , "ENOTCONTIG" },
+	{ -86 , "EDSNINIT" },
+	{ -87 , "EDSSTARTED" },
+	{ -88 , "EDSNSTARTED" },
+	{ -89 , "EDSNOPENED" },
+	{ -90 , "EDSBUSY" },
+	{ -91 , "EDSCLOSED" },
+	{ -92 , "EDSNOMBX" },
+	{ -93 , "EDSCLOSING" },
+	{ -94 , "EDSBADCFG" },
+	{ -95 , "EDSBADSUBF" },
+	{ -96 , "EDSNONODE" },
+	{ -97 , "EDSPROTERR" },
+	{ -98 , "EWOULDBLOCK" },
+	{ -99 , "EDFSPROTOV" },
+	{ -100 , "EDFSCANTDO" },
+	{ -101 , "ENOTOWNER" },
+	{ -102 , "EBADCOUNT" },
+	{ 0, NULL }
+};
+
+char * getSysErrDesc(int sysErrno) {
+	int i = 0;
+
+	while (sysErrnos[i].errno != 0) {
+		if (sysErrnos[i].errno == sysErrno) return sysErrnos[i].desc;
+		i++;
+	}
+	return NULL;
+}
+
+syscallDesc_t *getSyscallDesc (int trapNo, int syscall) {
+	int i = 0;
+
+	while (syscallDescs[i].syscall) {
+		if (syscallDescs[i].syscall == syscall && syscallDescs[i].trapNo == trapNo) return &syscallDescs[i];
+		i++;
+	}
+	return NULL;
+}
+
 /* System call tracing.
  *
  * BOSS/IX reaches the kernel the usual 68k way, with a TRAP instruction, so the
@@ -689,15 +895,25 @@ static void sys_peek_user_string (unsigned int logical, int max) {
 static void sys_trace_traps (unsigned int pc) {
     unsigned int phys;
     UINT16 op;
-    unsigned int d0, d1, d2, a0, a1, a7, i, arg;
+    unsigned int d0, d1, d2, d3, d4, d5, d6, d7, a0, a1, a7, i, arg;
+    char syscallName[255];
+    syscallDesc_t *syscallDesc;
 
     if (m68k_get_reg(NULL,M68K_REG_SR) & 0x2000) return;    /* supervisor */
 
     /* the first user instruction after a trap carries its result */
     if (trapPending) {
         trapPending = 0;
-        printf("      -> returned D0=%08x D1=%08x, back at %06x\n",
-                m68k_get_reg(NULL,M68K_REG_D0),
+        syscallName[0] = 0;
+        d0 = m68k_get_reg(NULL,M68K_REG_D0);
+        char *errDesc = getSysErrDesc((int)d0);
+        if (errDesc) {
+        	char *endColor = "";
+			if (classColors[MSGC_ERR] > nullColor) endColor=colors[1];
+			sprintf(syscallName," (%s%s%s)",colors[classColors[MSGC_ERR]],errDesc,endColor);
+        }
+        printf("      -> returned D0=%08x (%d)%s D1=%08x, back at %06x\n",
+                d0,(int)d0,syscallName,
                 m68k_get_reg(NULL,M68K_REG_D1), pc);
         fflush(stdout);
     }
@@ -712,11 +928,27 @@ static void sys_trace_traps (unsigned int pc) {
     d0 = m68k_get_reg(NULL,M68K_REG_D0);
     d1 = m68k_get_reg(NULL,M68K_REG_D1);
     d2 = m68k_get_reg(NULL,M68K_REG_D2);
+    d3 = m68k_get_reg(NULL,M68K_REG_D3);
+    d4 = m68k_get_reg(NULL,M68K_REG_D4);
+    d5 = m68k_get_reg(NULL,M68K_REG_D5);
+    d6 = m68k_get_reg(NULL,M68K_REG_D6);
+    d7 = m68k_get_reg(NULL,M68K_REG_D7);
     a0 = m68k_get_reg(NULL,M68K_REG_A0);
     a1 = m68k_get_reg(NULL,M68K_REG_A1);
     a7 = m68k_get_reg(NULL,M68K_REG_A7);
-    printf("trap #%u call %02x at %06x  D0=%08x D1=%08x D2=%08x A1=%08x sp=%06x  stack:",
-            op & 0x0f, a0 & 0xff, pc, d0, d1, d2, a1, a7);
+
+    syscallName[0] = 0;
+    syscallDesc = getSyscallDesc(op & 0x0f, a0 & 0xff);
+    if (syscallDesc)
+		if (syscallDesc->name) {
+		char *endColor = "";
+		if (classColors[MSGC_NOTIMP] > nullColor) endColor=colors[1];
+		sprintf(syscallName," (%s%s%s)",colors[classColors[MSGC_NOTIMP]],syscallDesc->name,endColor);
+    }
+
+
+    printf("trap #%u call %02x%s at %06x  D0=%08x D1=%08x D2=%08x A1=%08x sp=%06x  stack:",
+            op & 0x0f, a0 & 0xff, syscallName, pc, d0, d1, d2, a1, a7);
     for (i = 0; i < 5; i++) {
         if (sys_peek_user_long(a7 + i*4,&arg)) printf(" %08x",arg);
         else                                   printf(" --------");
@@ -726,16 +958,33 @@ static void sys_trace_traps (unsigned int pc) {
        which is how the call pid 1 repeats during boot reads. Dumping it turns
        an opaque syscall number into the actual message. */
     /* calls that plausibly carry a path in D1 */
-    switch (a0 & 0xff) {
-        case 0x05: case 0x0a: case 0x0d: case 0x27: case 0x47: case 0x9b:
-            printf("      arg D1 as string: ");
-            sys_peek_user_string(d1,72);
-            printf("\n");
-            printf("      arg D0 as string: ");
-            sys_peek_user_string(d0,72);
-            printf("\n");
-            break;
+    if (syscallDesc) {
+    	if (syscallDesc->showDReg & SY_SH_D0) {
+    		printf("      arg D0 as string: "); sys_peek_user_string(d0,72); printf("\n");
+    	}
+    	if (syscallDesc->showDReg & SY_SH_D1) {
+    		printf("      arg D1 as string: "); sys_peek_user_string(d1,72); printf("\n");
+    	}
+    	if (syscallDesc->showDReg & SY_SH_D2) {
+    		printf("      arg D2 as string: "); sys_peek_user_string(d2,72); printf("\n");
+    	}
+    	if (syscallDesc->showDReg & SY_SH_D3) {
+    		printf("      arg D3 as string: "); sys_peek_user_string(d3,72); printf("\n");
+    	}
+    	if (syscallDesc->showDReg & SY_SH_D4) {
+    		printf("      arg D4 as string: "); sys_peek_user_string(d4,72); printf("\n");
+    	}
+    	if (syscallDesc->showDReg & SY_SH_D5) {
+    		printf("      arg D5 as string: "); sys_peek_user_string(d5,72); printf("\n");
+    	}
+    	if (syscallDesc->showDReg & SY_SH_D6) {
+    		printf("      arg D6 as string: "); sys_peek_user_string(d6,72); printf("\n");
+    	}
+    	if (syscallDesc->showDReg & SY_SH_D7) {
+    		printf("      arg D7 as string: "); sys_peek_user_string(d7,72); printf("\n");
+    	}
     }
+
     if (((a0 & 0xff) == 0x0e) && (d2 > 0) && (d2 < 512)) {
         unsigned int k, w;
         unsigned char c;
@@ -881,26 +1130,6 @@ UINT32 msgClassFlags[MSGC_MAX];
 int messageIsEnabled (int msgClass,int msgSource) {
   return (msgClassFlags[msgClass] & (1<<msgSource));
 }
-
-char * colorsNames [] = {
-	"null", "none", "black", "red", "green", "brown", "blue", "purple", "cyan", "white", "boldblack", "boldred", "boldgreen", "boldbrown", "boldblue", "boldpurple", "boldcyan", "boldwhite"
-};
-
-char * colors [] = {
-	"", "\033[0m", "\033[0;30m", "\033[0;31m", "\033[0;32m", "\033[0;33m", "\033[0;34m", "\033[0;35m", "\033[0;36m", "\033[0;37m",  "\033[1;30m", "\033[1;31m", "\033[1;32m", "\033[1;33m", "\033[1;34m", "\033[1;35m", "\033[1;36m", "\033[1;37m"
-};
-
-//#define COLOR_NONE colors[0]
-colors_t classColors[] = {
-	boldred,    // MSGC_ERR
-	cyan,		// MSGC_NOTIMP
-	boldwhite,  // MSGC_WARN
-	none,       // MSGC_INFO
-	boldred,    // MSGC_FATAL
-	white,      // MSGC_FUNC
-	boldcyan    // MSGC_DEV
-};
-
 
 INT32 g_showDuplicateMessages = 1;
 char g_lastMessage[512];

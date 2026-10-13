@@ -267,7 +267,7 @@ int main (int argc, char * argv[]) {
 		}
 		if (showSym || showSyms) {
 			printf("\n------ symbols --------------------------------------------------------------\n");
-			showDump (syms,0,be32toh(h.relsize), 16);
+			if (showSym) showDump (syms,0,be32toh(h.relsize), 16);
 		}
 
 		if (showSyms) {
