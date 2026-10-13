@@ -26,7 +26,8 @@ does not support ("Can't open temps", also on the real machine).
 All scripts take their paths from the environment: `GHS_WORK` (work
 directory, default `./work`), `SIMH` (the `vax780` binary), `GHS_TAPE`
 (extracted `c68_p68_libr_1.8.3A_3-28-88`) and `GHS_RT`
-(`GH_68K_LIBR_SRC_5-5-86/libs/68000/intops/rt.s`).
+(`GH_68K_LIBR_SRC_5-5-86/libs/68000/intops/rt.s`, looked for next to
+`GHS_TAPE` when not set).
 
     ./install43.sh        # 4.3BSD on $GHS_WORK/bsd43/rq.dsk, a few minutes
     ./setupghs.sh         # compilers to /vax, library sources to /LIB

@@ -6,6 +6,7 @@ set -e
 D=$(cd "$(dirname "$0")" && pwd)
 W=${GHS_WORK:-$D/work}/bsd43
 export SIMH=${SIMH:-vax780}
+[ -d "$GHS_TAPE/BIN/vax" ] || { echo "GHS_TAPE: no BIN/vax in '$GHS_TAPE'"; exit 1; }
 T=$(mktemp -d)
 cp -r "$GHS_TAPE/BIN/vax" "$GHS_TAPE/LIB" $T/
 (cd $T && tar cf ghs.tar vax LIB)
