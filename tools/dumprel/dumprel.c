@@ -9,6 +9,34 @@
 
 FILE * fin;
 
+typedef struct symbol_t symbol_t;
+
+struct symbol_t {
+	char * symbolName;
+	uint32_t address;
+	symbol_t *next;
+};
+
+symbol_t * symbols;
+
+void symbolAdd (char *symbolName, uint32_t address) {
+	symbol_t *s;
+
+	if (!symbols) {
+		symbols = calloc(1,sizeof(symbol_t));
+		s = symbols;
+	} else {
+		s = symbols;
+		while (s->next) s = s->next;
+		s->next = calloc(1,sizeof(symbol_t));
+		s = s->next;
+	}
+	s->symbolName = strdup(symbolName);
+	s->address = address;
+}
+
+
+
 void usage (char * pname) {
 	printf(
 		"usage:\n" \
@@ -60,22 +88,23 @@ void showDump (uint8_t * data,unsigned int addr, unsigned int length, int lineLe
 }
 
 
-int showText,showData,showReloc,showSym,showSyms;
+int showText,showData,showReloc,showSym,showSyms,showDisassembly;
 int newStackSize = -1;
 
 int allCB(argParse_handleT *a, char * arg) {
-  showText++; showData++; showReloc++; showSym++; showSyms++;
+  showText++; showData++; showReloc++; showSym++; showSyms++; showDisassembly++;
   return 0;
 }
 
 AP_START(argopt)
         AP_HELP
-        AP_OPT_INTVALF_CB (0,'a',"all"  ,NULL       ,"show all sections",allCB)
-        AP_OPT_INTVALF    (0,'t',"text"  ,&showText ,"show text section")
-        AP_OPT_INTVALF    (0,'d',"data"  ,&showData ,"show data section")
-        AP_OPT_INTVALF    (0,'r',"rel"  ,&showReloc ,"show relocation section")
-        AP_OPT_INTVALF    (0,'S',"sym"  ,&showSym   ,"show symbols section")
-        AP_OPT_INTVALF    (0,'s',"syms" ,&showSyms  ,"show symbols")
+        AP_OPT_INTVALF_CB (0,'a',"all"  ,NULL             ,"show all sections",allCB)
+        AP_OPT_INTVALF    (0,'t',"text"  ,&showText       ,"show text section")
+        AP_OPT_INTVALF    (0,'d',"data"  ,&showData       ,"show data section")
+        AP_OPT_INTVALF    (0,'r',"rel"  ,&showReloc       ,"show relocation section")
+        AP_OPT_INTVALF    (0,'S',"sym"  ,&showSym         ,"show symbols section")
+        AP_OPT_INTVALF    (0,'s',"syms" ,&showSyms        ,"show symbols")
+        AP_OPT_INTVALF    (0,'D',"dis"  ,&showDisassembly ,"show disassembled routines")
         //AP_OPT_STRVAL     (1,'s',"str"   ,&strArg    ,"set string")
         AP_OPT_INTVAL     (0,'z', "stacksize"  ,&newStackSize   ,"set new stacksize")
         //AP_OPT_INTVALFO   (0,'I',"int2"  ,&intArg2   , "increment or set int")
@@ -126,6 +155,7 @@ int main (int argc, char * argv[]) {
 	int rc;
 	argParse_handleT *a;
 	char *fileName = NULL;
+	char disTxt[255];
 
 	a = argParse_init(argopt, NULL, "\ndumprel - show information for a BOSS/IX or Unos executable or shared library\n","Filename has to be the last parameter\n");
 	rc = argParse (a, argc, argv, 1);
@@ -270,20 +300,37 @@ int main (int argc, char * argv[]) {
 			if (showSym) showDump (syms,0,be32toh(h.relsize), 16);
 		}
 
-		if (showSyms) {
-			struct symtabent *sym = (struct symtabent *)(syms);
-			while (sym < (struct symtabent *) (syms + be32toh(h.symsize))) {
-				int flags = be16toh(sym->s_flags);
-				printf("%04x %08x %-20s",flags,be32toh(sym->s_value),sym->s_name);
-				if (flags == 0x12) { // || flags == 2) {
-					if (textAddressPtr(be32toh(sym->s_value))) {
-						char disTxt[255];
+
+		struct symtabent *sym = (struct symtabent *)(syms);
+		while (sym < (struct symtabent *) (syms + be32toh(h.symsize))) {
+			int flags = be16toh(sym->s_flags);
+			if (showSyms) printf("%04x %08x %-20s",flags,be32toh(sym->s_value),sym->s_name);
+			if (flags == 0x12 || flags == 2) {
+				if (textAddressPtr(be32toh(sym->s_value))) {
+					if (showSyms) {
 						m68k_disassemble(disTxt, be32toh(sym->s_value), M68K_CPU_TYPE_68010);
 						printf("%s",disTxt);
 					}
 				}
-				printf("\n");
-				sym++;
+			}
+			if (flags == 2) symbolAdd (sym->s_name,be32toh(sym->s_value));
+			if (showSyms) printf("\n");
+			sym++;
+		}
+
+		if (showDisassembly && symbols) {
+			symbol_t *s = symbols;
+			while (s->next) {
+				if (s->next->address > s->address) {
+					printf("%s\n",s->symbolName);
+					uint32_t a = s->address;
+					while (a < s->next->address) {
+						int len = m68k_disassemble(disTxt, a, M68K_CPU_TYPE_68010);
+						printf("  %08x %s\n",a,disTxt);
+						a += len;
+					}
+				}
+				s = s->next;
 			}
 		}
 	}
