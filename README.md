@@ -3,7 +3,7 @@ This an emulator for a MAI basic four 2000 (code name Eagle)
 History
 =
 I have worked with that machine in the 80s and got a working one in 2011 out of the US. It is an 110 Volt model so i have to run it with a transformer from 230 to 100 V. 
-As i had a lot of documentation (scanned and made available at bitsavers/pdf/mai) i decided to start writing an emulator for it. Not a very good idea because i has no experience with 68000 assembler at all.
+As i had a lot of documentation (scanned and made available at bitsavers/pdf/mai) i decided to start writing an emulator for it. Not a very good idea because i had no experience with 68000 assembler at all.
 
 I started with the basics, got the excellent [Musashi 68k](https://github.com/kstenerud/Musashi) emulator, implemented memory in supervisor mode and
 made the tape drive working to be able to load diagnostics from tape.
