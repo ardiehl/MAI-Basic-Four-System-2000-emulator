@@ -58,7 +58,7 @@ Enter cs to boot the diagnostics from tape.
 
 ## Booting the operating system from disk
 
-For booting BOSS/IX (a licensed version of Charles River Data Systems (CDRS) UNOS from about 1984) you need a disk image, you can download it from basicfour.de 
+For booting BOSS/IX (a licensed version of Charles River Data Systems (CRDS) UNOS from about 1982) you need a disk image, you can download it from basicfour.de 
 [bossix_micropolis_2011.dsk.bz2](http://www.basicfour.de/download/mai2000/bossix_micropolis_2011.dsk.bz2) is an image that boots into single user mode and allows multi user after pressing ^D
 http://www.basicfour.de/download/mai2000/bossix_micropolis_2011.dsk.multi.bz2 boots directly into multi user mode
 Create a directory "wd" in the directory of eagleemu and place the extracted images there.
