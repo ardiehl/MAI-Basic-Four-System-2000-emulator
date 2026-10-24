@@ -34,16 +34,27 @@ directory, default `./work`), `SIMH` (the `vax780` binary), `GHS_TAPE`
     ./mklibc.sh           # $GHS_WORK/lib/libc.a, rt68k.o, crt0.o
     ./ghscc.sh hello.c    # hello.rel
 
-To get a `.rel` into BOSS/IX, `put.py` prints Business BASIC statements that
-rebuild the file with `ATH()` and `WRITE RECORD`, and `emusess.py` types them
-into eagleemu:
+To get a `.rel` into BOSS/IX, `fdput.py` packs files into a 640 KB floppy
+image and prints the `debe` commands that copy them out of `/dev/fd0` again,
+and `emusess.py` types them into eagleemu with the image attached (the disk
+image needs a floppy drive in its configuration record):
+
+    mapfile -t C < <(python3 fdput.py floppy.img hello.rel=/tmp/hello)
+    EXTRA="dev fd image floppy.img" QUIET=1 PROMPT2=">" python3 emusess.py \
+        <eagleemu dir> <disk image> "${C[@]}" \
+        "filemodes +rwx +rwx /tmp/hello" "/tmp/hello" "!shutdown"
+
+A 35 KB file takes about 2 seconds. `debe` takes `iskip` and `oskip` in bytes
+whatever `bs` is; whole blocks go with `bs=512` and the rest with `bs=1`.
+Without a floppy, `put.py` prints Business BASIC statements that rebuild the
+file with `ATH()` and `WRITE RECORD`, about 11 KB in 8 minutes:
 
     mapfile -t C < <(python3 put.py hello.rel /tmp/hello 100)
     FAST=1 QUIET=1 PROMPT2=">" python3 emusess.py <eagleemu dir> <disk image> \
         "${C[@]}" "filemodes +rwx +rwx /tmp/hello" "/tmp/hello" "!shutdown"
 
-About 11 KB take 8 minutes. End the session with `!shutdown`, killing the
-emulator leaves the disk image unbootable.
+End the session with `!shutdown`, killing the emulator leaves the disk image
+unbootable.
 
 ## What the library does
 

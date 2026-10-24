@@ -2,7 +2,8 @@ import struct, subprocess, sys, time
 
 # Turn a linked m68k ELF (text at 0, data at 0x400000) into a BOSS/IX .rel
 # executable. Header as in /bin/link: magic, header size, text, data, bss, 0,
-# symbols, relocation, 0, data base, bss base, 0, time, 1, 0, 0.
+# symbols, relocation, 0, data base, bss base, 0, time, 1, 0, 0. The time is
+# in seconds since 1 January 1980, local time.
 #   mkrel.py prog.elf prog.rel
 elf, out = sys.argv[1:3]
 sec = {}
@@ -25,6 +26,6 @@ if len(text) & 1: text += b"\0"
 if len(data) & 1: data += b"\0"
 hdr = b".rel" + struct.pack(">15I", 0x40, len(text), len(data), bsize, 0, 0, 0,
                              0, dbase, dbase + len(data), 0,
-                             int(time.time()) & 0x7fffffff, 1, 0, 0)
+                             int(time.time()) + time.localtime().tm_gmtoff - 315532800, 1, 0, 0)
 open(out, "wb").write(hdr + text + data)
 print("%s: text %d data %d bss %d" % (out, len(text), len(data), bsize))
