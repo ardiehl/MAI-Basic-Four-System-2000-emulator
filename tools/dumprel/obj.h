@@ -26,6 +26,15 @@
 #define	LOCALC		'@'
 
 /*
+    BOSS/IX extension, shared libraries
+*/
+
+typedef struct {
+    uint32_t createtime;
+    char libFileName[255];
+} objhead_lib;
+
+/*
 	object file header
 */
 struct objhead
@@ -41,17 +50,20 @@ struct objhead
 		textbase,	/* base address of text segment */
 		database,	/* base address of data segment */
 		bssbase,	/* base address of bss segment */
-		stackbase,	/* base address of stack segment */
+		/* AD: Unos only, stackbase, */	/* base address of stack segment */
 		createtime,	/* time this file was made */
+		unknown,
 		objflags,	/* assorted flags (see below) */
 		hdrrsv[2];	/* reserved */
-		uint8_t sharedLibs[255];
+		objhead_lib firstSharedLib;
 };
 
 #define OBJHEAD	struct objhead
 
 /*	objflags values  */
 #define LUBASE0		0x1
+
+
 
 /*
 	relocation information

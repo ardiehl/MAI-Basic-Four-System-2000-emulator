@@ -347,7 +347,7 @@ int wd_attach_image (int wdn, int unit, const char * name) {
     }
     fseek(wdu->img,0,SEEK_END);
     sz = ftell(wdu->img);
-    if (sz <= 0) { printf("wd%d,%d: '%s' is empty\n",wdn,unit,name); fclose(wdu->img); wdu->img=NULL; return 0; }
+    //if (sz <= 0) { printf("wd%d,%d: '%s' is empty\n",wdn,unit,name); fclose(wdu->img); wdu->img=NULL; return 0; }
     wdu->imgBlocks = (UINT32)(sz / WD_SECTOR_SIZE);
     strncpy(wdu->imgName,name,sizeof(wdu->imgName)-1);
     printf("wd%d,%d: attached '%s', %u blocks (%.1f MB)%s\n",wdn,unit,name,wdu->imgBlocks,

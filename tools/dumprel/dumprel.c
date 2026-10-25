@@ -3,9 +3,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <endian.h>
+#include <time.h>
 #include "obj.h"
 #include "m68k.h"
 #include "argparse.h"
+
+#define EPOCH1980 315532800L
 
 FILE * fin;
 
@@ -35,6 +38,16 @@ void symbolAdd (char *symbolName, uint32_t address) {
 	s->address = address;
 }
 
+
+char * symbolFind (uint32_t address) {
+	symbol_t *s = symbols;
+
+	while (s) {
+		if (s->address == address) return s->symbolName;
+		s = s->next;
+	}
+	return NULL;
+}
 
 
 void usage (char * pname) {
@@ -156,6 +169,8 @@ int main (int argc, char * argv[]) {
 	argParse_handleT *a;
 	char *fileName = NULL;
 	char disTxt[255];
+	time_t ti;
+
 
 	a = argParse_init(argopt, NULL, "\ndumprel - show information for a BOSS/IX or Unos executable or shared library\n","Filename has to be the last parameter\n");
 	rc = argParse (a, argc, argv, 1);
@@ -223,10 +238,30 @@ int main (int argc, char * argv[]) {
 		dataStart = be32toh(h.database);
 		printf("base address of data segment          : 0x%08x\n", dataStart);
 		printf("base address of bss segment           : 0x%08x\n", be32toh(h.bssbase));
-		printf("base address of stack segment         : 0x%08x\n", be32toh(h.stackbase));
-		//printf("        createtime,     /* time this file was made */
-		printf("assorted flags (see below)            : 0x%08x\n", be32toh(h.objflags));
+		//printf("base address of stack segment         : 0x%08x\n", be32toh(h.stackbase));
+		ti = be32toh(h.createtime) - EPOCH1980;
+		printf("createtime                            : %s",ctime(&ti));
+		printf("unknown                               : 0x%08x (%d)\n", be32toh(h.unknown),be32toh(h.unknown));
+		printf("assorted flags                        : 0x%08x (%d)\n", be32toh(h.objflags),be32toh(h.objflags));
 		printf("reserved 0x%02x 0x%02x\n",h.hdrrsv[0],h.hdrrsv[1]);
+		printf("hdrSize: %d\n",hdrSize);
+		if (hdrSize > 64) {     // BOSS/IX extension: shared libraries
+            int remaining = hdrSize - 64;
+            objhead_lib *lib = &h.firstSharedLib;
+            while (remaining) {
+                remaining -= 4; // date
+                if (remaining < 2) break;
+                ti = be32toh(lib->createtime) - EPOCH1980;
+                printf(" shared library '%s' created %s",lib->libFileName,ctime(&ti));
+                remaining -= strlen(lib->libFileName);
+                remaining --;
+                char *p = (char *)lib;
+                p += strlen(lib->libFileName);
+                p += 5;
+                lib = (objhead_lib *)p;
+            }
+		}
+
 	}
 
 
@@ -313,11 +348,56 @@ int main (int argc, char * argv[]) {
 					}
 				}
 			}
-			if (flags == 2) symbolAdd (sym->s_name,be32toh(sym->s_value));
+			if (flags == 2 || flags == 0x12 || flags == 0x92) symbolAdd (sym->s_name,be32toh(sym->s_value));
 			if (showSyms) printf("\n");
 			sym++;
 		}
 
+
+		if (showDisassembly && symbols) {
+			uint32_t lastAddress = 0;
+			uint32_t currAddress;
+			sym = (struct symtabent *)(syms);
+			printf("\n------ disassembly ----------------------------------------------------------\n");
+			while (sym < (struct symtabent *) (syms + be32toh(h.symsize))) {
+				int flags = be16toh(sym->s_flags);
+
+				if (flags == 0x12 || flags == 2) {
+					currAddress = be32toh(sym->s_value);
+					if (textAddressPtr(currAddress) && textAddressPtr(lastAddress)) {
+						if (lastAddress < currAddress) {
+							uint32_t a = lastAddress;
+							while (a < currAddress) {
+								int len = m68k_disassemble(disTxt, a, M68K_CPU_TYPE_68010);
+								printf("  %08x %s",a,disTxt);
+								if ((strncmp(disTxt,"jsr ",4) == 0) || (strncmp(disTxt,"jmp ",4) == 0)) {
+									char *p = disTxt+5;
+									while (*p) {
+										if (*p == '$' || *p == '.' || *p == 'l') *p = ' ';
+										p++;
+									}
+									p = disTxt+5;
+									unsigned int addr;
+									addr = strtol(p,NULL,16);
+									if (textAddressPtr(addr)) {
+										char * symName = symbolFind (addr);
+										if (symName) printf(" %s",symName);
+									}
+								}
+								printf("\n");
+								a += len;
+							}
+
+						}
+					}
+					if (textAddressPtr(currAddress)) lastAddress = be32toh(sym->s_value);
+				}
+				if (showSyms) printf("%04x %08x %-20s",flags,be32toh(sym->s_value),sym->s_name);
+				if (showSyms) printf("\n");
+				sym++;
+			}
+		}
+#if 0
 		if (showDisassembly && symbols) {
 			symbol_t *s = symbols;
 			while (s->next) {
@@ -333,6 +413,7 @@ int main (int argc, char * argv[]) {
 				s = s->next;
 			}
 		}
+#endif
 	}
 
 }

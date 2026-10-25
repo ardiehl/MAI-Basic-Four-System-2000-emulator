@@ -36,6 +36,7 @@ SOCKNUMS=""
 usage () {
     echo "Usage: $0 [options]"
     echo " -i, --image     wd boot image or - to set no wd image"
+    echo " -I, --image2    wd image for second disk"
     echo " -w  --wd        boot from wd0"
     echo " -c  --cs        boot from cs0"
     echo " -f  --fd        boot from fd0"
@@ -130,6 +131,12 @@ while [[ $# -gt 0 ]]; do
             shift
             shift
         ;;
+        -I|--image2)
+            IMAGE2=$2
+            [ $IMAGE2 = "-" ] && IMAGE2=""
+            shift
+            shift
+        ;;
         -w|--wd)
             addarg "dev nv wd"
             shift
@@ -162,6 +169,14 @@ if [ -n "$IMAGE" ]; then
         exit 1
     fi
     addarg "dev wd image $IMAGE"
+fi
+
+if [ -n "$IMAGE2" ]; then
+    if [ ! -f $IMAGE2 ]; then
+        echo "$0: unable to open $IMAGE2"
+        exit 1
+    fi
+    addarg "dev wd image $IMAGE2 1"
 fi
 
 for i in $SOCKNUMS; do
