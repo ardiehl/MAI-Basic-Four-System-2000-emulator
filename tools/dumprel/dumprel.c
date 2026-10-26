@@ -17,12 +17,16 @@ typedef struct symbol_t symbol_t;
 struct symbol_t {
 	char * symbolName;
 	uint32_t address;
+	int isPublic;
+	uint32_t jumpAddress;
+	int flags;
+	symbol_t *jmpSym;
 	symbol_t *next;
 };
 
 symbol_t * symbols;
 
-void symbolAdd (char *symbolName, uint32_t address) {
+void symbolAdd (char *symbolName, uint32_t address, uint32_t jumpAddress, int flags) {
 	symbol_t *s;
 
 	if (!symbols) {
@@ -36,6 +40,9 @@ void symbolAdd (char *symbolName, uint32_t address) {
 	}
 	s->symbolName = strdup(symbolName);
 	s->address = address;
+	if (strncmp("@@",symbolName,2) != 0) s->isPublic++;
+	s->jumpAddress = jumpAddress;
+	s->flags = flags;
 }
 
 
@@ -47,6 +54,27 @@ char * symbolFind (uint32_t address) {
 		s = s->next;
 	}
 	return NULL;
+}
+
+symbol_t * symFind (uint32_t address) {
+	symbol_t *s = symbols;
+
+	while (s) {
+		if (s->address == address) return s;
+		s = s->next;
+	}
+	return NULL;
+}
+
+void resolveJumpNames() {
+	symbol_t *s = symbols;
+	
+	while (s) {
+		if (s->jumpAddress)
+			s->jmpSym = symFind(s->jumpAddress);
+
+		s = s->next;
+	}
 }
 
 
@@ -101,11 +129,12 @@ void showDump (uint8_t * data,unsigned int addr, unsigned int length, int lineLe
 }
 
 
-int showText,showData,showReloc,showSym,showSyms,showDisassembly;
+int showText,showData,showReloc,showSym,showSyms,showDisassembly,
+	showExports,printTabs;
 int newStackSize = -1;
 
 int allCB(argParse_handleT *a, char * arg) {
-  showText++; showData++; showReloc++; showSym++; showSyms++; showDisassembly++;
+  showText++; showData++; showReloc++; showSym++; showSyms++; showDisassembly++; showExports++;
   return 0;
 }
 
@@ -118,6 +147,8 @@ AP_START(argopt)
         AP_OPT_INTVALF    (0,'S',"sym"  ,&showSym         ,"show symbols section")
         AP_OPT_INTVALF    (0,'s',"syms" ,&showSyms        ,"show symbols")
         AP_OPT_INTVALF    (0,'D',"dis"  ,&showDisassembly ,"show disassembled routines")
+        AP_OPT_INTVALF    (0,'e',"exp"  ,&showExports     ,"show exported symbols")
+        AP_OPT_INTVALF    (0,'T',"tabs" ,&printTabs       ,"print tabs")
         //AP_OPT_STRVAL     (1,'s',"str"   ,&strArg    ,"set string")
         AP_OPT_INTVAL     (0,'z', "stacksize"  ,&newStackSize   ,"set new stacksize")
         //AP_OPT_INTVALFO   (0,'I',"int2"  ,&intArg2   , "increment or set int")
@@ -160,6 +191,21 @@ unsigned int m68k_read_disassembler_8 (uint32_t address) {
 	return *a;
 }
 
+uint32_t getJumpAddress(char * disTxt) {
+	uint32_t res = 0;
+	
+	if ((strncmp(disTxt,"jsr ",4) == 0) || (strncmp(disTxt,"jmp ",4) == 0)) {
+		char *p = disTxt+5;
+		while (*p) {
+			if (*p == '$' || *p == '.' || *p == 'l') *p = ' ';
+			p++;
+		}
+		p = disTxt+5;
+		res = strtol(p,NULL,16);
+	}
+	return res;
+}
+
 
 int main (int argc, char * argv[]) {
 	struct objhead h;
@@ -170,6 +216,8 @@ int main (int argc, char * argv[]) {
 	char *fileName = NULL;
 	char disTxt[255];
 	time_t ti;
+	symbol_t *s;
+	char tabStr[2] = { ' ', 0 };
 
 
 	a = argParse_init(argopt, NULL, "\ndumprel - show information for a BOSS/IX or Unos executable or shared library\n","Filename has to be the last parameter\n");
@@ -183,6 +231,8 @@ int main (int argc, char * argv[]) {
 		argParse_showHelp(a, NULL);
 	}
 	argParse_free (a);
+	
+	if (printTabs) tabStr[0] = '\t';
 
 	fin = fopen(fileName,"rb");
 	if (!fin) {
@@ -338,20 +388,21 @@ int main (int argc, char * argv[]) {
 
 		struct symtabent *sym = (struct symtabent *)(syms);
 		while (sym < (struct symtabent *) (syms + be32toh(h.symsize))) {
+			disTxt[0] = '\0';
 			int flags = be16toh(sym->s_flags);
-			if (showSyms) printf("%04x %08x %-20s",flags,be32toh(sym->s_value),sym->s_name);
+			if (showSyms) printf("%04x%s%08x%s%-20s",flags,tabStr,be32toh(sym->s_value),tabStr,sym->s_name);
 			if (flags == 0x12 || flags == 2) {
 				if (textAddressPtr(be32toh(sym->s_value))) {
-					if (showSyms) {
-						m68k_disassemble(disTxt, be32toh(sym->s_value), M68K_CPU_TYPE_68010);
-						printf("%s",disTxt);
-					}
+					m68k_disassemble(disTxt, be32toh(sym->s_value), M68K_CPU_TYPE_68010);
+					if (showSyms) printf("%s%s",tabStr,disTxt);
 				}
 			}
-			if (flags == 2 || flags == 0x12 || flags == 0x92) symbolAdd (sym->s_name,be32toh(sym->s_value));
+			if (flags == 1 || flags == 2 || flags == 5 || flags == 0x12 || flags == 0x13 || flags == 0x92) symbolAdd (sym->s_name,be32toh(sym->s_value),getJumpAddress(disTxt),flags);
 			if (showSyms) printf("\n");
 			sym++;
 		}
+		
+		resolveJumpNames();
 
 
 		if (showDisassembly && symbols) {
@@ -370,15 +421,8 @@ int main (int argc, char * argv[]) {
 							while (a < currAddress) {
 								int len = m68k_disassemble(disTxt, a, M68K_CPU_TYPE_68010);
 								printf("  %08x %s",a,disTxt);
-								if ((strncmp(disTxt,"jsr ",4) == 0) || (strncmp(disTxt,"jmp ",4) == 0)) {
-									char *p = disTxt+5;
-									while (*p) {
-										if (*p == '$' || *p == '.' || *p == 'l') *p = ' ';
-										p++;
-									}
-									p = disTxt+5;
-									unsigned int addr;
-									addr = strtol(p,NULL,16);
+								uint32_t addr = getJumpAddress(disTxt);
+								if (addr > 0) {
 									if (textAddressPtr(addr)) {
 										char * symName = symbolFind (addr);
 										if (symName) printf(" %s",symName);
@@ -395,6 +439,53 @@ int main (int argc, char * argv[]) {
 				if (showSyms) printf("%04x %08x %-20s",flags,be32toh(sym->s_value),sym->s_name);
 				if (showSyms) printf("\n");
 				sym++;
+			}
+		}
+		
+		if (showExports) {
+			s = symbols;
+			while (s) {
+				if (s->flags == 0x12 || s->flags == 0x13 || s->flags == 0x14) {
+					printf("0x%08x%s%-20s",s->address,tabStr,s->symbolName);
+					if (s->jumpAddress) printf("%s 0x%08x",tabStr,s->jumpAddress);
+					if (s->jmpSym) {
+						printf("%s%-20s",tabStr,s->jmpSym->symbolName);
+						symbol_t *s2 = s->jmpSym->next;
+						int kl = 0;
+						while (s2) {	// parameters
+							if (s2->flags == 1 || s2->flags == 5) {
+								
+								if (s2->address < 0xffff || s2->flags == 5) {
+									if (!kl) {
+										printf("%s(",tabStr);
+										kl++;
+									} else printf(", ");
+									if (s2->flags == 5) printf("Reg %d: %s",s2->address,s2->symbolName);
+									else printf("%04x %s",s2->address,s2->symbolName);
+								}
+								s2 = s2->next;
+							} else s2 = NULL;
+						}
+						if (kl) printf(")");
+						
+						s2 = s->jmpSym->next;
+						kl = 0;
+						while (s2) {	// locals
+							if (s2->flags == 1 || s2->flags == 5) {
+								if (s2->address > 0xffff) {
+									if (!kl) {
+										printf("%slocals:%s",tabStr,tabStr);
+										kl++;
+									} else printf(", ");
+									printf("%04x %s",s2->address & 0xffff,s2->symbolName);
+								}
+								s2 = s2->next;
+							} else s2 = NULL;
+						}
+					}
+					printf("\n");
+				}
+				s = s->next;
 			}
 		}
 #if 0
