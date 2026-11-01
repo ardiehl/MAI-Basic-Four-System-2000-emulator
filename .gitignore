@@ -14,4 +14,5 @@ sendsrec
 *.layout
 src/version.h
 nvram.dat
+bossix/Whitesmiths-c/c68k/*
 

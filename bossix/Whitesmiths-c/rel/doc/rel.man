@@ -1,0 +1,78 @@
+.TH rel 1 "October 2026" "Ancient Unix Utilities" "User Commands"
+.SH NAME
+rel \- examine relocatable files
+.SH SYNOPSIS
+.B rel
+[\fIflags\fR] [\fIfiles\fR]
+.SH DESCRIPTION
+.B rel
+permits inspection of the relocatable binary files produced by the 
+assembler \fBas\fR or by the loader \fBld11\fR.
+It can be used simply to check for defined or undefined symbols, or to
+check module sizes.
+.PP
+The flags are:
+.TP
+.BI \-d
+List all defined symbols in each file, along with the value of the symbol,
+in octal, and the code 'T' for text relative, 'D' for data relative, 'B'
+for bss relative, 'A' for absolute, 'F' for filenames, or '?'
+for anything else it doesn't recognize.
+Lower case letters are used for local symbols, upper case for globals.
+.TP
+.BI \-i
+Print global entries with intervals shown in the value field.
+\-i implies sorting by value plus the \-d and \-u flags.
+.TP
+.BI \-s
+Display the sizes, in decimal, of the text segment, the data segment,
+the bss segment, and the sum of both segments.
+.TP
+.BI \-u
+List all undefined symbols in each file.
+If \-d is also specified, the symbol is listed with
+the code 'U'; its value is the space required.
+.TP
+.BI \-v
+Sort by value, implies the \-d flag above.
+If the values match then the names are used.
+.PP
+If no flags are given, the default is \-du,
+i.e. a list of all symbols with their values is given, in alphabetical
+order by symbol name.
+If multiple options are given, the order of output is 1) the segment
+sizes called for by \-s, 2) the symbol list called for by \-d and/or \-u.
+.PP
+\fB<files>\fR specifies zero or more files, which must be in relocatable
+format.
+If more than one file is specified, then the output for each is preceded
+by a line of the form:
+.IP
+file:
+.PP
+and if \-s is present a total line is also printed.
+If no files are specified, or if '\-' is encountered on the command line,
+"a.out" is used.
+.SH RETURN VALUE
+.B rel
+returns success if no diagnostics are produced, i.e. if all reads 
+are successful and all file formats are valid.
+.SH EXAMPLES
+To obtain a list of undefined symbols:
+.EX
+% rel -u mesg.o
+.EE
+.P
+Which might look like:
+.EX
+_chmod
+_cpybuf
+_devname
+_fstat
+c~ret
+c~sav
+.EE
+.SH SEE ALSO
+.BR as (1),
+.BR ld (1)
+
