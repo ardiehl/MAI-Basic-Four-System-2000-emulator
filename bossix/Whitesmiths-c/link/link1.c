@@ -6,30 +6,31 @@
 
 /*	machine characteristics
  */
-BOOL longint {0};
-BOOL lsfmt {0};
-BOOL ok {YES};
-BOOL txtrev {NO};
-COUNT lenname {15};
-UCOUNT binhdr {0};
+BOOL longint = {0};
+BOOL lsfmt = {0};
+BOOL ok = {YES};
+BOOL txtrev = {NO};
+COUNT lenname = {15};
+TEXT *globfnm = {0};
+UCOUNT binhdr = {0};
 
 /*	the library seek vector
  */
-COUNT nlibs {0};
-LONG liboff[MAXLIBS] {0};
+COUNT nlibs = {0};
+LONG liboff[MAXLIBS] = {0};
 
 /*	the relocation information
  */
-BHDR obhdr {0};
-ULONG bsiz {0};
-ULONG dsiz {0};
-ULONG tsiz {0};
+BHDR obhdr = {0};
+ULONG bsiz = {0};
+ULONG dsiz = {0};
+ULONG tsiz = {0};
 
 /*	the symbol table
  */
-COUNT nsyms {0};
-COUNT nund {0};
-SYMBOL *stabs[NTABS] {0};
+COUNT nsyms = {0};
+COUNT nund = {0};
+SYMBOL *stabs[NTABS] = {0};
 
 /*	flags:
 	-a		make all code and symbols absolute
@@ -44,7 +45,8 @@ SYMBOL *stabs[NTABS] {0};
 	-et*	define symbol as end of text
 	-h		suppress header
 	-i		get files from STDIN
-	-l?^	scan /lib/lib?.a after all files
+	-l*^	scan /usr/tlib/lib* after all files
+	+l*		library root name instead of /lib
 	-o*		output to file, not "xeq"
 	-r		suppress relocation bits
 	-sb*	define symbol as size of bss
@@ -56,42 +58,73 @@ SYMBOL *stabs[NTABS] {0};
 	-u*^	enter symbol as undefined
 	-x#		2=>text to text, 1=>data to text
  */
-BOOL afl {NO};
-BOOL cfl {NO};
-BOOL dfl {NO};
-BOOL hfl {NO};
-BOOL ifl {NO};
-BOOL rfl {NO};
-BOOL tfl {NO};
-BYTES dround {0};
-BYTES tfill {0};
-BYTES xfl {2};
-LIBLIST llist {EXLIB};
-LONG drmask {0};
-TEXT *endbss {NULL};
-TEXT *endtext {NULL};
-TEXT *enddata {NULL};
-TEXT *fname {""};
-TEXT *ofile {"xeq"};
-TEXT *sizbss {NULL};
-TEXT *sizdat {NULL};
-TEXT *siztxt {NULL};
-ULIST ulist {NUND};
-ULONG bbias {-1};
-ULONG bpad {0};
-ULONG tbias {0};
-ULONG dbias {-1};
+BOOL afl = {NO};
+BOOL cfl = {NO};
+BOOL dfl = {NO};
+BOOL hfl = {NO};
+BOOL ifl = {NO};
+BOOL rfl = {NO};
+BOOL tfl = {NO};
+#ifdef BOSSIX
+/* link to BOSS/IX executable */
+BOOL bxxfl = {NO};
+/* link to BOSS/IX shared lib */
+BOOL bxlfl = {NO};
+#endif
+BYTES dround = {0};
+BYTES tfill = {0};
+BYTES xfl = {2};
+LONG drmask = {0};
+TEXT *endbss = {NULL};
+TEXT *endtext = {NULL};
+TEXT *enddata = {NULL};
+TEXT *fname = {""};
+TEXT *libroot = {"/lib"};
+TEXT *ofile = {"xeq"};
+TEXT *sizbss = {NULL};
+TEXT *sizdat = {NULL};
+TEXT *siztxt = {NULL};
+#ifdef __STDC__
+LIBLIST llist = {EXLIB,NULL};
+ULIST ulist = {NUND,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+#ifdef BOSSIX
+SLLIST sllist = {NBXSL,{NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL}};
+SLLIST sllsearch = {NBXSL,{NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL}};
+SLVLIST slvlist = {NBXSL,{0,0,0,0,0}};
+LONG bxversion = {0};
+#endif
+#else
+LIBLIST llist = {EXLIB};
+ULIST ulist = {NUND};
+#ifdef BOSSIX
+SLLIST sllist = {NBXSL};
+SLLIST sllsearch = {NBXSL};
+SLVLIST slvlist = {NBXSL};
+LONG bxversion = {0};
+#endif
+#endif
+ULONG bbias = {-1};
+ULONG bpad = {0};
+ULONG tbias = {0};
+ULONG dbias = {-1};
 
-TEXT *_pname {"link"};
+TEXT *_pname = {"link"};
 
 /*	input output stuff
  */
-FILE ifd {-1};
-FILE ofd {-1};
-FILE tfd {-1};
-IOBUF ibuf[2] {0};
-IOBUF obuf[4] {0};
-LONG iseek {0};
+#ifdef USESTDCLIB
+int ifd = -1;
+int ofd = -1;
+int tfd = -1;
+#else
+FILE ifd = {-1};
+FILE ofd = {-1};
+FILE tfd = {-1};
+#endif
+/* AD: OBUF_MAX IBUF_MAX */
+IOBUF ibuf[IBUF_MAX] = {0};
+IOBUF obuf[OBUF_MAX] = {0};
+LONG iseek = {0};
 
 /*	add end symbol if not yet resolved
  */
@@ -104,22 +137,23 @@ SYMBOL *addend(name, flags, value)
 	FAST SYMBOL *p;
 	FAST TEXT *n;
 	TEXT buf[16];
+	IMPORT SYMBOL * lookup(); /* AD */
 
 	p = NULL;
 	if (name)
 		{
-		for (i = 0, n = name; i < 16 && *n;)
-			buf[i++] = *n++;
+		for (i = 0, n = name; i < 16 &&  *n;)
+			buf[i++ ] = *n++ ;
 		while (i < 16)
-			buf[i++] = '\0';
+			buf[i++ ] = '\0';
 		if (!(p = lookup(buf)))
 			;
-		else if (p->flags & DEFD)
+		else if (p-> flags & DEFD)
 			xremark("redefined end symbol: ", name);
 		else
 			{
-			p->flags = flags;
-			p->value = value;
+			p-> flags = flags;
+			p-> value = value;
 			}
 		}
 	return (p);
@@ -133,9 +167,9 @@ VOID addlib(loff)
 	IMPORT COUNT nlibs;
 	IMPORT LONG liboff[];
 
-	if (MAXLIBS <= nlibs)
+	if (MAXLIBS <=  nlibs)
 		error("library table full", NULL);
-	liboff[nlibs++] = loff;
+	liboff[nlibs++ ] = loff;
 	}
 
 /*	add symbol to tables
@@ -150,16 +184,17 @@ SYMBOL *addsym(name, flags, value)
 	FAST COUNT i, j;
 	FAST SYMBOL *p;
 
-	if (MAXSYMS <= nsyms)
+	if (MAXSYMS <=  nsyms)
 		error("symbol table full", NULL);
-	i = nsyms >> SOFF;
-	j = nsyms++ & SMASK;
+	i = nsyms >>  SOFF;
+	j = nsyms++  & SMASK;
 	if (!j)
 		stabs[i] = alloc((SMASK+1) * sizeof (*p), NULL);
 	p = &stabs[i][j];
-	cpybuf(p->name, name, lenname);
-	p->flags = flags;
-	p->value = value;
+	cpybuf(p-> name, name, lenname);
+	p-> flags = flags;
+	p-> value = value;
+	p-> filnm = globfnm;
 	return (p);
 	}
 
@@ -171,13 +206,14 @@ VOID addusym(name)
 	FAST COUNT i;
 	FAST TEXT *p;
 	TEXT buf[16];
-	
+
 	if (name)
 		{
-		for (i = 0, p = name; i < 16 && *p;)
-			buf[i++] = *p++;
+		for (i = 0, p = name; i < 16 &&  *p;)
+			buf[i++ ] = *p++ ;
 		while (i < 16)
-			buf[i++] = '\0';
+			buf[i++ ] = '\0';
+		globfnm = "command line with -u flag";
 		addsym(buf, 0, 0L);
 		}
 	}
@@ -187,75 +223,95 @@ VOID addusym(name)
 UTINY getby(idx)
 	COUNT idx;
 	{
+#ifdef USESTDCLIB
+	IMPORT int ifd;
+#else
 	IMPORT FILE ifd;
+#endif
 	IMPORT IOBUF ibuf[];
 	IMPORT LONG iseek;
 	FAST IOBUF *p = &ibuf[idx];
 	LONG nseek;
 
-	if (p->n <= p->start)
+	if (p-> n <=  p-> start)
 		{
-		nseek = p->off & NOT_L_BUF_MASK;
-		if (iseek != nseek)
+		nseek = p-> off & NOT_L_BUF_MASK;
+		if (iseek !=  nseek)
 			{
 			lseek(ifd, nseek, 0);
 			iseek = nseek;
 			}
-		if ((p->n = read(ifd, p->buf, L_BUFSIZE)) < 0)
+		if ((p-> n = read(ifd, p-> buf, L_BUFSIZE)) < 0)
 			error("read error in pass2", NULL);
-		iseek =+ p->n;
-		p->off =+ p->n;
-		p->start =- L_BUFSIZE;
-		if (p->n <= p->start)
+		iseek +=  p-> n;
+		p-> off +=  p-> n;
+		p-> start -=  L_BUFSIZE;
+		if (p-> n <=  p-> start)
 			error("early EOF in pass2", NULL);
 		}
-	return (p->buf[p->start++]);
+	return (p-> buf[p-> start++ ]);
 	}
 
 /*	open libs when getfiles runs out
  */
+#ifdef USESTDCLIB
+int gtlfiles(pac, pav)
+#else
 FILE gtlfiles(pac, pav)
+#endif
 	BYTES *pac;
 	TEXT ***pav;
 	{
 	IMPORT LIBLIST llist;
 	IMPORT TEXT *fname;
+#ifdef USESTDCLIB
+	int fd;
+#else
 	FILE fd;
+#endif
 	INTERN BYTES index;
 	INTERN TEXT libnam[64];
-	INTERN TEXT libroot[] {"/lib/lib"};
 
 	if (!pac)
 		{
 		index = EXLIB;
 		return (0);
 		}
-	if (0 <= (fd = getbfiles(pac, pav, STDIN, STDERR, YES)))
+	if (0 <=  (fd = getbfiles(pac, pav, STDIN, STDERR, YES)))
 		{
 		fname = (*pav)[-1];
-		if (fd != STDERR || !prefix(fname, "-l"))
+		if (fd !=  STDERR ||  !prefix(fname, "-l"))
+			{
+			globfnm = fname;
 			return (fd);
+			}
 		else
-			fname =+ 2;
+			fname +=  2;
 		}
-	else if (index <= llist.num)
+	else if (index <=  llist.num)
 		{
 		fname = "";
 		return (-1);
 		}
 	else
-		fname = llist.nam[--index];
-	cpystr(libnam, libroot, NULL);
-	if (lenstr(fname) < 64 - (sizeof (libroot) - 1))
-		cpystr(libnam + (sizeof (libroot) - 1), fname, NULL);
+		fname = llist.nam[ -- index];
+	if (lenstr(libroot) + lenstr(fname) < 64)
+		cpystr(libnam, libroot, fname, NULL);
+	else
+		error("library path too long", fname);
 	fname = libnam;
-	return ((0 <= (fd = open(libnam, READ, YES))) ? fd : STDERR);
+	globfnm = fname;
+	return ((0 <=  (fd = open(libnam, READ, YES))) ? fd : STDERR);
 	}
 
 /*	get magic # at start of file
  */
 UCOUNT gtmagic(fd)
+#ifdef USESTDCLIB
+	int fd;
+#else
 	FILE fd;
+#endif
 	{
 	IMPORT BOOL longint, lsfmt, txtrev;
 	IMPORT COUNT lenname;
@@ -263,21 +319,19 @@ UCOUNT gtmagic(fd)
 	UCOUNT hdr;
 	UTINY header[2];
 
-	if (fread(fd, &header, 2) != 2)
+	if (fread(fd, &header, 2) !=  2)
 		error("can't read file header", NULL);
 	hdr = lstoi(header);
-	if (header[0] != 0x99)
+	if (header[0] !=  0x99)
 		;
 	else if (header[1] & 0200)
 		error("no relocation bits", NULL);
 	else if (!binhdr)
 		{
-		lenname = ((header[1] & 07) << 1) + 1;
+		lenname = ((header[1] & 07) <<  1) + 1;
 		longint = header[1] & 010;
 		lsfmt = header[1] & 020;
 		txtrev = header[1] & 0100;
-		if (txtrev)
-			putstr(STDOUT, "text reversal specified\n", 0);
 		binhdr = hdr;
 		}
 	return (hdr);
@@ -286,7 +340,11 @@ UCOUNT gtmagic(fd)
 /*	get symbol table from binary file
  */
 SYMBOL *gtsyms(fd, pbhdr)
+#ifdef USESTDCLIB
+	int fd;
+#else
 	FILE fd;
+#endif
 	FAST BHDR *pbhdr;
 	{
 	IMPORT BOOL longint;
@@ -299,58 +357,58 @@ SYMBOL *gtsyms(fd, pbhdr)
 	LONG off;
 	TEXT bhdr[26];
 
-	if (fread(fd, bhdr, hsize) != hsize)
+	if (fread(fd, bhdr, hsize) !=  hsize)
 		error("can't read binary header", NULL);
-	pbhdr->sbytes = xstos(&bhdr[0]);
+	pbhdr-> sbytes = xstos(&bhdr[0]);
 	if (longint)
 		{
-		pbhdr->tsiz = xstol(&bhdr[2]);
-		pbhdr->dsiz = xstol(&bhdr[6]);
-		pbhdr->bsiz = xstol(&bhdr[10]);
-		pbhdr->tbias = xstol(&bhdr[18]);
-		pbhdr->dbias = xstol(&bhdr[22]);
+		pbhdr-> tsiz = xstol(&bhdr[2]);
+		pbhdr-> dsiz = xstol(&bhdr[6]);
+		pbhdr-> bsiz = xstol(&bhdr[10]);
+		pbhdr-> tbias = xstol(&bhdr[18]);
+		pbhdr-> dbias = xstol(&bhdr[22]);
 		}
 	else
 		{
-		pbhdr->tsiz = xstos(&bhdr[2]);
-		pbhdr->dsiz = xstos(&bhdr[4]);
-		pbhdr->bsiz = xstos(&bhdr[6]);
-		pbhdr->tbias = xstos(&bhdr[10]);
-		pbhdr->dbias = xstos(&bhdr[12]);
+		pbhdr-> tsiz = xstos(&bhdr[2]);
+		pbhdr-> dsiz = xstos(&bhdr[4]);
+		pbhdr-> bsiz = xstos(&bhdr[6]);
+		pbhdr-> tbias = xstos(&bhdr[10]);
+		pbhdr-> dbias = xstos(&bhdr[12]);
 		}
 	switch (xfl)
 		{
 	case 0:
-		pbhdr->atbias = dsiz;
-		pbhdr->adbias = dsiz + pbhdr->tsiz;
-		pbhdr->atsiz = 0;
-		pbhdr->adsiz = pbhdr->tsiz + pbhdr->dsiz;
+		pbhdr-> atbias = dsiz;
+		pbhdr-> adbias = dsiz + pbhdr-> tsiz;
+		pbhdr-> atsiz = 0;
+		pbhdr-> adsiz = pbhdr-> tsiz + pbhdr-> dsiz;
 		break;
 	case 1:
-		pbhdr->atbias = dsiz;
-		pbhdr->adbias = tsiz;
-		pbhdr->atsiz = pbhdr->dsiz;
-		pbhdr->adsiz = pbhdr->tsiz;
+		pbhdr-> atbias = dsiz;
+		pbhdr-> adbias = tsiz;
+		pbhdr-> atsiz = pbhdr-> dsiz;
+		pbhdr-> adsiz = pbhdr-> tsiz;
 		break;
 	case 2:
-		pbhdr->atbias = tsiz;
-		pbhdr->adbias = dsiz;
-		pbhdr->atsiz = pbhdr->tsiz;
-		pbhdr->adsiz = pbhdr->dsiz;
+		pbhdr-> atbias = tsiz;
+		pbhdr-> adbias = dsiz;
+		pbhdr-> atsiz = pbhdr-> tsiz;
+		pbhdr-> adsiz = pbhdr-> dsiz;
 		break;
 	case 3:
-		pbhdr->atbias = tsiz;
-		pbhdr->adbias = dsiz + pbhdr->tsiz;
-		pbhdr->atsiz = pbhdr->tsiz + pbhdr->dsiz;
-		pbhdr->adsiz = 0;
+		pbhdr-> atbias = tsiz;
+		pbhdr-> adbias = dsiz + pbhdr-> tsiz;
+		pbhdr-> atsiz = pbhdr-> tsiz + pbhdr-> dsiz;
+		pbhdr-> adsiz = 0;
 		break;
 		}
-	pbhdr->atbias =- pbhdr->tbias;
-	pbhdr->adbias =- pbhdr->dbias;
-	off = pbhdr->tsiz + pbhdr->dsiz;
+	pbhdr-> atbias -=  pbhdr-> tbias;
+	pbhdr-> adbias -=  pbhdr-> dbias;
+	off = pbhdr-> tsiz + pbhdr-> dsiz;
 	lseek(fd, off, 1);
-	ps = alloc(pbhdr->sbytes, NULL);
-	if (fread(fd, ps, pbhdr->sbytes) != pbhdr->sbytes)
+	ps = alloc(pbhdr-> sbytes, NULL);
+	if (fread(fd, ps, pbhdr-> sbytes) !=  pbhdr-> sbytes)
 		error("can't read symbol table", NULL);
 	return (ps);
 	}
@@ -365,11 +423,11 @@ SYMBOL *lookup(name)
 	FAST COUNT i;
 	FAST SYMBOL *p;
 
-	for (i = 0; i < nsyms; ++i, ++p)
+	for (i = 0; i < nsyms; ++ i, ++ p)
 		{
 		if (!(i & SMASK))
-			p = stabs[i >> SOFF];
-		if (cmpbuf(p->name, name, lenname))
+			p = stabs[i >>  SOFF];
+		if (cmpbuf(p-> name, name, lenname))
 			return (p);
 		}
 	return (NULL);
@@ -408,32 +466,36 @@ VOID relby(idx, by)
 	TEXT by;
 	{
 	IMPORT BOOL afl, rfl;
+#ifdef USESTDCLIB
+	IMPORT int ofd, tfd;
+#else
 	IMPORT FILE ofd, tfd;
+#endif
 	IMPORT IOBUF obuf[];
 	FAST COUNT n;
 	FAST IOBUF *p = &obuf[idx & 3];
 	BOOL drain = idx & DRAIN;
 	INTERN LONG off[2];
 
-	if ((afl || rfl) && (idx & (WRMI|DREL&TREL)) == (DREL&TREL))
+	if ((afl ||  rfl) &&  (idx & (WRMI|DREL&TREL)) ==  (DREL&TREL))
 		return;
-	idx =& 03;
-	if (p->n < L_BUFSIZE && !drain)
+	idx &=  03;
+	if (p-> n < L_BUFSIZE &&  !drain)
 		;
-	else if (p->off != off[idx == DREL] &&
-		lseek((idx == DREL) ? tfd : ofd, p->off, 0) < 0 ||
-		(n = p->n - p->start) &&
-		write((idx == DREL) ? tfd : ofd, p->buf + p->start, n) != n)
-		error("can't write ", (idx == DREL) ? "temp file" : "output file");
+	else if (p-> off !=  off[idx ==  DREL] &&
+		lseek((idx ==  DREL) ? tfd : ofd, p-> off, 0) < 0 ||
+		(n = p-> n - p-> start) &&
+		write((idx ==  DREL) ? tfd : ofd, p-> buf + p-> start, n) !=  n)
+		error("can't write ", (idx ==  DREL) ? "temp file" : "output file");
 	else
 		{
-		p->off =+ n;
-		p->start = 0;
-		p->n = 0;
-		off[idx == DREL] = p->off;
+		p-> off +=  n;
+		p-> start = 0;
+		p-> n = 0;
+		off[idx ==  DREL] = p-> off;
 		}
 	if (!drain)
-		p->buf[p->n++] = by;
+		p-> buf[p-> n++ ] = by;
 	}
 
 /*	put relocatable short or long
@@ -449,13 +511,13 @@ VOID relint(idx, val)
 	if (!longint)
 		relwd(idx, wo = val);
 	else if (lsfmt)
-		for (i = 4; 0 <= --i; val =>> 8)
+		for (i = 4; 0 <=  -- i; val >>=  8)
 			relby(idx, wo = val);
 	else
 		{
-		for (i = 4; 0 <= --i; val =>> 8)
+		for (i = 4; 0 <=  -- i; val >>=  8)
 			buf[i] = val;
-		for (i = 0; i < 4; ++i)
+		for (i = 0; i < 4; ++ i)
 			relby(idx, buf[i]);
 		}
 	}
@@ -468,10 +530,10 @@ VOID relsym(p)
 	IMPORT BOOL afl, cfl;
 	FAST COUNT k;
 
-	relint(WRMI|TREL, p->value);
-	relby(WRMI|TREL, (afl || cfl) ? EXTERN|p->flags & DEFD : p->flags);
-	for (k = 0; k < lenname; ++k)
-		relby(WRMI|TREL, p->name[k]);
+	relint(WRMI|TREL, p-> value);
+	relby(WRMI|TREL, (afl ||  cfl) ? EXTERN|p-> flags & DEFD : p-> flags);
+	for (k = 0; k < lenname; ++ k)
+		relby(WRMI|TREL, p-> name[k]);
 	}
 
 /*	put relocatable word
@@ -484,11 +546,11 @@ VOID relwd(idx, wo)
 	if (lsfmt)
 		{
 		relby(idx, wo);
-		relby(idx, wo >> 8);
+		relby(idx, wo >>  8);
 		}
 	else
 		{
-		relby(idx, wo >> 8);
+		relby(idx, wo >>  8);
 		relby(idx, wo);
 		}
 	}
@@ -502,9 +564,14 @@ VOID xremark(s1, s2)
 	IMPORT COUNT lenname;
 	IMPORT TEXT *fname;
 	INTERN TEXT buf[16];
+	INTERN TEXT *s1p;
 
+	s1p = s1;
+	if (*s1p ==  '=')
+		s1p++ ;
 	buf[cpybuf(buf, s2, lenname)] = '\0';
-	putstr(STDOUT, fname, (*fname != '\0' ? ": " : ""), s1, buf, "\n", NULL);
+	putstr(STDOUT, fname, (*fname !=  '\0' ? ": " : ""), s1p, buf,
+		(s1 ==  s1p ? "\n" : ""), NULL);
 	ok = NO;
 	}
 
@@ -519,11 +586,11 @@ LONG xstol(s)
 
 	val = 0;
 	if (lsfmt)
-		for (i = 4; 0 <= --i; )
-			val = val << 8 | s[i];
+		for (i = 4; 0 <=  -- i; )
+			val = val <<  8 | s[i];
 	else
-		for (i = 0; i < 4; ++i)
-			val = val << 8 | s[i];
+		for (i = 0; i < 4; ++ i)
+			val = val <<  8 | s[i];
 	return (val);
 	}
 
@@ -536,8 +603,8 @@ UCOUNT xstos(s)
 	FAST UCOUNT val;
 
 	if (lsfmt)
-		val = s[0] | s[1] << 8;
+		val = s[0] | s[1] <<  8;
 	else
-		val = s[0] << 8 | s[1];
+		val = s[0] <<  8 | s[1];
 	return (val);
 	}

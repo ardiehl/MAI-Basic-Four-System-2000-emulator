@@ -1,57 +1,27 @@
-#
-#	Makefile for Whitesmiths linker
-#
+CFLAGS= -std=c89 -g -O0 -W -Wno-incompatible-pointer-types -I../ws-compat -DUSESTDCLIB
+WCDIR = ../ws-compat
+WCHDR = $(WCDIR)/ws_libc.h $(WCDIR)/std.h
+WC    = $(WCDIR)/ws_libc.c
+WOBJ  = ws_libc.o
+LD    = $(CC)
 
-# If this Makefile is not invoked as a sub-make
-ifndef TARGET
-    TARGET = ccpm80
-endif
+OBJS = link1.o link2.o $(WOBJ)
+PROG = link
+LHDR = link.h
 
-ifndef BDIR
-    BDIR = ..
-endif
+$(PROG):	$(OBJS)
+	echo "Linking $(PROG)"
+	$(LD) $(CFLAGS) $(LDFLAGS) $(OBJS) $(LIBLNK) -o $(PROG)
 
-ifndef CPROTO
-    CPROTO = ccpm80.pro
-endif
+$(WOBJ):  $(WCHDR)
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) $(WC)
 
-# Cross compiler
-CC = cx80 -prefix "" -proto $(BDIR)/proto/$(CPROTO) -I$(BDIR)/hdrs -L$(BDIR)/lib/
+link1.o:  link1.c $(LHDR) $(WCHDR)
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) link1.c
 
-VPATH = $(BDIR)/link
-
-# Commands
-CMDS = link.com
-
-# Manual pages
-MANS =
-
-# Internal documentation
-DOCS =
-
-%.o: %.c
-	$(CC) +o $<
-
-%.man: doc/%.mp
-	roff $< > $@
-
-%.doc: doc/%.ic
-	roff $< > $@
-
-.PHONY: $(TARGET) clean
-
-$(TARGET): $(CMDS) $(MANS) $(DOCS)
-
-LINKOBJ = link1.o link2.o
-
-link.com: $(LINKOBJ)
-	$(CC) -o $@ $(LINKOBJ)
+link2.o:  link2.c  $(LHDR) $(WCHDR)
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) link2.c
 
 clean:
-	rm -f $(CMDS) $(MANS) $(DOCS) $(LINKOBJ)
+	rm $(OBJS) $(PROG)
 
-$(DTARGET): $(CMDS) $(MANS)
-	@cp $(CMDS) ../../distr/bin
-ifdef MANS
-	@cp $(MANS) ../../distr/man
-endif

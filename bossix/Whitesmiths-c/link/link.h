@@ -2,6 +2,32 @@
  *	copyright (c) 1981 by Whitesmiths, Ltd.
  */
 
+ /*	AD: if defined, the target executable can be a BOSS/IX
+	executable or shared library as well */
+#define BOSSIX
+
+#ifdef BOSSIX
+
+/* on BOSS/IX time_t starts at 01.01.1980 */
+#define EPOCH1980 315532800L
+
+/*	the list of shared libraries to be included in file header
+ */
+#define NBXSL	10
+
+typedef struct {
+	BYTES nm;
+	TEXT *path[NBXSL];
+	} SLLIST;
+
+/* the 32 bit build time in header that has to match the header in the sl file */
+typedef struct {
+	BYTES nm;
+	LONG version [NBXSL];
+	} SLVLIST;
+
+#endif
+
 /* the constructed output header
  */
 typedef struct {
@@ -24,6 +50,7 @@ typedef struct {
 typedef struct {
 	LONG value;
 	TEXT flags, name[15];
+	TEXT *filnm;
 	} SYMBOL;
 
 /*	the list of undefined arguments
@@ -38,13 +65,17 @@ typedef struct {
 /*	the list of libraries
  */
 #define EXLIB	10
-#define MAXLIBS	128
 
+/* AD: increased from 128 */
+#define MAXLIBS	256
 typedef struct {
 	BYTES num;
 	TEXT *nam[EXLIB];
 	} LIBLIST;
 
+/* AD: */
+#define IBUF_MAX 2
+#define OBUF_MAX 4
 /*	the buffer controllers
  */
 #define WRMI	8

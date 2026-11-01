@@ -1,72 +1,24 @@
-#
-#	Makefile for Whitesmiths utilities
-#
+CFLAGS= -std=c89 -g -O0 -W -I../ws-compat -DUSESTDCLIB
+WCDIR = ../ws-compat
+WCHDR = $(WCDIR)/ws_libc.h $(WCDIR)/std.h
+WC    = $(WCDIR)/ws_libc.c
+WOBJ  = ws_libc.o
+LD    = $(CC)
 
-# If this Makefile is not invoked as a sub-make
-ifndef TARGET
-    TARGET = ccpm80
-endif
+OBJS = lord.o $(WOBJ)
+PROG = lord
+LHDR = 
 
-ifndef BDIR
-    BDIR = ..
-endif
+$(PROG):	$(OBJS)
+	echo "Linking $(PROG)"
+	$(LD) $(CFLAGS) $(LDFLAGS) $(OBJS) $(LIBLNK) -o $(PROG)
 
-ifndef CPROTO
-    CPROTO = ccpm80.pro
-endif
+$(WOBJ):  $(WCHDR)
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) $(WC)
 
-# Cross compiler
-CC = cx80 -prefix "" -proto $(BDIR)/proto/$(CPROTO) -I$(BDIR)/hdrs -L$(BDIR)/lib/
-
-VPATH = $(BDIR)/util
-
-# Commands
-CMDS = hex.com lib.com lord.com rel.com
-
-# Manual pages
-MANS = rel.man
-
-# Internal documentation
-DOCS =
-
-%.o: %.c
-	$(CC) +o $<
-
-%.man: doc/%.mp
-	roff $< > $@
-
-%.doc: doc/%.ic
-	roff $< > $@
-
-.PHONY: $(TARGET) clean
-
-$(TARGET): $(CMDS) $(MANS) $(DOCS)
-
-HEXOBJ = hex.o
-
-hex.com: $(HEXOBJ)
-	$(CC) -o $@ $(HEXOBJ)
-
-LIBOBJ = lib.o
-
-lib.com: $(LIBOBJ)
-	$(CC) -o $@ $(LIBOBJ)
-
-LORDOBJ = lord.o
-
-lord.com: $(LORDOBJ)
-	$(CC) -o $@ $(LORDOBJ)
-
-RELOBJ = rel.o
-
-rel.com: $(RELOBJ)
-	$(CC) -o $@ $(RELOBJ)
+lord.o:  lord.c $(LHDR) $(WCHDR)
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) lord.c
 
 clean:
-	rm -f $(CMDS) $(MANS) $(DOCS) $(HEXOBJ) $(LIBOBJ) $(LORDOBJ) $(RELOBJ)
+	rm $(OBJS) $(PROG)
 
-$(DTARGET): $(CMDS) $(MANS)
-	@cp $(CMDS) ../../distr/bin
-ifdef MANS
-	@cp $(MANS) ../../distr/man
-endif

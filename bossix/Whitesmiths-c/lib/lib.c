@@ -3,6 +3,10 @@
  */
 #include <std.h>
 
+COUNT inpos();
+TEXT * strpath();
+
+
 #define MAGICW	0177565
 #define MAGIC6	0177555
 #define MAGIC7	0177545
@@ -46,37 +50,41 @@ union hdr {
 	-v		be verbose about it
 	-x		extract named (or all) files
  */
-BOOL cfl {NO};
-BOOL dfl {NO};
-BOOL ifl {NO};
-BOOL pfl {NO};
-BOOL rfl {NO};
-BOOL tfl {NO};
-BOOL vfl {NO};
-BOOL v3fl {NO};
-BOOL v6fl {NO};
-BOOL v7fl {NO};
-BOOL xfl {NO};
+BOOL cfl = {NO};
+BOOL dfl = {NO};
+BOOL ifl = {NO};
+BOOL pfl = {NO};
+BOOL rfl = {NO};
+BOOL tfl = {NO};
+BOOL vfl = {NO};
+BOOL v3fl = {NO};
+BOOL v6fl = {NO};
+BOOL v7fl = {NO};
+BOOL xfl = {NO};
 
 /*	configuration info
  */
-BYTES vers {0};
-COUNT hsize {16};	/* size of library header */
-COUNT nsize {NSIZE};
-COUNT round {0};	/* 1 if file sizes are rounded up */
-UCOUNT magic {0};	/* magic header number */
+BYTES vers = {0};
+COUNT hsize = {16};	/* size of library header */
+COUNT nsize = {NSIZE};
+COUNT round = {0};	/* 1 if file sizes are rounded up */
+UCOUNT magic = {0};	/* magic header number */
 
 /*	misc
  */
-LONG msize {0};		/* size of module now under consideration */
-TBOOL *pfound {NULL};
-TEXT *_pname {"lib"};
-VOID *(*nxtexit)() {NULL};
+LONG msize = {0};		/* size of module now under consideration */
+TBOOL *pfound = {NULL};
+TEXT *_pname = {"lib"};
+VOID *(*nxtexit)() = {NULL};
 
 /*	copy [part of] a file
  */
 LONG copy(ffd, tfd, size)
+#ifdef USESTDCLIB
+	int ffd, tfd;
+#else
 	FILE ffd, tfd;
+#endif
 	LONG size;
 	{
 	IMPORT COUNT round;
@@ -85,18 +93,18 @@ LONG copy(ffd, tfd, size)
 	TEXT buf[BUFSIZE];
 
 	i = BUFSIZE;
-	for (n = 0; !size || n < size; n =+ j)
+	for (n = 0; !size ||  n < size; n +=  j)
 		{
 		if (size)
 			i = min(size - n, BUFSIZE);
-		if (!(j = fread(ffd, buf, i)) && size)
+		if (!(j = fread(ffd, buf, i)) &&  size)
 			error("unexpected EOF", NULL);
 		else if (!j)
 			break;
 		else
 			fwrite(tfd, buf, j);
 		}
-	if (!size && n & round)
+	if (!size &&  n & round)
 		fwrite(tfd, "", 1);
 	return (n);
 	}
@@ -111,7 +119,11 @@ BOOL del(ac, av, file)
 	IMPORT COUNT round;
 	IMPORT LONG msize;
 	FAST COUNT j;
+#ifdef USESTDCLIB
+	int lfd, tfd;
+#else
 	FAST FILE lfd, tfd;
+#endif
 	HDR hdr;
 
 	if (!ac)
@@ -123,10 +135,10 @@ BOOL del(ac, av, file)
 			{
 			if (vfl)
 				report("c ", hdr.w.name);
-			if (msize == 0)
+			if (msize ==  0)
 				msize = MZERO;
 			pthdr(tfd, &hdr);
-			if (msize != MZERO)
+			if (msize !=  MZERO)
 				copy(lfd, tfd, msize + (msize & round));
 			}
 		else
@@ -134,7 +146,7 @@ BOOL del(ac, av, file)
 			if (vfl)
 				report("d ", strpath(hdr.w.name, av[j]));
 			found(j);
-			if (msize != MZERO)
+			if (msize !=  MZERO)
 				skip(lfd, msize, round);
 			}
 	close(lfd);
@@ -170,10 +182,14 @@ BOOL erprint(ac, av, s)
 	TBOOL *p;
 
 	ok = YES;
-	for (p = pfound; ac--; ++av, ++p)
+	for (p = pfound; ac-- ; ++ av, ++ p)
 		if (!(*p & FOUND))
 			ok = remark(s, *av);
+#ifdef USESTDCLIB
+	free(pfound);
+#else
 	free(pfound, NULL);
+#endif
 	return (ok);
 	}
 
@@ -188,7 +204,7 @@ VOID ersetup(ac)
 	if (!ac)
 		ac = 1;
 	pfound = alloc(ac * sizeof (TBOOL), NULL);
-	for (p = pfound; ac--; ++p)
+	for (p = pfound; ac-- ; ++ p)
 		*p = 0;
 	}
 
@@ -199,13 +215,17 @@ VOID found(i)
 	{
 	IMPORT TBOOL *pfound;
 
-	pfound[i] =| FOUND;
+	pfound[i] |=  FOUND;
 	}
 
 /*	get entry header
  */
 BOOL gthdr(fd, phdr)
+#ifdef USESTDCLIB
+	int fd;
+#else
 	FILE fd;
+#endif
 	HDR *phdr;
 	{
 	IMPORT BYTES vers;
@@ -215,29 +235,29 @@ BOOL gthdr(fd, phdr)
 	UCOUNT wo;
 	COUNT j;
 
-	if (fd < 0 || (j = fread(fd, phdr, hsize)) != hsize || !phdr->w.name[0])
+	if (fd < 0 ||  (j = fread(fd, phdr, hsize)) !=  hsize ||  !phdr-> w.name[0])
 		return (NO);
 	else
 		{
 		switch (vers)
 			{
 		case 0:
-			wo = lstou(phdr->w.wsize);
+			wo = lstou(phdr-> w.wsize);
 			msize = (LONG)wo;
 			break;
 		case 3:
-			for (i = 4, msize = 0; 0 <= --i; )
-				msize = (msize << 8) + phdr->v7.v7size[i];
+			for (i = 4, msize = 0; 0 <=  -- i; )
+				msize = (msize <<  8) + phdr-> v7.v7size[i];
 			break;
 		case 6:
-			wo = lstou(phdr->v6.v6size);
+			wo = lstou(phdr-> v6.v6size);
 			msize = (LONG)wo;
 			break;
 		case 7:
-			msize = lstol(phdr->v7.v7size);
+			msize = lstol(phdr-> v7.v7size);
 			break;
 			}
-		phdr->w.name[nsize] = '\0';
+		phdr-> w.name[nsize] = '\0';
 		return (YES);
 		}
 	}
@@ -268,7 +288,7 @@ COUNT inpos(ac, av, name)
 	BOOL strip;
 	TEXT *pn;
 
-	for (i = 0; i < ac; ++i, ++av)
+	for (i = 0; i < ac; ++ i, ++ av)
 		{
 		if (strip = pfound[i] & STRPNM)
 			pn = strpath(buf, *av);
@@ -280,12 +300,20 @@ COUNT inpos(ac, av, name)
 
 /*	create a library file
  */
+#ifdef USESTDCLIB
+int lcreate(file)
+#else
 FILE lcreate(file)
+#endif
 	TEXT *file;
 	{
 	IMPORT UCOUNT magic;
 	IMPORT VOID *endup(), exit(), *(*nxtexit)();
+#ifdef USESTDCLIB
+	int fd;
+#else
 	FAST FILE fd;
+#endif
 	UCOUNT tmagic;
 
 	itols(&tmagic, magic);
@@ -305,21 +333,29 @@ FILE lcreate(file)
 
 /*	open a library file
  */
+#ifdef USESTDCLIB
+int lopen(file, mand)
+#else
 FILE lopen(file, mand)
+#endif
 	TEXT *file;
 	BOOL mand;
 	{
 	IMPORT BYTES vers;
 	IMPORT COUNT hsize, nsize, round;
 	IMPORT UCOUNT magic;
+#ifdef USESTDCLIB
+	int fd;
+#else
 	FAST FILE fd;
+#endif
 
 	if ((fd = open(file, READ, 1)) < 0)
 		{
 		if (mand)
 			error("can't open library ", file);
 		}
-	else if (fread(fd, &magic, MAGSIZE) != MAGSIZE)
+	else if (fread(fd, &magic, MAGSIZE) !=  MAGSIZE)
 		error("can't read header for ", file);
 	else
 		magic = lstoi(&magic);
@@ -340,25 +376,25 @@ BOOL main(ac, av)
 	FAST BOOL special;
 	FAST TEXT **plib, *s;
 
-	if (ac <= 1)
+	if (ac <=  1)
 		usage("expects flags <lfile> <files>\n");
-	if (av[1][0] == '-' || av[1][0] == '+')
+	if (av[1][0] ==  '-' ||  av[1][0] ==  '+')
 		{
 		getflags(&ac, &av, "c,d,i,p,r,t,v3,v6,v7,v,x:F <lfile> <files>", &cfl,
 			&dfl, &ifl, &pfl, &rfl, &tfl, &v3fl, &v6fl, &v7fl, &vfl, &xfl);
 		if (ac)
 			{
-			plib = av++;
-			--ac;
+			plib = av++ ;
+			-- ac;
 			}
 		else
 			usage("expects flags <lfile> <files>\n");
 		}
 	else
 		{
-		plib = ++av;
-		--ac;
-		getflags(&ac, &av, "c,d,i,p,r,t,v3,v6,v7,v,x:<lfile> F <files>", &cfl,
+		plib = ++ av;
+		-- ac;
+		getflags(&ac, &av, "c,d,i,p,r,t,v3,v6,v7,v,x:F <lfile> <files>", &cfl,
 			&dfl, &ifl, &pfl, &rfl, &tfl, &v3fl, &v6fl, &v7fl, &vfl, &xfl);
 		}
 	special = NO;
@@ -401,13 +437,13 @@ VOID markpth(ac, av)
 	FAST TEXT *pn;
 	TEXT *s;
 
-	for (i = 0; i < ac; ++i)
+	for (i = 0; i < ac; ++ i)
 		if (*(s = av[i]))
 			{
-			for (pn = s; pn[x = instr(pn, ":]/")]; pn =+ x + 1)
+			for (pn = s; pn[x = instr(pn, ":]/")]; pn +=  x + 1)
 				;
-			if (pn != s)
-				pfound[i] =| STRPNM;
+			if (pn !=  s)
+				pfound[i] |=  STRPNM;
 			}
 	}
 
@@ -419,19 +455,23 @@ VOID putback(to, sx, ns)
 	{
 	IMPORT COUNT round;
 	IMPORT LONG msize;
+#ifdef USESTDCLIB
+	int lfd, tfd;
+#else
 	FAST FILE lfd, tfd;
+#endif
 	HDR hdr;
 
 	tfd = lopen(uname(), YES);
 	lfd = lcreate(to);
 	while (gthdr(tfd, &hdr))
 		{
-		if (msize == MEMPTY)
+		if (msize ==  MEMPTY)
 			msize = 0L;
 		else if (0 < msize)
 			;
-		else if (0 <= --ns)
-			msize = *sx++;
+		else if (0 <=  -- ns)
+			msize = *sx++ ;
 		else
 			error("Panic putback!", NULL);
 		pthdr(lfd, &hdr);
@@ -446,7 +486,11 @@ VOID putback(to, sx, ns)
 /*	put header
  */
 VOID pthdr(fd, phdr)
+#ifdef USESTDCLIB
+	int fd;
+#else
 	FILE fd;
+#endif
 	HDR *phdr;
 	{
 	IMPORT BYTES vers;
@@ -457,27 +501,27 @@ VOID pthdr(fd, phdr)
 	LONG lo;
 	UCOUNT wo;
 
-	for (i = 0; i < NSIZE && phdr->w.name[i]; ++i)
+	for (i = 0; i < NSIZE &&  phdr-> w.name[i]; ++ i)
 		;
 	while (i < NSIZE+8)
-		phdr->w.name[i++] = '\0';
+		phdr-> w.name[i++ ] = '\0';
 	switch (vers)
 		{
 	case 0:
-		itols(phdr->w.wsize, wo = (UCOUNT)msize);
+		itols(phdr-> w.wsize, wo = (UCOUNT)msize);
 		break;
 	case 3:
-		for (lo = msize, i = 0; i < 4; ++i)
+		for (lo = msize, i = 0; i < 4; ++ i)
 			{
-			phdr->v7.v7size[i] = lo;
-			lo =>> 8;
+			phdr-> v7.v7size[i] = lo;
+			lo >>=  8;
 			}
 		break;
 	case 6:
-		itols(phdr->v6.v6size, wo = (UCOUNT)msize);
+		itols(phdr-> v6.v6size, wo = (UCOUNT)msize);
 		break;
 	case 7:
-		ltols(phdr->v7.v7size, msize);
+		ltols(phdr-> v7.v7size, msize);
 		break;
 		}
 	fwrite(fd, phdr, hsize);
@@ -496,7 +540,11 @@ BOOL repl(ac, av, file, virgin)
 	IMPORT TBOOL *pfound;
 	FAST COUNT i, j;
 	FAST TEXT *s;
+#ifdef USESTDCLIB
+	int ifd, lfd, tfd;
+#else
 	FILE ifd, lfd, tfd;
+#endif
 	HDR hdr;
 	LONG *svec, *sx;
 	TEXT *pn;
@@ -517,49 +565,49 @@ BOOL repl(ac, av, file, virgin)
 			{
 			if (vfl)
 				report("c ", hdr.w.name);
-			if (msize == 0)
+			if (msize ==  0)
 				msize = MZERO;
 			pthdr(tfd, &hdr);
-			if (msize != MZERO)
+			if (msize !=  MZERO)
 				copy(lfd, tfd, msize + (msize & round));
 			}
 		else
 			{
 			lseek(lfd, msize + (msize & round), 1);
 			s = av[j];
-			if (0 <= (ifd = open(s, READ, 1)))
+			if (0 <=  (ifd = open(s, READ, 1)))
 				{
 				if (vfl)
 					report("r ", hdr.w.name);
 				found(j);
 				msize = NOSIZE;
 				pthdr(tfd, &hdr);
-				*sx++ = copy(ifd, tfd, 0L);
+				*sx++  = copy(ifd, tfd, 0L);
 				close(ifd);
 				*s = '\0';
 				}
 			}
 	close(lfd);
-	for (j = 0; j < ac; ++j)
+	for (j = 0; j < ac; ++ j)
 		if (*(s = av[j]))
 			{
 			if (pfound[j] & STRPNM)
 				{
 				pn = strpath(hdr.w.name, av[j]);
-				for (i = 0; i < NSIZE && (hdr.w.name[i] = *pn); ++i, ++pn)
+				for (i = 0; i < NSIZE &&  (hdr.w.name[i] = *pn); ++ i, ++ pn)
 					;
 				}
 			else
-				for (i = 0; i < NSIZE && (hdr.w.name[i] = s[i]); ++i)
+				for (i = 0; i < NSIZE &&  (hdr.w.name[i] = s[i]); ++ i)
 					;
 			msize = NOSIZE;
-			if (0 <= (ifd = open(s, READ, 1)))
+			if (0 <=  (ifd = open(s, READ, 1)))
 				{
 				if (vfl)
 					report("a ", hdr.w.name);
 				found(j);
 				pthdr(tfd, &hdr);
-				*sx++ = copy(ifd, tfd, 0L);
+				*sx++  = copy(ifd, tfd, 0L);
 				close(ifd);
 				}
 			}
@@ -591,7 +639,7 @@ VOID setvers()
 	IMPORT UCOUNT magic;
 
 	if (!magic)
-		magic = (vers == 6) ? MAGIC6 : (vers == 3 || vers == 7) ?
+		magic = (vers ==  6) ? MAGIC6 : (vers ==  3 ||  vers ==  7) ?
 			MAGIC7 : MAGICW;
 	switch (magic)
 		{
@@ -611,7 +659,7 @@ VOID setvers()
 		hsize = 26;
 		nsize = NSIZE;
 		round = 1;
-		if (vers != 3 && vers != 7)
+		if (vers !=  3 &&  vers !=  7)
 			vers = 7;
 		break;
 	default:
@@ -622,7 +670,11 @@ VOID setvers()
 /*	skip bytes in a file
  */
 VOID skip(fd, size, rnd)
+#ifdef USESTDCLIB
+	int fd;
+#else
 	FILE fd;
+#endif
 	LONG size;
 	BOOL rnd;
 	{
@@ -639,9 +691,9 @@ TEXT *strpath(buf, name)
 
 	pn = pathnm(buf, name, ":");
 #ifdef IDRIS
-	pn =+ 2;
+	pn +=  2;
 #else
-	++pn;
+	++ pn;
 #endif
 	return(pn);
 	}
@@ -657,7 +709,11 @@ BOOL tab(ac, av, file)
 	IMPORT COUNT round;
 	IMPORT LONG msize;
 	FAST BOOL doall = (!ac);
+#ifdef USESTDCLIB
+	int lfd;
+#else
 	FAST FILE lfd;
+#endif
 	HDR hdr;
 	TEXT buf[10];
 
@@ -684,7 +740,7 @@ BOOL tab(ac, av, file)
 		}
 	while (gthdr(lfd, &hdr))
 		{
-		if (doall || inlist(ac, av, hdr.w.name))
+		if (doall ||  inlist(ac, av, hdr.w.name))
 			if (vfl)
 				{
 				buf[ltob(&buf[2], msize, 10) + 2] = '\0';
@@ -697,13 +753,17 @@ BOOL tab(ac, av, file)
 		skip(lfd, msize, round);
 		}
 	close(lfd);
-	return (doall || erprint(ac, av, "lib: can't find "));
+	return (doall ||  erprint(ac, av, "lib: can't find "));
 	}
 
 /*	write 2 bytes of padding at EOF
  */
 VOID wreof(fd)
+#ifdef USESTDCLIB
+	int fd;
+#else
 	FILE fd;
+#endif
 	{
 	fwrite(fd, "\0", 2);
 	}
@@ -719,14 +779,18 @@ BOOL xtract(ac, av, file, print)
 	IMPORT COUNT round;
 	IMPORT LONG msize;
 	FAST BOOL doall = (!ac);
+#ifdef USESTDCLIB
+	int lfd, ofd;
+#else
 	FAST FILE lfd, ofd;
+#endif
 	BOOL ok;
 	HDR hdr;
 
 	ok = YES;
 	lfd = lopen(file, YES);
 	while (gthdr(lfd, &hdr))
-		if (!doall && !inlist(ac, av, hdr.w.name))
+		if (!doall &&  !inlist(ac, av, hdr.w.name))
 			skip(lfd, msize, round);
 		else
 			{
@@ -752,5 +816,5 @@ BOOL xtract(ac, av, file, print)
 				close(ofd);
 			}
 	close(lfd);
-	return ((doall || erprint(ac, av, "lib: can't extract ")) && ok);
+	return ((doall ||  erprint(ac, av, "lib: can't extract ")) &&  ok);
 	}
