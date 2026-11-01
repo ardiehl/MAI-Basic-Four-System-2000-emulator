@@ -30,7 +30,7 @@
 */
 
 typedef struct {
-    uint32_t createtime;
+    uint32_t version;
     char libFileName[255];
 } objhead_lib;
 
@@ -51,8 +51,8 @@ struct objhead
 		database,	/* base address of data segment */
 		bssbase,	/* base address of bss segment */
 		/* AD: Unos only, stackbase, */	/* base address of stack segment */
+		version,    /* file version, used for shared libs */
 		createtime,	/* time this file was made */
-		unknown,
 		objflags,	/* assorted flags (see below) */
 		hdrrsv[2];	/* reserved */
 		objhead_lib firstSharedLib;

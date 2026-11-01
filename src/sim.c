@@ -688,12 +688,12 @@ syscallDesc_t syscallDescs[] = {
 	{ 2, 0x01, "Jawait", NULL, SY_SH_D0 | SY_SH_D1 }, // ?? deldir unos.sl 00202736
 	{ 2, 0x04, "Jopen", NULL, SY_SH_D0 | SY_SH_D1 },
 	{ 2, 0x05, "close", "D0 fileno" },
-	{ 2, 0x06, "getuid", NULL, SY_SH_D0 | SY_SH_D1 },
+	{ 2, 0x06, "getuid" },
 	{ 2, 0x07, "setuid", NULL, SY_SH_D0 | SY_SH_D1 },
 	{ 2, 0x08, "chdomain", NULL, SY_SH_D0 | SY_SH_D1 },
 	{ 2, 0x0a, "Jseek", NULL },
 	{ 2, 0x0c, "Jcreate", NULL, SY_SH_D0 | SY_SH_D1 },
-	{ 2, 0x0d, "read", NULL, SY_SH_D0 | SY_SH_D1 },
+	{ 2, 0x0d, "read", NULL },
 	{ 2, 0x0e, "write", NULL },
 	{ 2, 0x0f, "Jfilesize", NULL, SY_SH_D0 | SY_SH_D1 },
 	{ 2, 0x10, "Jfilepos (tell)", NULL },
@@ -722,13 +722,13 @@ syscallDesc_t syscallDescs[] = {
 	{ 2, 0x34, "makefipe", NULL, SY_SH_D0 | SY_SH_D1 },
 	{ 2, 0x35, "settime", NULL },
 	{ 2, 0x36, "gettime", "Time in sec since 1 Jan 1980 in D0" },
-	{ 2, 0x3a, "delay", NULL, SY_SH_D0 | SY_SH_D1 },
+	{ 2, 0x3a, "delay", NULL },
 	{ 2, 0x3b, "suspend", "D0=pid" },
-	{ 2, 0x3c, "chown", NULL, SY_SH_D0 | SY_SH_D1 },
+	{ 2, 0x3c, "chown", NULL },
 	{ 2, 0x3d, "setpriority", NULL, SY_SH_D0 | SY_SH_D1 },
 	{ 2, 0x3e, "getpriority", NULL, SY_SH_D0 | SY_SH_D1 },
 	{ 2, 0x3f, "lock", NULL, SY_SH_D0 | SY_SH_D1 },
-	{ 2, 0x40, "catchsignal", NULL, SY_SH_D0 | SY_SH_D1 },
+	{ 2, 0x40, "catchsignal", NULL },
 	{ 2, 0x41, "kill", "D0=pid" },
 	{ 2, 0x43, "getppid", NULL, SY_SH_D0 | SY_SH_D1 },
 	{ 2, 0x44, "makeorphan", NULL, SY_SH_D0 | SY_SH_D1 },
@@ -738,7 +738,7 @@ syscallDesc_t syscallDescs[] = {
 	{ 2, 0x48, "setctlterm", NULL, SY_SH_D0 | SY_SH_D1 },
 	{ 2, 0x49, "getstackbase", NULL, SY_SH_D0 | SY_SH_D1 },
 	{ 2, 0x4a, "gettimemilli", "Time in millisec in D0" },
-	{ 2, 0x4b, "execv", NULL, SY_SH_D0 | SY_SH_D1 },
+	{ 2, 0x4b, "exec_env", NULL, SY_SH_D0 | SY_SH_D4 | SY_SH_D5 },
 	{ 2, 0x4c, "alarm", NULL, SY_SH_D0 | SY_SH_D1 },
 	{ 2, 0x4f, "lockf", NULL, SY_SH_D0 | SY_SH_D1 },
 	{ 2, 0x52, "Jcreate2", NULL, SY_SH_D0 | SY_SH_D1 },
@@ -769,7 +769,7 @@ syscallDesc_t syscallDescs[] = {
 	{ 2, 0x9a, "sysstats", NULL, SY_SH_D0 | SY_SH_D1 },
 	{ 2, 0x9b, "?", NULL, SY_SH_D0 | SY_SH_D1 },
 	{ 2, 0x9c, "addblock", NULL, SY_SH_D0 | SY_SH_D1 },
-	{ 2, 0x9d, "unmntall", NULL, SY_SH_D0 | SY_SH_D1 },
+	{ 2, 0x9d, "unmntall", NULL },
 	{ 2, 0x9f, "Badddev", NULL, SY_SH_D0 | SY_SH_D1 },
 	{ 2, 0xa2, "setmaxvc", NULL, SY_SH_D0 | SY_SH_D1 },
 	{ 2, 0xa3, "getversionvc", NULL, SY_SH_D0 | SY_SH_D1 },
@@ -1012,7 +1012,10 @@ static void sys_trace_traps (unsigned int pc) {
 		sprintf(syscallName," (%s%s%s)",colors[classColors[MSGC_NOTIMP]],syscallDesc->name,endColor);
     }
 
-
+    if ((a0 & 0xff) == 0x4b)
+	printf("trap #%u call %02x%s at %06x  D0=%08x D1=%08x D2=%08x D3=%08x D4=%08x D5=%08x A1=%08x sp=%06x  stack:",
+	    op & 0x0f, a0 & 0xff, syscallName, pc, d0, d1, d2, d3, d4, d5, a1, a7);
+    else
     printf("trap #%u call %02x%s at %06x  D0=%08x D1=%08x D2=%08x A1=%08x sp=%06x  stack:",
             op & 0x0f, a0 & 0xff, syscallName, pc, d0, d1, d2, a1, a7);
     for (i = 0; i < 5; i++) {

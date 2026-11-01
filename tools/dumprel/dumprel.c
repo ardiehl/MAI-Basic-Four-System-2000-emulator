@@ -10,6 +10,7 @@
 
 #define EPOCH1980 315532800L
 
+
 FILE * fin;
 
 typedef struct symbol_t symbol_t;
@@ -138,6 +139,8 @@ int allCB(argParse_handleT *a, char * arg) {
   return 0;
 }
 
+char * soutdir;
+
 AP_START(argopt)
         AP_HELP
         AP_OPT_INTVALF_CB (0,'a',"all"  ,NULL             ,"show all sections",allCB)
@@ -149,6 +152,7 @@ AP_START(argopt)
         AP_OPT_INTVALF    (0,'D',"dis"  ,&showDisassembly ,"show disassembled routines")
         AP_OPT_INTVALF    (0,'e',"exp"  ,&showExports     ,"show exported symbols")
         AP_OPT_INTVALF    (0,'T',"tabs" ,&printTabs       ,"print tabs")
+        AP_OPT_STRVAL     (1,0  ,"creates"   ,&soutdir    ,"create .s files in given dir for each global symbol")
         //AP_OPT_STRVAL     (1,'s',"str"   ,&strArg    ,"set string")
         AP_OPT_INTVAL     (0,'z', "stacksize"  ,&newStackSize   ,"set new stacksize")
         //AP_OPT_INTVALFO   (0,'I',"int2"  ,&intArg2   , "increment or set int")
@@ -210,7 +214,7 @@ uint32_t getJumpAddress(char * disTxt) {
 int main (int argc, char * argv[]) {
 	struct objhead h;
 	uint32_t dataStart = 0;
-	int r;
+	int r,len;
 	int rc;
 	argParse_handleT *a;
 	char *fileName = NULL;
@@ -289,9 +293,11 @@ int main (int argc, char * argv[]) {
 		printf("base address of data segment          : 0x%08x\n", dataStart);
 		printf("base address of bss segment           : 0x%08x\n", be32toh(h.bssbase));
 		//printf("base address of stack segment         : 0x%08x\n", be32toh(h.stackbase));
-		ti = be32toh(h.createtime) - EPOCH1980;
-		printf("createtime                            : %s",ctime(&ti));
-		printf("unknown                               : 0x%08x (%d)\n", be32toh(h.unknown),be32toh(h.unknown));
+		printf("library version                       : 0x%08x\n",be32toh(h.version));
+		ti = be32toh(h.createtime) + EPOCH1980;
+		printf("createtime                            : 0x%08x ",be32toh(h.createtime));
+		if (be32toh(h.createtime) > 0) printf(ctime(&ti));
+		else printf("\n");
 		printf("assorted flags                        : 0x%08x (%d)\n", be32toh(h.objflags),be32toh(h.objflags));
 		printf("reserved 0x%02x 0x%02x\n",h.hdrrsv[0],h.hdrrsv[1]);
 		printf("hdrSize: %d\n",hdrSize);
@@ -299,10 +305,9 @@ int main (int argc, char * argv[]) {
             int remaining = hdrSize - 64;
             objhead_lib *lib = &h.firstSharedLib;
             while (remaining) {
-                remaining -= 4; // date
+                remaining -= 4; // version
                 if (remaining < 2) break;
-                ti = be32toh(lib->createtime) - EPOCH1980;
-                printf(" shared library '%s' created %s",lib->libFileName,ctime(&ti));
+                printf(" shared library '%s', required version 0x%08x\n",lib->libFileName,be32toh(lib->version));
                 remaining -= strlen(lib->libFileName);
                 remaining --;
                 char *p = (char *)lib;
@@ -397,7 +402,7 @@ int main (int argc, char * argv[]) {
 					if (showSyms) printf("%s%s",tabStr,disTxt);
 				}
 			}
-			if (flags == 1 || flags == 2 || flags == 5 || flags == 0x12 || flags == 0x13 || flags == 0x92) symbolAdd (sym->s_name,be32toh(sym->s_value),getJumpAddress(disTxt),flags);
+			if (flags == 1 || flags == 2 || flags == 5 || flags == 0x12 || flags == 0x13 || flags == 0x14 || flags == 0x92) symbolAdd (sym->s_name,be32toh(sym->s_value),getJumpAddress(disTxt),flags);
 			if (showSyms) printf("\n");
 			sym++;
 		}
@@ -488,6 +493,37 @@ int main (int argc, char * argv[]) {
 				s = s->next;
 			}
 		}
+		
+		if (soutdir) {
+			s = symbols;
+			while (s) {
+				if (s->flags == 0x12 || s->flags == 0x14) {
+					char *fileName = calloc(1,strlen(soutdir)+strlen(s->symbolName)+4);
+					strcpy(fileName,soutdir);
+					strcat(fileName,"/");
+					char *symName = s->symbolName;
+					if (*symName == '_') symName++;
+					strcat(fileName,symName);
+					strcat(fileName,".s");
+					
+					FILE *f = fopen(fileName,"w");
+					if (!f) {
+						fprintf(stderr,"unable to create %s\n",fileName);
+						return 1;
+					}
+					sprintf(disTxt,".globl %s\n%s = 0x%x\n",s->symbolName,s->symbolName,s->address);
+					len = strlen(disTxt);
+					rc = fwrite(disTxt,1,len,f);
+					if (rc != len) {
+						fprintf(stderr,"unable to write %d bytes to %s (%d)\n",len,fileName,rc);
+						return 1;
+					}
+					fclose(f);
+				}
+				s = s->next;
+			}
+		}
+		
 #if 0
 		if (showDisassembly && symbols) {
 			symbol_t *s = symbols;
@@ -496,7 +532,7 @@ int main (int argc, char * argv[]) {
 					printf("%s\n",s->symbolName);
 					uint32_t a = s->address;
 					while (a < s->next->address) {
-						int len = m68k_disassemble(disTxt, a, M68K_CPU_TYPE_68010);
+						len = m68k_disassemble(disTxt, a, M68K_CPU_TYPE_68010);
 						printf("  %08x %s\n",a,disTxt);
 						a += len;
 					}
