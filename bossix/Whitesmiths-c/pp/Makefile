@@ -1,57 +1,31 @@
-#
-#	Makefile for Whitesmiths C preprocessor
-#
+CFLAGS= -std=c89 -g -O0 -W -Wno-incompatible-pointer-types -I../ws-compat -DUSESTDCLIB
+WCDIR = ../ws-compat
+WCHDR = $(WCDIR)/ws_libc.h $(WCDIR)/std.h
+WC    = $(WCDIR)/ws_libc.c
+WOBJ  = ws_libc.o
+LD    = $(CC)
 
-# If this Makefile is not invoked as a sub-make
-ifndef TARGET
-    TARGET = ccpm80
-endif
+OBJS = p0eval.o p0lex.o p0main.o p0subs.o $(WOBJ)
+PROG = pp
+LHDR = int012.h int01.h int0.h
 
-ifndef BDIR
-    BDIR = ..
-endif
+$(PROG):	$(OBJS)
+	echo "Linking $(PROG)"
+	$(LD) $(CFLAGS) $(LDFLAGS) $(OBJS) $(LIBLNK) -o $(PROG)
 
-ifndef CPROTO
-    CPROTO = ccpm80.pro
-endif
+$(WOBJ):  $(WCHDR)
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) $(WC)
 
-# Cross compiler
-CC = cx80 -v -prefix "" -proto $(BDIR)/proto/$(CPROTO) -I$(BDIR)/hdrs -L$(BDIR)/lib/
+p0eval.o:  p0eval.c $(LHDR) $(WCHDR)
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) p0eval.c
 
-VPATH = $(BDIR)/pp
+p0lex.o:  p0lex.c  $(LHDR) $(WCHDR)
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) p0lex.c
 
-# Commands
-CMDS = pp.com
-
-# Manual pages
-MANS = pp.man
-
-# Internal documentation
-DOCS = p0eval.doc p0.doc p0lex.doc p0main.doc p0subs.doc
-
-%.o: %.c
-	$(CC) +o $<
-
-%.man: doc/%.mp
-	roff $< > $@
-
-%.doc: doc/%.ic
-	roff $< > $@
-
-.PHONY: $(TARGET) clean
-
-$(TARGET): $(CMDS) $(MANS) $(DOCS)
-
-PPOBJ = p0eval.o p0lex.o p0main.o p0subs.o
-
-pp.com:	$(PPOBJ)
-	$(CC) -o $@ $(PPOBJ)
+p0subs.o:  p0subs.c  $(LHDR) $(WCHDR)
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) p0subs.c
 
 clean:
-	rm -f $(PPOBJ) $(CMDS) $(MANS) $(DOCS)
+	rm $(OBJS) $(PROG)
 
-$(DTARGET): $(CMDS) $(MANS)
-	@cp $(CMDS) ../../distr/bin
-ifdef MANS
-	@cp $(MANS) ../../distr/man
-endif
+

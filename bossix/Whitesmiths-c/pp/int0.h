@@ -2,6 +2,11 @@
  *	copyright (c) 1978 by Whitesmiths, Ltd.
  */
 
+#ifdef USESTDCLIB
+void ws_perror(TEXT *s, ...);
+#endif
+
+
 #ifdef LONGNAME
 #define LENNAME	32
 #else
@@ -43,7 +48,11 @@ struct incl
 	TEXT *next;
 	TEXT *fname;
 	COUNT nline;
+#ifdef USESTDCLIB
+	FILE *pfio;
+#else
 	FIO pfio;
+#endif
 	};
 
 /*	the predefined keywords
@@ -58,6 +67,20 @@ struct pretab
 
 /*	the linked list of tokens
  */
+#ifdef USESTDCLIB
+typedef struct TLIST TLIST;
+
+struct TLIST
+	{
+	TLIST *next;
+	LEX type;
+	TEXT *white;
+	BYTES nwhite;
+	TEXT *text;
+	BYTES ntext;
+	};
+
+#else
 #define TLIST	struct tlist
 
 struct tlist
@@ -69,6 +92,7 @@ struct tlist
 	TEXT *text;
 	BYTES ntext;
 	};
+#endif
 
 /*	the argument list structure
  */

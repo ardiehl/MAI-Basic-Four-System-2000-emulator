@@ -3,10 +3,28 @@
  */
 #include <std.h>
 #include "int0.h"
+TLIST * buytl();
+TLIST * dodef();
+TLIST * doexp();
+VOID errfmt();
+TLIST * getargs();
+TEXT * getfname();
+DEF * * hash();
+VOID install();
+TLIST * lookup();
+INCL * nxtfile();
+VOID pargs();
+
+VOID predef();
+BOOL punct();
+LEX scntab();
+TLIST * stotl();
+VOID undef();
+
 
 /*	the hash table definitions
  */
-LOCAL DEF *htable[NHASH] {0};
+LOCAL DEF *htable[NHASH] = {0};
 
 /*	allocate a new token for the tlist and copy a previous into it
  */
@@ -16,11 +34,11 @@ TLIST *buytl(p, link)
 	FAST TLIST *q;
 
 	q = alloc(sizeof (*q), link);
-	q->type = p->type;
-	q->white = p->white;
-	q->nwhite = p->nwhite;
-	q->text = p->text;
-	q->ntext = p->ntext;
+	q-> type = p-> type;
+	q-> white = p-> white;
+	q-> nwhite = p-> nwhite;
+	q-> text = p-> text;
+	q-> ntext = p-> ntext;
 	return (q);
 	}
 
@@ -37,21 +55,21 @@ TLIST *dodef(pd, qn, args)
 
 	qb = &qs;
 	nargs = 0;
-	if (pd->nwhite || !punct(pd, '('))
+	if (pd-> nwhite ||  !punct(pd, '('))
 		r = pd;
 	else
 		{
-		r = pd->next;
-		if (r->type == PIDENT)
+		r = pd-> next;
+		if (r-> type ==  PIDENT)
 			{
 			nargs = 1;
-			r = r->next;
+			r = r-> next;
 			}
-		while (r && !punct(r, ')'))
-			if (punct(r, ',') && r->next->type == PIDENT)
+		while (r &&  !punct(r, ')'))
+			if (punct(r, ',') &&  r-> next-> type ==  PIDENT)
 				{
-				r = r->next->next;
-				++nargs;
+				r = r-> next-> next;
+				++ nargs;
 				}
 			else
 				r = NULL;
@@ -61,43 +79,51 @@ TLIST *dodef(pd, qn, args)
 			r = pd;
 			}
 		else
-			r = r->next;
+			r = r-> next;
 		}
-	for (pe = r; r->type != PEOL; )
+	for (pe = r; r-> type !=  PEOL; )
 		{
-		if (r->type == PIDENT)
-			for (s = pd->next, i = 0; i < nargs; ++i)
+		if (r-> type ==  PIDENT)
+			for (s = pd-> next, i = 0; i < nargs; ++ i)
 				{
-				if (r->ntext == s->ntext && cmpbuf(r->text, s->text, s->ntext))
+				if (r-> ntext ==  s-> ntext &&  cmpbuf(r-> text, s-> text, s-> ntext))
 					break;
-				s = s->next->next;
+				s = s-> next-> next;
 				}
-		if (r->type == PIDENT && i < nargs)
+		if (r-> type ==  PIDENT &&  i < nargs)
 			{
-			for (pa = args; 0 < i && pa; --i)
-				pa = pa->next;
+			for (pa = args; 0 < i &&  pa; -- i)
+				pa = pa-> next;
 			if (pa)
-				for (px = pa->astart; px != pa->aend; px = px->next)
+				for (px = pa-> astart; px !=  pa-> aend; px = px-> next)
 					{
-					*qb = buytl(px, r->next);
-					if (px == pa->astart)
+					*qb = buytl(px, r-> next);
+					if (px ==  pa-> astart)
 						{
-						(*qb)->white = r->white;
-						(*qb)->nwhite = r->nwhite;
+						(*qb) -> white = r-> white;
+						(*qb) -> nwhite = r-> nwhite;
 						}
-					qb = &(*qb)->next;
+					qb = &(*qb) -> next;
 					}
-			r = free(r, r->next);
+#ifdef USESTDCLIB
+			r = ws_free(r, r-> next);
+#else
+			r = free(r, r-> next);
+#endif
 			}
 		else
 			{
 			*qb = r;
-			qb = &(*qb)->next;
-			r = r->next;
+			qb = &(*qb) -> next;
+			r = r-> next;
 			}
 		}
-	while (pd != pe)
-		pd = free(pd, pd->next);
+	while (pd !=  pe)
+#ifdef USESTDCLIB
+		pd = ws_free(pd, pd-> next);
+#else
+		pd = free(pd, pd-> next);
+#endif
 	*qb = qn;
 	return (qs);
 	}
@@ -113,22 +139,22 @@ TLIST *doexp(qs)
 	TLIST *qn;
 
 	for (qb = &qs; q = *qb; )
-		if (q->type != PIDENT || !(s = lookup(q->text, q->ntext))
-			|| *s == '(' && (q->next->nwhite || !punct(q->next, '(')))
-			qb = &q->next;
+		if (q-> type !=  PIDENT ||  !(s = lookup(q-> text, q-> ntext))
+			||  *s ==  '(' &&  (q-> next-> nwhite ||  !punct(q-> next, '(')))
+			qb = &q-> next;
 		else
 			{
 			pd = stotl(s);
 			args = NULL;
-			if (*s == '(')
-				qn = getargs(q->next, &args);
+			if (*s ==  '(')
+				qn = getargs(q-> next, &args);
 			else
-				qn = q->next;
+				qn = q-> next;
 			*qb = dodef(pd, qn, args);
-			if (*qb != qn)
+			if (*qb !=  qn)
 				{
-				(*qb)->white = q->white;
-				(*qb)->nwhite = q->nwhite;
+				(*qb) -> white = q-> white;
+				(*qb) -> nwhite = q-> nwhite;
 				}
 			frelst(args, NULL);
 			frelst(q, qn);
@@ -141,25 +167,29 @@ TLIST *doexp(qs)
 VOID errfmt(fmt, args)
 	TEXT *fmt, *args;
 	{
+#ifdef USESTDCLIB
+	IMPORT int errfd;
+#else
 	IMPORT FILE errfd;
+#endif
 	FAST BYTES *p;
 	FAST TEXT *f, *s;
 	TEXT buf[10];
 
-	for (p = &args, f = fmt; *f; ++f)
-		if (*f != '%')
+	for (p = &args, f = fmt; *f; ++ f)
+		if (*f !=  '%')
 			write(errfd, f, 1);
-		else if (*++f == 'c')
+		else if (* ++ f ==  'c')
 			{
-			*buf = *p++;
+			*buf = *p++ ;
 			write(errfd, buf, 1);
 			}
-		else if (*f == 's')
-			write(errfd, buf, itob(buf, *p++, 10));
+		else if (*f ==  's')
+			write(errfd, buf, itob(buf, *p++ , 10));
 		else
 			{
-			s = *p++;
-			write(errfd, s, (*f == 'b') ? *p++ : lenstr(s));
+			s = *p++ ;
+			write(errfd, s, (*f ==  'b') ? *p++  : lenstr(s));
 			}
 	}
 
@@ -174,25 +204,25 @@ TLIST *getargs(ip, ap)
 	COUNT npar;
 
 	p = ip;
-	for (qb = ap, p = p->next; p && !punct(p, ')'); qb = &q->next)
+	for (qb = ap, p = p-> next; p &&  !punct(p, ')'); qb = &q-> next)
 		{
 		*qb = q = alloc(sizeof (**ap), NULL);
-		q->astart = p;
-		for (npar = 0; p && (0 < npar || !punct(p, ',')
-			&& !punct(p, ')')); p = p->next)
+		q-> astart = p;
+		for (npar = 0; p &&  (0 < npar ||  !punct(p, ',')
+			&&  !punct(p, ')')); p = p-> next)
 			if (punct(p, '('))
-				++npar;
+				++ npar;
 			else if (punct(p, ')'))
-				--npar;
+				-- npar;
 		if (p)
 			{
-			q->aend = p;
+			q-> aend = p;
 			if (punct(p, ','))
-				p = p->next;
+				p = p-> next;
 			}
 		}
 	if (p)
-		return (p->next);
+		return (p-> next);
 	else
 		{
 		perror("bad macro arguments");
@@ -210,30 +240,34 @@ TEXT *getfname(p)
 	FAST TEXT *q, *s;
 	BYTES n;
 	COUNT i;
+#ifdef USESTDCLIB
+	int fd;
+#else
 	FILE fd;
+#endif
 
-	if (p->type == PIDENT)
+	if (p-> type ==  PIDENT)
 		{
-		q = buybuf(p->text, p->ntext + 1);	/* DIRTY */
-		q[p->ntext] = '\0';
+		q = buybuf(p-> text, p-> ntext + 1);	/* DIRTY */
+		q[p-> ntext] = '\0';
 		}
-	else if (p->type == PSTRING)
+	else if (p-> type ==  PSTRING)
 		{
-		q = buybuf(p->text + 1, p->ntext - 1);
-		q[p->ntext - 2] = '\0';
+		q = buybuf(p-> text + 1, p-> ntext - 1);
+		q[p-> ntext - 2] = '\0';
 		}
 	else if (punct(p, '<'))
 		{
-		for (s = p->next->text; *s != '>' && !iswhite(*s); ++s)
+		for (s = p-> next-> text; *s !=  '>' &&  !iswhite(*s); ++ s)
 			;
-		n = s - p->next->text;
+		n = s - p-> next-> text;
 		q = alloc(lenstr(iprefix) + n + 1, 0);
-		for (s = iprefix; *s; s =+ (s[i]) ? i + 1 : i) 
+		for (s = iprefix; *s; s +=  (s[i]) ? i + 1 : i)
 			{
 			cpybuf(q, s, i = scnstr(s, '|'));
-			cpybuf(q + i, p->next->text, n);
+			cpybuf(q + i, p-> next-> text, n);
 			q[i + n] = '\0';
-			if (0 <= (fd = open(q, READ, 1)))
+			if (0 <=  (fd = open(q, READ, 1)))
 				{
 				close(fd);
 				break;
@@ -254,8 +288,8 @@ DEF **hash(s, n)
 	IMPORT DEF *htable[];
 	FAST COUNT sum;
 
-	for (sum = 0; 0 < n; --n)
-		sum =+ *s++;
+	for (sum = 0; 0 < n; -- n)
+		sum +=  *s++ ;
 	return (&htable[sum % NHASH]);
 	}
 
@@ -271,9 +305,9 @@ VOID install(s, n, pd)
 	n = min(n, LENNAME);
 	qb = hash(s, n);
 	*qb = q = alloc(sizeof (*q), *qb);
-	cpybuf(q->dname, s, n);
-	q->dnlen = n;
-	q->defn = pd;
+	cpybuf(q-> dname, s, n);
+	q-> dnlen = n;
+	q-> defn = pd;
 	}
 
 /*	lookup a definition in symbol table
@@ -285,9 +319,9 @@ TLIST *lookup(s, n)
 	FAST DEF *q;
 
 	n = min(n, LENNAME);
-	for (q = *hash(s, n); q; q = q->next)
-		if (n == q->dnlen && cmpbuf(s, q->dname, n))
-			return (q->defn);
+	for (q = *hash(s, n); q; q = q-> next)
+		if (n ==  q-> dnlen &&  cmpbuf(s, q-> dname, n))
+			return (q-> defn);
 	return (NULL);
 	}
 
@@ -298,23 +332,32 @@ INCL *nxtfile()
 	IMPORT BOOL pflag;
 	IMPORT BYTES argc;
 	IMPORT TEXT **argv;
+#ifdef USESTDCLIB
+	int fd;
+#else
 	FAST FILE fd;
+#endif
 	FAST INCL *pi;
 
-	while ((fd = getfiles(&argc, &argv, STDIN, STDERR)) == STDERR)
-		perror("can't open %p", argv[-1]);
+	while ((fd = getfiles(&argc, &argv, STDIN, STDERR)) ==  STDERR)
+		ws_perror("can't open %p", argv[-1]);
 	if (fd < 0)
 		return (NULL);
 	else
 		{
 		pi = alloc(sizeof(*pi), NULL);
-		if (fd == STDIN)
-			pi->fname = NULL;
+		if (fd ==  STDIN)
+			pi-> fname = NULL;
 		else
-			pi->fname = buybuf(argv[-1], lenstr(argv[-1]) + 1);
+			pi-> fname = buybuf(argv[-1], lenstr(argv[-1]) + 1);
 		pflag = YES;
-		pi->nline = 0;
-		finit(&pi->pfio, fd, READ);
+		pi-> nline = 0;
+#ifdef USESTDCLIB
+		pi->pfio = fdopen(fd,"r");
+		if (!pi->pfio) ws_perror("can't fdopen");
+#else
+		finit(&pi-> pfio, fd, READ);
+#endif
 		return (pi);
 		}
 	}
@@ -326,23 +369,36 @@ VOID pargs(s, n)
 	FAST COUNT n;
 	{
 	IMPORT INCL *pincl;
+#ifdef USESTDCLIB
+	FILE *p;
+#else
 	FAST FIO *p;
+	/* TODO */
+	error("pargs needs implemetation",NULL);
 
-	p = &pincl->pfio;
-	for (; 0 < n && p->_nleft < (BUFSIZE - 1); --n, ++p->_nleft)
-		if ((p->_buf[p->_nleft] = *s++) == '\n')
-			--pincl->nline;
-	if (0 < n && p->_nleft < BUFSIZE)
+	p = &pincl-> pfio;
+	for (; 0 < n &&  p-> _nleft < (BUFSIZE - 1); -- n, ++ p-> _nleft)
+		if ((p-> _buf[p-> _nleft] = *s++ ) ==  '\n')
+			-- pincl-> nline;
+	if (0 < n &&  p-> _nleft < BUFSIZE)
 		{
-		p->_buf[p->_nleft++] = '\n';
+		p-> _buf[p-> _nleft++ ] = '\n';
 		perror("too many -d arguments");
 		}
-	p->_pnext = p->_buf;
+	p-> _pnext = p-> _buf;
+	#endif
 	}
 
 /*	put an error message with line numbers
  */
-VOID perror(fmt, a0, a1)
+#ifdef USESTDCLIB
+void ws_perror(TEXT *s, ...) {
+	/* TODO */
+	printf("%s\n",s);
+	exit(1);
+}
+#else
+VOID ws_perror(fmt, a0, a1)
 	TEXT *fmt, *a0, *a1;
 	{
 	IMPORT COUNT nerrors;
@@ -350,14 +406,15 @@ VOID perror(fmt, a0, a1)
 
 	if (!pincl)
 		errfmt("EOF: ");
-	else if (!pincl->fname)
-		errfmt("%s: ", pincl->nline);
+	else if (!pincl-> fname)
+		errfmt("%s: ", pincl-> nline);
 	else
-		errfmt("%p %s: ", pincl->fname, pincl->nline);
+		errfmt("%p %s: ", pincl-> fname, pincl-> nline);
 	errfmt(fmt, a0, a1);
 	errfmt("\n");
-	++nerrors;
+	++ nerrors;
 	}
+#endif
 
 /*	install predefined args
  */
@@ -370,19 +427,19 @@ VOID predef(p)
 	COUNT n;
 	TEXT pch = pchar;
 
-	for (i = 0; p->ntop < NDARGS - i; ++i)
+	for (i = 0; p-> ntop < NDARGS - i; ++ i)
 		{
-		s = p->anames[(NDARGS - 1) - i];
+		s = p-> anames[(NDARGS - 1) - i];
 		pargs(&pch, 1);
 		pargs("define ", 7);
 		n = scnstr(s, '=');
 		pargs(s, n);
 		pargs(" ", 1);
-		if (s[n] == '\0')
+		if (s[n] ==  '\0')
 			pargs("1", 1);
 		else
 			{
-			s =+ n + 1;
+			s +=  n + 1;
 			pargs(s, lenstr(s));
 			}
 		pargs("\n", 1);
@@ -395,7 +452,7 @@ BOOL punct(p, c)
 	FAST TLIST *p;
 	TEXT c;
 	{
-	return (p->ntext == 1 && *p->text == c);
+	return (p-> ntext ==  1 &&  *p-> text ==  c);
 	}
 
 /*	scan a table of predefined strings
@@ -413,15 +470,15 @@ LEX scntab(p, hi, s, n)
 
 	for (lo = 0; lo < hi; )
 		{
-		i = (hi + lo) >> 1;
+		i = (hi + lo) >>  1;
 		r = p[i].prename;
-		if (!(x = *r++ - n))
-			for (j = 0, q = s; j < n; ++j)
-				if (x = *r++ - *q++)
+		if (!(x = *r++  - n))
+			for (j = 0, q = s; j < n; ++ j)
+				if (x = *r++  - *q++ )
 					break;
 		if (x < 0)
 			lo = i + 1;
-		else if (x == 0)
+		else if (x ==  0)
 			return (p[i].pretype);
 		else
 			hi = i;
@@ -441,56 +498,56 @@ TLIST *stotl(s)
 	FOREVER
 		{
 		q = alloc(sizeof (*q), NULL);
-		q->white = s;
-		while (iswhite(*s) && *s != '\n')
-			++s;
-		q->nwhite = s - q->white;
-		q->text = s;
-		if (*s == '\n')
+		q-> white = s;
+		while (iswhite(*s) &&  *s !=  '\n')
+			++ s;
+		q-> nwhite = s - q-> white;
+		q-> text = s;
+		if (*s ==  '\n')
 			{
-			++s;
-			q->type = PEOL;
+			++ s;
+			q-> type = PEOL;
 			}
-		else if (isalpha(*s) || *s == '_' || LENNAME != 8 && *s == '$')
+		else if (isalpha(*s) ||  *s ==  '_' ||  LENNAME !=  8 &&  *s ==  '$')
 			{
-			while (isalpha(*s) || *s == '_' || LENNAME != 8 && *s == '$'
-				|| isdigit(*s))
-				++s;
-			q->type = PIDENT;
+			while (isalpha(*s) ||  *s ==  '_' ||  LENNAME !=  8 &&  *s ==  '$'
+				||  isdigit(*s))
+				++ s;
+			q-> type = PIDENT;
 			}
 		else if (isdigit(*s))
 			{
-			while (isalpha(*s) || isdigit(*s))
-				++s;
-			q->type = PNUM;
+			while (isalpha(*s) ||  isdigit(*s))
+				++ s;
+			q-> type = PNUM;
 			}
-		else if (*s == '"' || *s == '\'')
+		else if (*s ==  '"' ||  *s ==  '\'')
 			{
-			for (; *++s != *q->text && *s != '\n'; )
-				if (*s == '\\' && s[1] != '\n')
-					++s;
-				else if (*s == '\\')
+			for (; * ++ s !=  *q-> text &&  *s !=  '\n'; )
+				if (*s ==  '\\' &&  s[1] !=  '\n')
+					++ s;
+				else if (*s ==  '\\')
 					break;
-			if (*s == *q->text)
-				++s;
+			if (*s ==  *q-> text)
+				++ s;
 			else
-				perror("unbalanced %c", *q->text);
-			q->type = (*q->text == '"') ? PSTRING : PCHCON;
-			if (STRSIZE < s - q->text)
+				ws_perror("unbalanced %c", *q-> text);
+			q-> type = (*q-> text ==  '"') ? PSTRING : PCHCON;
+			if (STRSIZE < s - q-> text)
 				{
 				perror("string too long");
-				q->text = s - STRSIZE;
+				q-> text = s - STRSIZE;
 				}
 			}
 		else
 			{
-			++s;
-			q->type = PPUNCT;
+			++ s;
+			q-> type = PPUNCT;
 			}
-		q->ntext = s - q->text;
+		q-> ntext = s - q-> text;
 		*qb = q;
-		qb = &q->next;
-		if (q->type == PEOL)
+		qb = &q-> next;
+		if (q-> type ==  PEOL)
 			return (qs);
 		}
 	}
@@ -504,12 +561,17 @@ VOID undef(s, n)
 	FAST DEF **qb, *q;
 
 	n = min(n, LENNAME);
-	for (qb = hash(s, n); q = *qb; qb = &q->next)
-		if (n == q->dnlen && cmpbuf(s, q->dname, n))
+	for (qb = hash(s, n); q = *qb; qb = &q-> next)
+		if (n ==  q-> dnlen &&  cmpbuf(s, q-> dname, n))
 			break;
 	if (q)
 		{
-		free(q->defn, NULL);
-		*qb = free(q, q->next);
+#ifdef USESTDCLIB
+		free(q-> defn);
+		*qb = ws_free(q, q-> next);
+#else
+		free(q-> defn, NULL);
+		*qb = free(q, q-> next);
+#endif
 		}
 	}

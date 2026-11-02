@@ -5,26 +5,38 @@
 #include "int0.h"
 #include "int01.h"
 #include "int012.h"
+BYTES doesc();
+LEX dopunct();
+BOOL eval();
+LEX exop();
+TLIST * expr();
+COUNT expri();
+TLIST * extail();
+TLIST * exterm();
+/*VOID perror();*/
+BOOL punct();
+LEX scntab();
+
 
 /*	escape sequences for c
  */
-LOCAL TEXT eschars[] {"btnvfrBTNVFR(!)^"};	/* ASCII */
-LOCAL TEXT escodes[] {010, 011, 012, 013, 014, 015, 010, 011, 012,
+LOCAL TEXT eschars[] = {"btnvfrBTNVFR(!)^"};	/* ASCII */
+LOCAL TEXT escodes[] = {010, 011, 012, 013, 014, 015, 010, 011, 012,
 	013, 114, 015, 0173, 0174, 0175, 0176};
 
 /*	the priority tables
  */
-LOCAL TEXT ipri[] {LTIMES, LDIVIDE, LMODULO, LPLUS, LMINUS, LLSHIFT, LRSHIFT,
+LOCAL TEXT ipri[] = {LTIMES, LDIVIDE, LMODULO, LPLUS, LMINUS, LLSHIFT, LRSHIFT,
 	LLESS, LLEQ, LGREAT, LGEQ, LISEQ, LNOTEQ,
 	LAND, LXOR, LOR, LANDAND, LOROR, LQUERY, 0};
-LOCAL TEXT opri[] {14, 14, 14, 13, 13, 12, 12,
+LOCAL TEXT opri[] = {14, 14, 14, 13, 13, 12, 12,
 	11, 11, 11, 11, 10, 10,
 	9, 8, 7, 6, 5, 4};
 
 /*	the operator table
  */
 #define NOPS	54
-LOCAL PRETAB optab[] {
+LOCAL PRETAB optab[] = {
 	"\1!", LNOT,
 	"\1%", LMODULO,
 	"\1&", LAND,
@@ -95,33 +107,33 @@ BYTES doesc(buf, s, n)
 
 	q = buf;
 	n = max(n, 2);
-	for (i = 0; i < n; ++i)
-		if (*s != '\\')
-			*q++ = *s++;
-		else if (eschars[j = scnstr(eschars, *++s)])
+	for (i = 0; i < n; ++ i)
+		if (*s !=  '\\')
+			*q++  = *s++ ;
+		else if (eschars[j = scnstr(eschars, * ++ s)])
 			{
-			*q++ = escodes[j];
-			++s;
-			++i;
+			*q++  = escodes[j];
+			++ s;
+			++ i;
 			}
 		else if (isdigit(*s))
 			{
-			for (sum = 0, j = 0; j < 3 && isdigit(*s) ; ++j, ++s)
-				sum = (sum << 3) + (*s - '0');
-			*q++ = 0xff & sum;
-			i =+ j;
+			for (sum = 0, j = 0; j < 3 &&  isdigit(*s) ; ++ j, ++ s)
+				sum = (sum <<  3) + (*s - '0');
+			*q++  = 0xff & sum;
+			i +=  j;
 			}
-		else if (*s == 'x' || *s == 'X')
+		else if (*s ==  'x' ||  *s ==  'X')
 			{
-			j = btos(++s, 3, &sum, 16);
-			*q++ = 0xff & sum;
+			j = btos( ++ s, 3, &sum, 16);
+			*q++  = 0xff & sum;
 			i += j + 1;
 			s += j;
 			}
 		else
 			{
-			*q++ = *s++;
-			++i;
+			*q++  = *s++ ;
+			++ i;
 			}
 	return (q - buf);		/* assert 2 <= (q - buf) */
 	}
@@ -138,23 +150,23 @@ LEX dopunct(pp)
 	LEX tok;
 
 	p = *pp;
-	buf[0] = *p->text;
-	for (n = 1, q = p->next; n < 3 && q->type == PPUNCT && q->nwhite == 0;
-		++n, q = q->next)
-		buf[n] = *q->text;
-	for (; 0 < n; --n)
+	buf[0] = *p-> text;
+	for (n = 1, q = p-> next; n < 3 &&  q-> type ==  PPUNCT &&  q-> nwhite ==  0;
+		++ n, q = q-> next)
+		buf[n] = *q-> text;
+	for (; 0 < n; -- n)
 		if (tok = scntab(optab, NOPS, buf, n))
 			break;
-	if (n <= 0)
+	if (n <=  0)
 		{
-		perror("illegal character: %c", *p->text);
-		*pp = p->next;
+		ws_perror("illegal character: %c", *p-> text);
+		*pp = p-> next;
 		return (LPLUS);
 		}
 	else
 		{
-		for (; 0 < n; --n)
-			p = p->next;
+		for (; 0 < n; -- n)
+			p = p-> next;
 		*pp = p;
 		return (tok);
 		}
@@ -169,13 +181,13 @@ BOOL eval(p)
 
 	if (!(p = expr(p, &lv)))
 		return (NO);
-	else if (p->type != PEOL)
+	else if (p-> type !=  PEOL)
 		{
 		perror("illegal #if expression");
 		return (NO);
 		}
 	else
-		return (lv != 0);
+		return (lv !=  0);
 	}
 
 /*	test for operator
@@ -188,7 +200,7 @@ LEX exop(pp, mask)
 	TLIST *q;
 
 	q = *pp;
-	if (q->type == PPUNCT && (tok = dopunct(&q)) & mask)
+	if (q-> type ==  PPUNCT &&  (tok = dopunct(&q)) & mask)
 		{
 		*pp = q;
 		return (tok);
@@ -221,7 +233,7 @@ COUNT expri(op)
 	IMPORT TEXT ipri[], opri[];
 	FAST BYTES i;
 
-	if (!op || !ipri[i = scnstr(ipri, op)])
+	if (!op ||  !ipri[i = scnstr(ipri, op)])
 		return (0);
 	else
 		return (opri[i]);
@@ -254,61 +266,61 @@ TLIST *extail(lpr, plv, pop, p)
 		switch (op)
 			{
 		case LPLUS:
-			lv =+ rv;
+			lv +=  rv;
 			break;
 		case LMINUS:
 			lv = mv;
 			break;
 		case LTIMES:
-			lv =* rv;
+			lv *=  rv;
 			break;
 		case LDIVIDE:
-			lv =/ rv;
+			lv /=  rv;
 			break;
 		case LMODULO:
-			lv =% rv;
+			lv %=  rv;
 			break;
 		case LAND:
-			lv =& rv;
+			lv &=  rv;
 			break;
 		case LOR:
-			lv =| rv;
+			lv |=  rv;
 			break;
 		case LXOR:
-			lv =^ rv;
+			lv ^=  rv;
 			break;
 		case LLSHIFT:
-			lv =<< rv;
+			lv <<=  rv;
 			break;
 		case LRSHIFT:
-			lv =>> rv;
+			lv >>=  rv;
 			break;
 		case LLESS:
 			lv = (mv < 0);
 			break;
 		case LISEQ:
-			lv = (mv == 0);
+			lv = (mv ==  0);
 			break;
 		case LGREAT:
 			lv = (mv > 0);
 			break;
 		case LLEQ:
-			lv = (mv <= 0);
+			lv = (mv <=  0);
 			break;
 		case LNOTEQ:
-			lv = (mv != 0);
+			lv = (mv !=  0);
 			break;
 		case LGEQ:
-			lv = (mv >= 0);
+			lv = (mv >=  0);
 			break;
 		case LANDAND:
-			lv = (lv && rv);
+			lv = (lv &&  rv);
 			break;
 		case LOROR:
-			lv = (lv || rv);
+			lv = (lv ||  rv);
 			break;
 		case LQUERY:
-			if (!punct(p, ':') || !(p = expr(p->next, &mv)))
+			if (!punct(p, ':') ||  !(p = expr(p-> next, &mv)))
 				{
 				perror("illegal ? : in #if");
 				return (NULL);
@@ -339,37 +351,37 @@ TLIST *exterm(p, plv)
 	TEXT sbuf[STRSIZE];
 	LEX op;
 
-	if (p->type == PNUM)
+	if (p-> type ==  PNUM)
 		{
-		s = p->text;
-		n = p->ntext;
-		if (*s != '0')
+		s = p-> text;
+		n = p-> ntext;
+		if (*s !=  '0')
 			base = 10;
-		else if (1 < n && tolower(s[1]) == 'x')
+		else if (1 < n &&  tolower(s[1]) ==  'x')
 			{
 			base = 16;
-			s =+ 2;
-			n =- 2;
+			s +=  2;
+			n -=  2;
 			}
 		else
 			base = 8;
-		if (btol(s, n, plv, base) != n)
+		if (btol(s, n, plv, base) !=  n)
 			{
 			perror("illegal number in #if");
 			*plv = 0;
 			}
-		return (p->next);
+		return (p-> next);
 		}
-	else if (p->type == PCHCON)
+	else if (p-> type ==  PCHCON)
 		{
 		s = &sbuf[1];
-		n = doesc(sbuf, p->text, p->ntext) - 2;
-		for (*plv = 0; n; ++s, --n)
-			*plv = (*plv << 8) | *s & BYTMASK;
-		return (p->next);
+		n = doesc(sbuf, p-> text, p-> ntext) - 2;
+		for (*plv = 0; n; ++ s, -- n)
+			*plv = (*plv <<  8) | *s & BYTMASK;
+		return (p-> next);
 		}
 	else if (punct(p, '('))
-		if (!(p = expr(p->next, plv)))
+		if (!(p = expr(p-> next, plv)))
 			return (NULL);
 		else if (!punct(p, ')'))
 			{
@@ -377,7 +389,7 @@ TLIST *exterm(p, plv)
 			return (NULL);
 			}
 		else
-			return (p->next);
+			return (p-> next);
 	else if (!(op = exop(&p, UNOP)))
 		{
 		perror("illegal #if syntax");
@@ -387,13 +399,13 @@ TLIST *exterm(p, plv)
 		return (NULL);
 	else
 		{
-		if (op == LMINUS)
+		if (op ==  LMINUS)
 			*plv = -*plv;
-		else if (op == LNOT)
-			*plv = (*plv == 0);
-		else if (op == LCOMP)
+		else if (op ==  LNOT)
+			*plv = (*plv ==  0);
+		else if (op ==  LCOMP)
 			*plv = ~*plv;
-		else if (op != LPLUS)
+		else if (op !=  LPLUS)
 			perror("illegal unary op in #if");
 		return (p);
 		}

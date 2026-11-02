@@ -18,6 +18,9 @@
 #undef fread
 #undef fwrite
 
+
+
+
 TEXT *alloc (BYTES nBytes, void *link) {
 	char *p = malloc(nBytes);
 	if (!p) return p;
@@ -25,6 +28,19 @@ TEXT *alloc (BYTES nBytes, void *link) {
 		*(void **)p = link;
 	return p;
 }
+
+
+TEXT *ws_free (void * p, void *link) {
+	free(p);
+	return (TEXT *)link;
+}
+
+TEXT *frelst (TEXT * p, TEXT *last) {
+	while (p && p != last)
+		p = ws_free(p, *(void **)p);
+        return (p);
+}
+
 
 
 TEXT *buybuf(TEXT *s, BYTES n) {
@@ -56,6 +72,9 @@ BOOL prefix(TEXT *s1, TEXT *s2) {
 	return (YES);
 }
 
+BYTES putlin(TEXT *s, BYTES n) {
+	return fwrite(s,n,1,stdout);
+};
 
 int create (TEXT * fname, COUNT mode, BYTES rsize) {
 	mode_t mo = 0;
@@ -660,7 +679,7 @@ BYTES itob(TEXT *is, ARGINT n, COUNT base) {
 		s += itob(s, u / base, base);
 	*s = (u % base) + '0';
 	if ('9' < *s)
-			*s =+ ('a' - ('9' + 1));
+			*s += ('a' - ('9' + 1));
 	return (s - is + 1);
 }
 
@@ -753,6 +772,12 @@ VOID error(TEXT *s1, TEXT *s2) {
 /* get a text line from stdin*/
 BYTES getlin(TEXT *s, BYTES n) {
 	char *read = fgets(s, n, stdin);
+	if (!read) return 0;
+	return strlen(read);
+}
+
+BYTES getl(FILE *pfio, TEXT *s, BYTES n) {
+	char *read = fgets(s, n, pfio);
 	if (!read) return 0;
 	return strlen(read);
 }
@@ -871,4 +896,106 @@ BYTES ltob(TEXT *is, LONG ln, COUNT base) {
 	if ('9' < *s) *s += ('a' - ('9' + 1));
 	return (s - is + 1);
 }
+
+BYTES btos(TEXT *s, BYTES n, COUNT *i, COUNT base)
+	{
+	COUNT val, dig;
+	BOOL minus;
+	TEXT *is;
+
+	val = 0;
+	is = s;
+	minus = NO;
+	for(; 0 < n && iswhite(*s); --n, ++s)
+		;
+	if (0 < n)
+		if (*s == '-')
+			{
+			minus = YES;
+			++s;
+			--n;
+			}
+		else if (*s == '+')
+			{
+			++s;
+			--n;
+			}
+	if (n <= 0)
+			;
+	else if (base == 1)
+		{
+		if (*s != '0')
+			base = 10;
+		else if (1 < n && tolower(s[1]) == 'x')
+			{
+			base = 16;
+			s += 2;
+			n -= 2;
+			}
+		else
+			base = 8;
+		}
+	else if (base == 16 && 2 <= n)
+		if (*s == '0' && tolower(s[1]) == 'x')
+			{
+			s += 2;
+			n -= 2;
+			}
+	for (; 0 < n; --n, ++s)
+		{
+		if (isdigit(*s))
+			dig = *s - '0';
+		else if (isalpha(*s))
+			{
+			dig = tolower(*s) - ('a' - 10);
+			if (base <= dig)
+				break;
+			}
+		else
+			break;
+		val = val * base + dig;
+		}
+	*i = ((minus) ? -val : val);
+	if (0 < n && tolower(*s) == 'l')
+		++s;
+	return (s - is);
+	}
+
+
+DOUBLE _dtens[] = {1e0, 1e1, 1e2, 1e4, 1e8, 1e16, 1e32};
+DOUBLE _dzero = 0.0;
+COUNT _ntens = 7;
+
+double dtento(DOUBLE d, COUNT exp)
+        {
+        IMPORT COUNT _ntens;
+        IMPORT DOUBLE _dtens[];
+        FAST BYTES u;
+        FAST COUNT i;
+
+        if (exp < 0)
+                {
+                for (u = -exp, i = 1; u && i < _ntens; u >= 1, ++i)
+                        if (u & 1)
+                                d = d / _dtens[i];
+                for (; 0 < u; --u)
+                        {
+                        d = d / _dtens[_ntens - 1];
+                        d = d / _dtens[_ntens - 1];
+                        }
+                }
+        else if (0 < exp)
+                {
+                for (u = exp, i = 1; u && i < _ntens; u >= 1, ++i)
+                        if (u & 1)
+                                d = d * _dtens[i];
+                for (; 0 < u; --u)
+                        {
+                        d = d * _dtens[_ntens - 1];
+                        d = d * _dtens[_ntens - 1];
+                        }
+                }
+        return (d);
+        }
+
 

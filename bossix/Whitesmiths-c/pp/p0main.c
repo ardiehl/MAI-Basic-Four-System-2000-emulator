@@ -3,10 +3,30 @@
  */
 #include <std.h>
 #include "int0.h"
+TLIST * getex();
+TLIST * getinp0();
+TEXT * getln();
+BOOL main();
+TLIST * putgr();
+VOID putns();
+TLIST * doexp();
+BOOL eval();
+TEXT * getfname();
+VOID install();
+TLIST * lookup();
+INCL * nxtfile();
+
+VOID predef();
+BOOL punct();
+VOID putls();
+LEX scntab();
+TLIST * stotl();
+VOID undef();
+
 
 /*	DATA FLOW:
 	getl(line)->
-	getln(logical line)-> getin(includes)->
+	getln(logical line)-> getinp0(includes)->
 	getex(expanded)-> main()-> putgr(if group)->
 	putns(non skipped)-> putls(less sharps)-> lex
  */
@@ -20,15 +40,15 @@
 	-x => put lexemes, not lines.
 	-6 => put SOH, extra newlines for v6 compiler
  */
-LOCAL BOOL cflag {NO};
-LOCAL ARGS pdefs {NDARGS};
-LOCAL TEXT *ofile {NULL};
-GLOBAL BOOL xflag {NO};
-GLOBAL BOOL v6flag {NO};
-GLOBAL BYTES pchar {'#'};
-GLOBAL BYTES schar {'@'};
-GLOBAL TEXT *iprefix {"|"};
-GLOBAL TEXT *_pname {"pp"};
+LOCAL BOOL cflag = {NO};
+LOCAL ARGS pdefs = {NDARGS};
+LOCAL TEXT *ofile = {NULL};
+GLOBAL BOOL xflag = {NO};
+GLOBAL BOOL v6flag = {NO};
+GLOBAL BYTES pchar = {'#'};
+GLOBAL BYTES schar = {'@'};
+GLOBAL TEXT *iprefix = {"|"};
+GLOBAL TEXT *_pname = {"pp"};
 
 /*	FILE CONTROL:
 	argc = no of file args left
@@ -38,17 +58,21 @@ GLOBAL TEXT *_pname {"pp"};
 	nerrors = no of errors seen
 	pflag => name has changed
 */
-GLOBAL TEXT **argv {NULL};
-GLOBAL BYTES argc {0};
-GLOBAL FILE errfd {STDERR};
-GLOBAL INCL *pincl {NULL};
-GLOBAL COUNT nerrors {0};
-GLOBAL BOOL pflag {NO};
+GLOBAL TEXT **argv = {NULL};
+GLOBAL BYTES argc = {0};
+#ifdef USESTDCLIB
+GLOBAL int errfd = STDERR;
+#else
+GLOBAL FILE errfd = {STDERR};
+#endif
+GLOBAL INCL *pincl = {NULL};
+GLOBAL COUNT nerrors = {0};
+GLOBAL BOOL pflag = {NO};
 
 /*	the table of predefined #keywords
  */
 #define NPPS	18
-LOCAL PRETAB pptab[] {
+LOCAL PRETAB pptab[] = {
 	"\2IF", PIF,
 	"\2if", PIF,
 	"\4ELSE", PELSE,
@@ -78,19 +102,24 @@ TLIST *getex()
 	FAST TLIST *p;
 	FAST LEX tok;
 
-	if (p = getin())
+	if (p = getinp0())
 		{
-		if (punct(p, pchar) || punct(p, schar))
+		if (punct(p, pchar) ||  punct(p, schar))
 			{
-			if (tok = scntab(pptab, NPPS, p->next->text, p->next->ntext))
+			if (tok = scntab(pptab, NPPS, p-> next-> text, p-> next-> ntext))
+
 				{
-				p = free(p, p->next);
-				p->type = tok;
+#ifdef USESTDCLIB
+				p = ws_free(p, p-> next);
+#else
+				p = free(p, p-> next);
+#endif
+				p-> type = tok;
 				}
 			else
-				p->type = PSHARP;
+				p-> type = PSHARP;
 			}
-		switch (p->type)
+		switch (p-> type)
 			{
 		case PDEFINE:
 		case PUNDEF:
@@ -99,10 +128,10 @@ TLIST *getex()
 			break;
 		case PIFDEF:
 		case PIFNDEF:
-			if (p->next->type != PIDENT)
-				perror("bad #%b", p->text, p->ntext);
-			else if (!lookup(p->next->text, p->next->ntext))
-				p->next = frelst(p->next, NULL);
+			if (p-> next-> type !=  PIDENT)
+				ws_perror("bad #%b", p-> text, p-> ntext);
+			else if (!lookup(p-> next-> text, p-> next-> ntext))
+				p-> next = frelst(p-> next, NULL);
 			break;
 		default:
 			p = doexp(p);
@@ -113,7 +142,7 @@ TLIST *getex()
 
 /*	get an included line, as a token list
  */
-TLIST *getin()
+TLIST *getinp0()
 	{
 	IMPORT BOOL pflag;
 	IMPORT INCL *pincl;
@@ -129,9 +158,14 @@ TLIST *getin()
 			return (stotl(s));
 		else
 			{
-			fclose(&pincl->pfio);
-			free(pincl->fname, NULL);
-			pincl = free(pincl, pincl->next);
+			fclose(&pincl-> pfio);
+#ifdef USESTDCLIB
+			ws_free(pincl-> fname, NULL);
+			pincl = ws_free(pincl, pincl-> next);
+#else
+			free(pincl-> fname, NULL);
+			pincl = free(pincl, pincl-> next);
+#endif
 			pflag = YES;
 			}
 		}
@@ -145,7 +179,11 @@ TEXT *getln(pi)
 	{
 	IMPORT BOOL cflag;
 	FAST COUNT i;
+#ifdef USESTDCLIB
+	FILE *pf;
+#else
 	FAST FIO *pf;
+#endif
 	FAST TEXT *s;
 	COUNT j, k;
 	INTERN TEXT buf[BUFSIZE];
@@ -153,68 +191,68 @@ TEXT *getln(pi)
 
 	strchar = '\0';
 	s = buf;
-	pf = &pi->pfio;
+	pf = &pi-> pfio;
 	for (i = getl(pf, buf, BUFSIZE); 0 < i; )
-		if (!cflag && *s == '\\' && 1 < i && s[1] == '\n')
+		if (!cflag &&  *s ==  '\\' &&  1 < i &&  s[1] ==  '\n')
 			{
-			++pi->nline;
+			++ pi-> nline;
 			i = getl(pf, s, BUFSIZE - (s - buf));
-			for (savs = s; 0 < i && *s != '\n' && iswhite(*s); --i)
-				++s;
-			if (savs != s)
+			for (savs = s; 0 < i &&  *s !=  '\n' &&  iswhite(*s); -- i)
+				++ s;
+			if (savs !=  s)
 				{
 				cpybuf(savs, s, i);
 				s = savs;
 				}
 			}
-		else if (!cflag && *s == '\\')
+		else if (!cflag &&  *s ==  '\\')
 			{
-			s =+ 2;
-			i =- 2;
+			s +=  2;
+			i -=  2;
 			}
-		else if (!cflag && !strchar && *s == '/' && 1 < i && s[1] == '*')
+		else if (!cflag &&  !strchar &&  *s ==  '/' &&  1 < i &&  s[1] ==  '*')
 			{
-			for (j = 2; j < i - 1; ++j)
-				if (s[j] == '*' && s[j + 1] == '/')
+			for (j = 2; j < i - 1; ++ j)
+				if (s[j] ==  '*' &&  s[j + 1] ==  '/')
 					break;
 			if (j < i - 1)
 				{
-				*s++ = ' ';
-				i =- j + 2;
-				for (k = 0; k < i; ++k)
+				*s++  = ' ';
+				i -=  j + 2;
+				for (k = 0; k < i; ++ k)
 					s[k] = s[k + j + 1];
 				}
-			else if ((i = getl(pf, s + 2, BUFSIZE - (s + 2 - buf))) <= 0)
+			else if ((i = getl(pf, s + 2, BUFSIZE - (s + 2 - buf))) <=  0)
 				{
 				perror("missing */");
 				break;
 				}
 			else
 				{
-				++pi->nline;
-				i =+ 2;
+				++ pi-> nline;
+				i +=  2;
 				}
 			}
-		else if (*s == '\n')
+		else if (*s ==  '\n')
 			{
-			++pi->nline;
+			++ pi-> nline;
 			return (buf);
 			}
 		else
 			{
-			if (!cflag && (*s == '"' || *s == '\''))
+			if (!cflag &&  (*s ==  '"' ||  *s ==  '\''))
 				{
-				if (strchar == *s)
+				if (strchar ==  *s)
 					strchar = '\0';
 				else if (!strchar)
 					strchar = *s;
 				else
 					;
 				}
-			++s;
-			--i;
+			++ s;
+			-- i;
 			}
-	if (s == buf)
+	if (s ==  buf)
 		return (NULL);
 	else
 		{
@@ -234,8 +272,13 @@ BOOL main(ac, av)
 	IMPORT BOOL cflag, xflag, v6flag;
 	IMPORT BYTES argc, pchar, schar;
 	IMPORT COUNT nerrors;
+#ifdef USESTDCLIB
+	IMPORT int errfd;
+	IMPORT FILE * stdout;
+#else
 	IMPORT FILE errfd;
 	IMPORT FIO stdout;
+#endif
 	IMPORT INCL *pincl;
 	IMPORT TEXT **argv, *iprefix, *ofile;
 	FAST TLIST *p;
@@ -247,20 +290,29 @@ BOOL main(ac, av)
 	if (pincl = nxtfile())
 		predef(&pdefs);
 	if (ofile)
-		if ((stdout._fd = create(ofile, WRITE, xflag != 0)) < 0)
+#ifdef USESTDCLIB
+		fclose(stdout);
+		stdout = fopen(ofile,"w");
+		if (!stdout)
+			error("bad output file",NULL);
+#else
+		if ((stdout._fd = create(ofile, WRITE, xflag !=  0)) < 0)
 			error("bad output file");
+#endif
 		else
 			{
 			errfd = STDOUT;
+#ifndef USESTDCLIB
 			stdout._fmode = BWRITE;
+#endif
 			}
 	while (p = putgr(getex(), NO))
 		{
-		perror("misplaced #%b", p->text, p->ntext);
+		ws_perror("misplaced #%b", p-> text, p-> ntext);
 		frelst(p, NULL);
 		}
 	fclose(&stdout);
-	return (nerrors == 0);
+	return (nerrors ==  0);
 	}
 
 /*	put an if group
@@ -271,8 +323,8 @@ TLIST *putgr(p, skip)
 	{
 	FAST BOOL doit;
 
-	while (p && p->type != PELSE && p->type != PENDIF)
-		if (p->type != PIF && p->type != PIFDEF && p->type != PIFNDEF)
+	while (p &&  p-> type !=  PELSE &&  p-> type !=  PENDIF)
+		if (p-> type !=  PIF &&  p-> type !=  PIFDEF &&  p-> type !=  PIFNDEF)
 			{
 			if (skip)
 				frelst(p, NULL);
@@ -282,26 +334,26 @@ TLIST *putgr(p, skip)
 			}
 		else
 			{
-			if (p->type == PIF)
-				doit = skip ? NO : eval(p->next);
-			else if (p->type == PIFDEF)
-				doit = (p->next != 0);
+			if (p-> type ==  PIF)
+				doit = skip ? NO : eval(p-> next);
+			else if (p-> type ==  PIFDEF)
+				doit = (p-> next !=  0);
 			else
-				doit = (p->next == 0);
+				doit = (p-> next ==  0);
 			frelst(p, NULL);
-			p = putgr(getex(), skip || !doit);
-			if (p && p->type == PELSE)
+			p = putgr(getex(), skip ||  !doit);
+			if (p &&  p-> type ==  PELSE)
 				{
 				frelst(p, NULL);
-				p = putgr(getex(), skip || doit);
+				p = putgr(getex(), skip ||  doit);
 				}
-			if (p && p->type == PENDIF)
+			if (p &&  p-> type ==  PENDIF)
 				{
 				frelst(p, NULL);
 				p = getex();
 				}
 			else
-				perror("missing #endif");
+				ws_perror("missing #endif");
 			}
 	return(p);
 	}
@@ -315,65 +367,82 @@ VOID putns(p)
 	IMPORT INCL *pincl;
 	FAST TEXT *fname;
 	FAST TLIST *q;
+#ifdef USESTDCLIB
+	int fd;
+#else
 	FILE fd;
+#endif
 	COUNT i;
 
-	switch (p->type)
+	switch (p-> type)
 		{
 	case PDEFINE:
-		if (p->next->type != PIDENT)
-			perror("bad #define");
+		if (p-> next-> type !=  PIDENT)
+			ws_perror("bad #define");
 		else
 			{
-			for (q = p->next; q->next; q = q->next)
+			for (q = p-> next; q-> next; q = q-> next)
 				;
-			install(p->next->text, p->next->ntext,
-				buybuf(p->next->next->white,
-				q->text + q->ntext - p->next->next->white));
+			install(p-> next-> text, p-> next-> ntext,
+				buybuf(p-> next-> next-> white,
+				q-> text + q-> ntext - p-> next-> next-> white));
 			}
 		break;
 	case PUNDEF:
-		if (p->next->type != PIDENT)
-			perror("bad #undef");
+		if (p-> next-> type !=  PIDENT)
+			ws_perror("bad #undef");
 		else
-			undef(p->next->text, p->next->ntext);
+			undef(p-> next-> text, p-> next-> ntext);
 		break;
 	case PINCLUD:
-		if (!(fname = getfname(p->next)))
-			perror("bad #include");
+		if (!(fname = getfname(p-> next)))
+			ws_perror("bad #include");
 		else if ((fd = open(fname, READ, 0)) < 0)
 			{
-			perror("can't #include %p", fname);
+			ws_perror("can't #include %p", fname);
+#ifdef USESTDCLIB
+			free(fname);
+#else
 			free(fname, NULL);
+#endif
 			}
 		else
 			{
 			pincl = alloc(sizeof (*pincl), pincl);
-			pincl->fname = fname;
-			pincl->nline = 0;
-			finit(&pincl->pfio, fd, READ);
+			pincl-> fname = fname;
+			pincl-> nline = 0;
+#ifdef USESTDCLIB
+			pincl->pfio = fdopen(fd,"r");
+			if  (!&pincl->pfio) ws_perror("fdopen for incluude %p failed",fname);
+#else
+			finit(&pincl-> pfio, fd, READ);
+#endif
 			pflag = YES;
 			}
 		break;
 	case PLINE:
-		if (p->next->type != PNUM)
-			perror("bad #line");
+		if (p-> next-> type !=  PNUM)
+			ws_perror("bad #line");
 		else
 			{
-			btos(p->next->text, p->next->ntext, &i, 10);
-			pincl->nline = i;
-			if (fname = getfname(p->next->next))
+			btos(p-> next-> text, p-> next-> ntext, &i, 10);
+			pincl-> nline = i;
+			if (fname = getfname(p-> next-> next))
 				{
 				pflag = YES;
-				if (pincl->fname)
-					free(pincl->fname, NULL);
-				pincl->fname = fname;
+				if (pincl-> fname)
+#ifdef USESTDCLIB
+					free(pincl-> fname);
+#else
+					free(pincl-> fname, NULL);
+#endif
+				pincl-> fname = fname;
 				}
 			}
 		break;
 	case PSHARP:
-		if (p->next->type != PEOL)
-			perror("bad #xxx");
+		if (p-> next-> type !=  PEOL)
+			ws_perror("bad #xxx");
 		break;
 	default:
 		putls(p);

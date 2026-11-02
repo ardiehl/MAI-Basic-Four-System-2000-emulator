@@ -12,7 +12,9 @@
 /* needed for ld, needs to be undefined in ws_libc.c */
 #define fread(fd,buf,count) read(fd,buf,count)
 #define fwrite(fd,buf,count) write(fd,buf,count)
+#define putch putchar
 
+BYTES putlin(TEXT *s, BYTES n);
 /* we can not use string.h */
 char *strcpy(char *dst, const char *src);
 char *strcat(char *dst, const char *src);
@@ -24,6 +26,8 @@ void free(void *ptr);
 extern FILE *fdopen (int fd, const char *modes);
 
 TEXT *alloc (BYTES nBytes, void *link);
+TEXT *ws_free (void * p, void *link);
+TEXT *frelst (TEXT * p, TEXT *last);
 TEXT *buybuf(TEXT *s, BYTES n); /* Alloc and copy in */
 
 
@@ -76,6 +80,7 @@ VOID error(TEXT *s1, TEXT *s2);
 
 /* get a text line from stdin*/
 BYTES getlin(TEXT *s, BYTES n);
+BYTES getl(FILE *pfio, TEXT *s, BYTES n);
 
 #define uname ws_uname
 TEXT *ws_uname();
@@ -93,5 +98,9 @@ TEXT *ltols(TEXT *pl, LONG lo);
 TEXT *pathnm(TEXT *buf, TEXT *n1, TEXT *n2);
 
 BYTES ltob(TEXT *is, LONG ln, COUNT base);
+
+BYTES btos(TEXT *s, BYTES n, COUNT *i, COUNT base);
+
+DOUBLE dtento(DOUBLE d, COUNT exp);
 
 #endif
